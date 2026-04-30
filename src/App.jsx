@@ -1,0 +1,280 @@
+import { useState, useEffect } from 'react'
+
+const UserIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: '0 auto 5px auto' }}>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+  </svg>
+)
+
+function App() {
+  const [balanceHistory, setBalanceHistory] = useState([
+    { Alice: 100, Bob: 100, Carol: 100, Dave: 100 }
+  ])
+  const [blockNum, setBlockNum] = useState(1)
+  const [prevTarget, setPrevTarget] = useState(250) // matching image for fun
+  const [target, setTarget] = useState(550)
+  const [mempool, setMempool] = useState([])
+  const [selectedTxIds, setSelectedTxIds] = useState([])
+  const [nonceInput, setNonceInput] = useState('')
+  const [message, setMessage] = useState('')
+
+  const users = ["Alice", "Bob", "Carol", "Dave"]
+
+  const getNameValue = (name) => {
+    let val = 0;
+    for (let i = 0; i < name.length; i++) {
+      val += name.toUpperCase().charCodeAt(i) - 64;
+    }
+    return val;
+  }
+
+  const nameValues = {
+    Alice: getNameValue("Alice"),
+    Bob: getNameValue("Bob"),
+    Carol: getNameValue("Carol"),
+    Dave: getNameValue("Dave")
+  }
+
+  const generateMempool = (currentBlockNum) => {
+    const pool = []
+    for(let i=0; i<7; i++) {
+      const sender = users[Math.floor(Math.random() * users.length)]
+      let receiver = sender
+      while(receiver === sender) {
+        receiver = users[Math.floor(Math.random() * users.length)]
+      }
+      pool.push({
+        id: currentBlockNum * 10 + i, // unique ids across blocks
+        displayId: i + 4, // matching the image roughly for visual
+        sender,
+        receiver,
+        amount: Math.floor(Math.random() * 90) + 10, // 2-digit number (10-99)
+        fee: Math.floor(Math.random() * 9) + 1 // 1-digit number (1-9)
+      })
+    }
+    setMempool(pool)
+  }
+
+  useEffect(() => {
+    generateMempool(blockNum)
+  }, [])
+
+  const toggleSelection = (id) => {
+    setMessage('')
+    if (selectedTxIds.includes(id)) {
+      setSelectedTxIds(selectedTxIds.filter(txId => txId !== id))
+    } else {
+      if (selectedTxIds.length < 3) {
+        const txToSelect = mempool.find(t => t.id === id);
+        const currentBalances = balanceHistory[balanceHistory.length - 1];
+        
+        // Validation 1: Sufficient Balance
+        if (txToSelect.amount + txToSelect.fee > currentBalances[txToSelect.sender]) {
+          setMessage(`Insufficient balance: ${txToSelect.sender} only has ${currentBalances[txToSelect.sender]}, needs ${txToSelect.amount + txToSelect.fee}.`);
+          return;
+        }
+
+        // Validation 2: Highest Fee Priority
+        const validUnselectedTxs = mempool.filter(t => 
+          !selectedTxIds.includes(t.id) && 
+          (t.amount + t.fee <= currentBalances[t.sender])
+        );
+
+        if (validUnselectedTxs.length > 0) {
+          const maxFee = Math.max(...validUnselectedTxs.map(t => t.fee));
+          if (txToSelect.fee < maxFee) {
+            setMessage(`Miners prioritize! You must select a transaction with the highest available fee (${maxFee}).`);
+            return;
+          }
+        }
+
+        setSelectedTxIds([...selectedTxIds, id])
+      }
+    }
+  }
+
+  const handleMine = () => {
+    if (selectedTxIds.length !== 3) {
+      setMessage('Please select exactly 3 transactions.')
+      return
+    }
+
+    const selectedTxs = mempool.filter(tx => selectedTxIds.includes(tx.id))
+    let blockValue = 0
+    selectedTxs.forEach(tx => {
+      blockValue += nameValues[tx.sender] + nameValues[tx.receiver] + tx.amount + tx.fee
+    })
+
+    const parsedNonce = parseInt(nonceInput, 10)
+    if (isNaN(parsedNonce)) {
+      setMessage('Please enter a valid number for Nonce.')
+      return
+    }
+
+    if (prevTarget + parsedNonce + blockValue === target) {
+      // Success! Update balances
+      const currentBalances = { ...balanceHistory[balanceHistory.length - 1] }
+
+      selectedTxs.forEach(tx => {
+        currentBalances[tx.sender] -= tx.amount
+        currentBalances[tx.receiver] += tx.amount
+        // Note: the prompt mentioned adding fees to miner, but the balance sheet in the photo doesn't have a miner balance. We'll skip the miner balance display for now.
+      })
+
+      setBalanceHistory([...balanceHistory, currentBalances])
+      setBlockNum(blockNum + 1)
+      setPrevTarget(target)
+      setTarget(target + Math.floor(Math.random() * 500) + 500)
+      generateMempool(blockNum + 1)
+      setSelectedTxIds([])
+      setNonceInput('')
+      setMessage('Block Mined Successfully! On to the next block.')
+    } else {
+      setMessage('Incorrect Nonce! Try again.')
+    }
+  }
+
+  // Generate 7 columns for the balance table
+  const columns = [0, 1, 2, 3, 4, 5, 6]
+
+  return (
+    <div className="app-container">
+      {message && (
+        <div className={message.includes('Successfully') ? "success" : "alert"}>
+          {message}
+        </div>
+      )}
+
+      {/* LEFT COLUMN */}
+      <div className="col-left">
+        {/* Mempool Section */}
+        <div className="widget-title">Mempool</div>
+        <div className="widget-content" style={{ marginBottom: '30px' }}>
+          <table className="mempool-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Amount</th>
+                <th>Fees</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mempool.map(tx => (
+                <tr 
+                  key={tx.id} 
+                  className={`clickable ${selectedTxIds.includes(tx.id) ? 'selected' : ''}`}
+                  onClick={() => toggleSelection(tx.id)}
+                >
+                  <td>{tx.displayId}</td>
+                  <td><UserIcon /> {tx.sender}</td>
+                  <td><UserIcon /> {tx.receiver}</td>
+                  <td>{tx.amount}</td>
+                  <td>{tx.fee}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Balance Sheet Section */}
+        <div className="widget-title">Balance sheet</div>
+        <div className="widget-content">
+          <table className="balance-table">
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Block #</th>
+                {columns.map(col => (
+                  <th key={col}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u}>
+                  <td style={{ textAlign: 'left' }}>
+                    <UserIcon />
+                    {u}
+                  </td>
+                  {columns.map(col => {
+                    const bal = balanceHistory[col] ? balanceHistory[col][u] : '-'
+                    return <td key={col}>{bal}</td>
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN */}
+      <div className="col-right">
+        {/* Selected Transactions Section */}
+        <div className="widget-title">Selected transactions</div>
+        <div className="widget-content" style={{ marginBottom: '30px', minHeight: '220px' }}>
+          <table className="mempool-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Amount</th>
+                <th>Fees</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mempool.filter(tx => selectedTxIds.includes(tx.id)).map(tx => (
+                <tr key={tx.id}>
+                  <td>{tx.displayId}</td>
+                  <td><UserIcon /> {tx.sender}</td>
+                  <td><UserIcon /> {tx.receiver}</td>
+                  <td>{tx.amount}</td>
+                  <td>{tx.fee}</td>
+                </tr>
+              ))}
+              {selectedTxIds.length === 0 && (
+                <tr>
+                  <td colSpan="5" style={{ opacity: 0.5, paddingTop: '40px' }}>No transactions selected</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Nonce Section */}
+        <div className="nonce-container" style={{ marginBottom: '30px' }}>
+          <button className="nonce-btn" onClick={handleMine} disabled={selectedTxIds.length !== 3}>
+            Nonce
+          </button>
+          <div className="nonce-input-wrapper">
+            <input 
+              type="text" 
+              placeholder="?" 
+              value={nonceInput}
+              onChange={e => setNonceInput(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Target Section */}
+        <div className="target-section">
+          <div className="widget-title">Block Target</div>
+          <div className="widget-content target-box">
+            {target}
+          </div>
+        </div>
+
+        <div className="target-section">
+          <div className="widget-title">Previous Block Target</div>
+          <div className="widget-content target-box">
+            {prevTarget}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default App
