@@ -36,28 +36,47 @@ function App() {
     Dave: getNameValue("Dave")
   }
 
-  const generateMempool = (currentBlockNum) => {
+  const generateMempool = (currentBlockNum, balances) => {
     const pool = []
     for(let i=0; i<7; i++) {
-      const sender = users[Math.floor(Math.random() * users.length)]
+      const validSenders = users.filter(u => balances[u] >= 6);
+      let sender = users[Math.floor(Math.random() * users.length)];
+      if (validSenders.length > 0) {
+        sender = validSenders[Math.floor(Math.random() * validSenders.length)];
+      }
+
       let receiver = sender
       while(receiver === sender) {
         receiver = users[Math.floor(Math.random() * users.length)]
       }
+      
+      let amount = 5;
+      let fee = 1;
+
+      if (balances[sender] >= 6) {
+        const maxTx = balances[sender];
+        const maxMultipleOf5 = Math.floor((maxTx - 1) / 5) * 5; 
+        const limitOptions = Math.min(maxMultipleOf5 / 5, 4); // amounts: 5, 10, 15, 20
+        amount = (Math.floor(Math.random() * limitOptions) + 1) * 5;
+        
+        const maxFee = Math.min(4, maxTx - amount);
+        fee = maxFee > 0 ? (Math.floor(Math.random() * maxFee) + 1) : 1;
+      }
+
       pool.push({
         id: currentBlockNum * 10 + i, // unique ids across blocks
         displayId: i + 4, // matching the image roughly for visual
         sender,
         receiver,
-        amount: Math.floor(Math.random() * 19) * 5 + 10, // 2-digit multiple of 5 (10-100)
-        fee: Math.floor(Math.random() * 9) + 1 // 1-digit number (1-9)
+        amount,
+        fee
       })
     }
     setMempool(pool)
   }
 
   useEffect(() => {
-    generateMempool(blockNum)
+    generateMempool(blockNum, balanceHistory[0])
   }, [])
 
   const toggleSelection = (id) => {
@@ -69,17 +88,21 @@ function App() {
         const txToSelect = mempool.find(t => t.id === id);
         const currentBalances = balanceHistory[balanceHistory.length - 1];
         
-        // Validation 1: Sufficient Balance
-        if (txToSelect.amount + txToSelect.fee > currentBalances[txToSelect.sender]) {
-          setMessage(`Insufficient balance: ${txToSelect.sender} only has ${currentBalances[txToSelect.sender]}, needs ${txToSelect.amount + txToSelect.fee}.`);
+        const currentSenderSelected = mempool.filter(t => selectedTxIds.includes(t.id) && t.sender === txToSelect.sender);
+        const selectedCost = currentSenderSelected.reduce((sum, t) => sum + t.amount + t.fee, 0);
+
+        // Validation 1: Sufficient Balance (Cumulative)
+        if (selectedCost + txToSelect.amount + txToSelect.fee > currentBalances[txToSelect.sender]) {
+          setMessage(`Insufficient balance: ${txToSelect.sender} only has ${currentBalances[txToSelect.sender]}, needs ${selectedCost + txToSelect.amount + txToSelect.fee} for all selected transactions.`);
           return;
         }
 
         // Validation 2: Highest Fee Priority
-        const validUnselectedTxs = mempool.filter(t => 
-          !selectedTxIds.includes(t.id) && 
-          (t.amount + t.fee <= currentBalances[t.sender])
-        );
+        const validUnselectedTxs = mempool.filter(t => {
+          if (selectedTxIds.includes(t.id)) return false;
+          const senderSelectedCost = mempool.filter(sel => selectedTxIds.includes(sel.id) && sel.sender === t.sender).reduce((sum, sel) => sum + sel.amount + sel.fee, 0);
+          return (senderSelectedCost + t.amount + t.fee <= currentBalances[t.sender]);
+        });
 
         const needed = 3 - selectedTxIds.length;
         if (needed > 0 && validUnselectedTxs.length > 0) {
@@ -139,7 +162,7 @@ function App() {
       // Increase target by at least 700 to ensure the next nonce will always be > 0 
       // (Max possible blockValue for 3 txs is around 618)
       setTarget(target + Math.floor(Math.random() * 500) + 700)
-      generateMempool(blockNum + 1)
+      generateMempool(blockNum + 1, currentBalances)
       setSelectedTxIds([])
       setNonceInput('')
       setMessage('Block Mined Successfully! On to the next block.')
@@ -198,7 +221,7 @@ function App() {
           <table className="balance-table">
             <thead>
               <tr>
-                <th style={{ textAlign: 'left' }}>Block #</th>
+                <th style={{ textAlign: 'left' }}>Block</th>
                 {columns.map(col => (
                   <th key={col}>{col}</th>
                 ))}
@@ -224,6 +247,22 @@ function App() {
 
       {/* RIGHT COLUMN */}
       <div className="col-right">
+        {/* Blockchain Visualizer Section */}
+        <div style={{ marginBottom: '30px' }}>
+          <div className="widget-title" style={{ fontSize: '0.9rem', padding: '8px' }}>BlockChain</div>
+          <div className="widget-content blockchain-container">
+            {[...Array(blockNum).keys()].reverse().map((i, index, arr) => (
+              <div key={i} className="block-wrapper">
+                <div className="block-column">
+                  <div className="block-square"></div>
+                  <div className="block-number">#{i}</div>
+                </div>
+                {index < arr.length - 1 && <div className="block-connector"></div>}
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Selected Transactions Section */}
         <div className="widget-title">Selected transactions</div>
         <div className="widget-content" style={{ marginBottom: '30px', minHeight: '220px' }}>
@@ -288,7 +327,7 @@ function App() {
 
         {/* Name Values Guide Section */}
         <div style={{ marginTop: '20px' }}>
-          <div className="widget-title" style={{ fontSize: '0.9rem', padding: '8px' }}>Name Values Guide</div>
+          <div className="widget-title" style={{ fontSize: '0.9rem', padding: '8px' }}>Name Guide</div>
           <div className="widget-content" style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '10px', minHeight: 'auto' }}>
             {users.map(u => (
               <div key={u} style={{ textAlign: 'center' }}>
@@ -298,6 +337,7 @@ function App() {
             ))}
           </div>
         </div>
+
       </div>
     </div>
   )

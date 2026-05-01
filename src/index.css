@@ -204,3 +204,45 @@ tr.clickable.selected td:last-child {
   text-align: center;
   font-weight: bold;
 }
+
+/* Blockchain Visualizer */
+.blockchain-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 5px;
+}
+
+.block-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.block-connector {
+  width: 25px;
+  height: 2px;
+  margin-bottom: 30%;
+  background-color: var(--color-blue);
+}
+
+.block-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.block-square {
+  width: 45px;
+  height: 45px;
+  background-color: var(--color-blue);
+  border-radius: 8px;
+  
+}
+
+.block-number {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: var(--color-blue);
+}
