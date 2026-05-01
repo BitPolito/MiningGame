@@ -13,7 +13,7 @@ function App() {
   ])
   const [blockNum, setBlockNum] = useState(1)
   const [prevTarget, setPrevTarget] = useState(250) // matching image for fun
-  const [target, setTarget] = useState(550)
+  const [target, setTarget] = useState(770) // Increased initial target to ensure positive nonce for first block
   const [mempool, setMempool] = useState([])
   const [selectedTxIds, setSelectedTxIds] = useState([])
   const [nonceInput, setNonceInput] = useState('')
@@ -49,7 +49,7 @@ function App() {
         displayId: i + 4, // matching the image roughly for visual
         sender,
         receiver,
-        amount: Math.floor(Math.random() * 90) + 10, // 2-digit number (10-99)
+        amount: Math.floor(Math.random() * 19) * 5 + 10, // 2-digit multiple of 5 (10-100)
         fee: Math.floor(Math.random() * 9) + 1 // 1-digit number (1-9)
       })
     }
@@ -81,10 +81,21 @@ function App() {
           (t.amount + t.fee <= currentBalances[t.sender])
         );
 
-        if (validUnselectedTxs.length > 0) {
-          const maxFee = Math.max(...validUnselectedTxs.map(t => t.fee));
-          if (txToSelect.fee < maxFee) {
-            setMessage(`Miners prioritize! You must select a transaction with the highest available fee (${maxFee}).`);
+        const needed = 3 - selectedTxIds.length;
+        if (needed > 0 && validUnselectedTxs.length > 0) {
+          // Sort descending by fee, then ascending by id (older first)
+          const sortedUnselectedTxs = [...validUnselectedTxs].sort((a, b) => {
+            if (b.fee !== a.fee) {
+              return b.fee - a.fee;
+            }
+            return a.id - b.id;
+          });
+
+          // The top `needed` transactions that we are allowed to select from
+          const allowedTxs = sortedUnselectedTxs.slice(0, needed);
+          
+          if (!allowedTxs.some(t => t.id === txToSelect.id)) {
+            setMessage(`Miners prioritize! You must select the highest available fees (older transactions first in case of a tie).`);
             return;
           }
         }
@@ -107,8 +118,8 @@ function App() {
     })
 
     const parsedNonce = parseInt(nonceInput, 10)
-    if (isNaN(parsedNonce)) {
-      setMessage('Please enter a valid number for Nonce.')
+    if (isNaN(parsedNonce) || parsedNonce <= 0) {
+      setMessage('Please enter a valid positive number for Nonce.')
       return
     }
 
@@ -125,7 +136,9 @@ function App() {
       setBalanceHistory([...balanceHistory, currentBalances])
       setBlockNum(blockNum + 1)
       setPrevTarget(target)
-      setTarget(target + Math.floor(Math.random() * 500) + 500)
+      // Increase target by at least 700 to ensure the next nonce will always be > 0 
+      // (Max possible blockValue for 3 txs is around 618)
+      setTarget(target + Math.floor(Math.random() * 500) + 700)
       generateMempool(blockNum + 1)
       setSelectedTxIds([])
       setNonceInput('')
@@ -270,6 +283,19 @@ function App() {
           <div className="widget-title">Previous Block Target</div>
           <div className="widget-content target-box">
             {prevTarget}
+          </div>
+        </div>
+
+        {/* Name Values Guide Section */}
+        <div style={{ marginTop: '20px' }}>
+          <div className="widget-title" style={{ fontSize: '0.9rem', padding: '8px' }}>Name Values Guide</div>
+          <div className="widget-content" style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '10px', minHeight: 'auto' }}>
+            {users.map(u => (
+              <div key={u} style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>{u}</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--color-blue)' }}>{nameValues[u]}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
