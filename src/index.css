@@ -23,12 +23,28 @@ body {
   gap: 30px;
   max-width: 1200px;
   margin: 0 auto;
+  zoom: 0.95;
 }
 
 @media (max-width: 768px) {
   .app-container {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    zoom: 1;
   }
+
+  .col-left, .col-right {
+    display: contents;
+  }
+
+  /* Reorder sections for mobile */
+  .section-selected { order: 1; }
+  .section-nonce { order: 2; }
+  .section-mempool { order: 3; }
+  .section-blockchain { order: 4; }
+  .section-nameguide { order: 5; }
+  .section-balances { order: 6; }
+  .section-targets { order: 7; }
   
   body {
     padding: 15px;

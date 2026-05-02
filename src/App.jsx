@@ -185,70 +185,74 @@ function App() {
       {/* LEFT COLUMN */}
       <div className="col-left">
         {/* Mempool Section */}
-        <div className="widget-title">Mempool</div>
-        <div className="widget-content" style={{ marginBottom: '30px' }}>
-          <table className="mempool-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Amount</th>
-                <th>Fees</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mempool.map(tx => (
-                <tr 
-                  key={tx.id} 
-                  className={`clickable ${selectedTxIds.includes(tx.id) ? 'selected' : ''}`}
-                  onClick={() => toggleSelection(tx.id)}
-                >
-                  <td>{tx.displayId}</td>
-                  <td><UserIcon /> {tx.sender}</td>
-                  <td><UserIcon /> {tx.receiver}</td>
-                  <td>{tx.amount}</td>
-                  <td>{tx.fee}</td>
+        <div className="section-mempool">
+          <div className="widget-title">Mempool</div>
+          <div className="widget-content" style={{ marginBottom: '30px' }}>
+            <table className="mempool-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Amount</th>
+                  <th>Fees</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {mempool.map(tx => (
+                  <tr 
+                    key={tx.id} 
+                    className={`clickable ${selectedTxIds.includes(tx.id) ? 'selected' : ''}`}
+                    onClick={() => toggleSelection(tx.id)}
+                  >
+                    <td>{tx.displayId}</td>
+                    <td><UserIcon /> {tx.sender}</td>
+                    <td><UserIcon /> {tx.receiver}</td>
+                    <td>{tx.amount}</td>
+                    <td>{tx.fee}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Balance Sheet Section */}
-        <div className="widget-title">Balance sheet</div>
-        <div className="widget-content">
-          <table className="balance-table">
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left' }}>Block</th>
-                {columns.map(col => (
-                  <th key={col}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u}>
-                  <td style={{ textAlign: 'left' }}>
-                    <UserIcon />
-                    {u}
-                  </td>
-                  {columns.map(col => {
-                    const bal = balanceHistory[col] ? balanceHistory[col][u] : '-'
-                    return <td key={col}>{bal}</td>
-                  })}
+        <div className="section-balances">
+          <div className="widget-title">Balance sheet</div>
+          <div className="widget-content">
+            <table className="balance-table">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Block</th>
+                  {columns.map(col => (
+                    <th key={col}>{col}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u}>
+                    <td style={{ textAlign: 'left' }}>
+                      <UserIcon />
+                      {u}
+                    </td>
+                    {columns.map(col => {
+                      const bal = balanceHistory[col] ? balanceHistory[col][u] : '-'
+                      return <td key={col}>{bal}</td>
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {/* RIGHT COLUMN */}
       <div className="col-right">
         {/* Blockchain Visualizer Section */}
-        <div style={{ marginBottom: '30px' }}>
+        <div className="section-blockchain" style={{ marginBottom: '30px' }}>
           <div className="widget-title" style={{ fontSize: '0.9rem', padding: '8px' }}>BlockChain</div>
           <div className="widget-content blockchain-container">
             {[...Array(blockNum).keys()].reverse().map((i, index, arr) => (
@@ -264,69 +268,75 @@ function App() {
         </div>
 
         {/* Selected Transactions Section */}
-        <div className="widget-title">Selected transactions</div>
-        <div className="widget-content" style={{ marginBottom: '30px', minHeight: '220px' }}>
-          <table className="mempool-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Amount</th>
-                <th>Fees</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mempool.filter(tx => selectedTxIds.includes(tx.id)).map(tx => (
-                <tr key={tx.id}>
-                  <td>{tx.displayId}</td>
-                  <td><UserIcon /> {tx.sender}</td>
-                  <td><UserIcon /> {tx.receiver}</td>
-                  <td>{tx.amount}</td>
-                  <td>{tx.fee}</td>
-                </tr>
-              ))}
-              {selectedTxIds.length === 0 && (
+        <div className="section-selected">
+          <div className="widget-title">Selected transactions</div>
+          <div className="widget-content" style={{ marginBottom: '30px', minHeight: '220px' }}>
+            <table className="mempool-table">
+              <thead>
                 <tr>
-                  <td colSpan="5" style={{ opacity: 0.5, paddingTop: '40px' }}>No transactions selected</td>
+                  <th>#</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Amount</th>
+                  <th>Fees</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {mempool.filter(tx => selectedTxIds.includes(tx.id)).map(tx => (
+                  <tr key={tx.id}>
+                    <td>{tx.displayId}</td>
+                    <td><UserIcon /> {tx.sender}</td>
+                    <td><UserIcon /> {tx.receiver}</td>
+                    <td>{tx.amount}</td>
+                    <td>{tx.fee}</td>
+                  </tr>
+                ))}
+                {selectedTxIds.length === 0 && (
+                  <tr>
+                    <td colSpan="5" style={{ opacity: 0.5, paddingTop: '40px' }}>No transactions selected</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Nonce Section */}
-        <div className="nonce-container" style={{ marginBottom: '30px' }}>
-          <button className="nonce-btn" onClick={handleMine} disabled={selectedTxIds.length !== 3}>
-            Nonce
-          </button>
-          <div className="nonce-input-wrapper">
-            <input 
-              type="text" 
-              placeholder="?" 
-              value={nonceInput}
-              onChange={e => setNonceInput(e.target.value)}
-            />
+        <div className="section-nonce" style={{ marginBottom: '30px' }}>
+          <div className="nonce-container">
+            <button className="nonce-btn" onClick={handleMine} disabled={selectedTxIds.length !== 3}>
+              Nonce
+            </button>
+            <div className="nonce-input-wrapper">
+              <input 
+                type="text" 
+                placeholder="?" 
+                value={nonceInput}
+                onChange={e => setNonceInput(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
         {/* Target Section */}
-        <div className="target-section">
-          <div className="widget-title">Block Target</div>
-          <div className="widget-content target-box">
-            {target}
+        <div className="section-targets">
+          <div className="target-section">
+            <div className="widget-title">Block Target</div>
+            <div className="widget-content target-box">
+              {target}
+            </div>
           </div>
-        </div>
 
-        <div className="target-section">
-          <div className="widget-title">Previous Block Target</div>
-          <div className="widget-content target-box">
-            {prevTarget}
+          <div className="target-section">
+            <div className="widget-title">Previous Block Target</div>
+            <div className="widget-content target-box">
+              {prevTarget}
+            </div>
           </div>
         </div>
 
         {/* Name Values Guide Section */}
-        <div style={{ marginTop: '20px' }}>
+        <div className="section-nameguide" style={{ marginTop: '20px' }}>
           <div className="widget-title" style={{ fontSize: '0.9rem', padding: '8px' }}>Name Guide</div>
           <div className="widget-content" style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '10px', minHeight: 'auto' }}>
             {users.map(u => (
