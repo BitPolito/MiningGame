@@ -12,8 +12,8 @@ function App() {
     { Alice: 100, Bob: 100, Carol: 100, Dave: 100 }
   ])
   const [blockNum, setBlockNum] = useState(1)
-  const [prevTarget, setPrevTarget] = useState(250) // matching image for fun
-  const [target, setTarget] = useState(770) // Increased initial target to ensure positive nonce for first block
+  const [prevTarget, setPrevTarget] = useState(0) // matching image for fun
+  const [target, setTarget] = useState(550) // Increased initial target to ensure positive nonce for first block
   const [mempool, setMempool] = useState([])
   const [selectedTxIds, setSelectedTxIds] = useState([])
   const [nonceInput, setNonceInput] = useState('')
@@ -37,42 +37,89 @@ function App() {
   }
 
   const generateMempool = (currentBlockNum, balances) => {
-    const pool = []
+    const pool = [];
+    const cheaterIndex = Math.floor(Math.random() * 7);
+
     for(let i=0; i<7; i++) {
-      const validSenders = users.filter(u => balances[u] >= 6);
-      let sender = users[Math.floor(Math.random() * users.length)];
-      if (validSenders.length > 0) {
-        sender = validSenders[Math.floor(Math.random() * validSenders.length)];
-      }
-
-      let receiver = sender
-      while(receiver === sender) {
-        receiver = users[Math.floor(Math.random() * users.length)]
-      }
+      const isCheater = (i === cheaterIndex);
       
-      let amount = 5;
-      let fee = 1;
-
-      if (balances[sender] >= 6) {
-        const maxTx = balances[sender];
-        const maxMultipleOf5 = Math.floor((maxTx - 1) / 5) * 5; 
-        const limitOptions = Math.min(maxMultipleOf5 / 5, 4); // amounts: 5, 10, 15, 20
-        amount = (Math.floor(Math.random() * limitOptions) + 1) * 5;
+      let sender, receiver, amount, fee;
+      
+      if (isCheater) {
+        // Cheater: try to spend more than balance
+        const possibleCheaters = users.filter(u => balances[u] < 110);
+        sender = possibleCheaters.length > 0 
+          ? possibleCheaters[Math.floor(Math.random() * possibleCheaters.length)] 
+          : users[Math.floor(Math.random() * users.length)];
+          
+        receiver = sender;
+        while(receiver === sender) {
+          receiver = users[Math.floor(Math.random() * users.length)];
+        }
         
-        const maxFee = Math.min(4, maxTx - amount);
-        fee = maxFee > 0 ? (Math.floor(Math.random() * maxFee) + 1) : 1;
+        // Try to make amount > balance if possible, otherwise cost > balance
+        if (balances[sender] < 70) {
+            let minAmount = Math.max(30, balances[sender] + 1);
+            let minMultiple = Math.ceil(minAmount / 5);
+            let maxMultiple = 14; // 70 / 5
+            
+            if (minMultiple <= maxMultiple) {
+                let options = maxMultiple - minMultiple + 1;
+                amount = (Math.floor(Math.random() * options) + minMultiple) * 5;
+            } else {
+                amount = 70;
+            }
+            fee = (Math.floor(Math.random() * 7) + 2) * 5; // 10-40
+        } else {
+            amount = (Math.floor(Math.random() * 9) + 6) * 5; // 30-70
+            fee = (Math.floor(Math.random() * 7) + 2) * 5;    // 10-40
+            if (amount + fee <= balances[sender]) {
+                amount = 70;
+                fee = 40; 
+                if (amount + fee <= balances[sender]) {
+                    amount = Math.ceil((balances[sender] + 5) / 5) * 5; 
+                    fee = 10; 
+                }
+            }
+        }
+      } else {
+        // Normal valid transaction
+        const possibleSenders = users.filter(u => balances[u] >= 40);
+        sender = possibleSenders.length > 0 
+          ? possibleSenders[Math.floor(Math.random() * possibleSenders.length)] 
+          : users[Math.floor(Math.random() * users.length)];
+
+        receiver = sender;
+        while(receiver === sender) {
+          receiver = users[Math.floor(Math.random() * users.length)];
+        }
+        
+        let maxCost = balances[sender];
+        if (maxCost < 40) maxCost = 40; // Fallback
+
+        let maxAmountVal = Math.min(70, maxCost - 10);
+        let maxAmountMultiple = Math.floor(maxAmountVal / 5);
+        if (maxAmountMultiple < 6) maxAmountMultiple = 6;
+        let amountOptions = maxAmountMultiple - 6 + 1;
+        amount = (Math.floor(Math.random() * amountOptions) + 6) * 5;
+
+        let maxFeeVal = Math.min(40, maxCost - amount);
+        let maxFeeMultiple = Math.floor(maxFeeVal / 5);
+        if (maxFeeMultiple < 2) maxFeeMultiple = 2;
+        let feeOptions = maxFeeMultiple - 2 + 1;
+        fee = (Math.floor(Math.random() * feeOptions) + 2) * 5;
       }
 
       pool.push({
         id: currentBlockNum * 10 + i, // unique ids across blocks
-        displayId: i + 4, // matching the image roughly for visual
+        displayId: i + 1, // matching the image roughly for visual
         sender,
         receiver,
         amount,
         fee
-      })
+      });
     }
-    setMempool(pool)
+    setMempool(pool);
   }
 
   useEffect(() => {
