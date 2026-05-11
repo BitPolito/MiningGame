@@ -198,7 +198,7 @@ function App() {
       const currentBalances = { ...balanceHistory[balanceHistory.length - 1] }
 
       selectedTxs.forEach(tx => {
-        currentBalances[tx.sender] -= tx.amount
+        currentBalances[tx.sender] -= (tx.amount + tx.fee)
         currentBalances[tx.receiver] += tx.amount
         // Note: the prompt mentioned adding fees to miner, but the balance sheet in the photo doesn't have a miner balance. We'll skip the miner balance display for now.
       })
