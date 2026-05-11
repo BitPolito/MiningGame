@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import readmeContent from '../README.md?raw'
+import readmeContent from '../GUIDE.md?raw'
+import aboutusContent from '../ABOUTUS.md?raw'
 import ReactMarkdown from 'react-markdown'
 const UserIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: '0 auto 5px auto' }}>
@@ -19,7 +20,7 @@ function App() {
   const [selectedTxIds, setSelectedTxIds] = useState([])
   const [nonceInput, setNonceInput] = useState('')
   const [message, setMessage] = useState('')
-  const [showReadme, setShowReadme] = useState(false)
+  const [currentView, setCurrentView] = useState('menu')
 
   const users = ["Alice", "Bob", "Carol", "Dave"]
 
@@ -42,60 +43,60 @@ function App() {
     const pool = [];
     const cheaterIndex = Math.floor(Math.random() * 7);
 
-    for(let i=0; i<7; i++) {
+    for (let i = 0; i < 7; i++) {
       const isCheater = (i === cheaterIndex);
-      
+
       let sender, receiver, amount, fee;
-      
+
       if (isCheater) {
         // Cheater: try to spend more than balance
         const possibleCheaters = users.filter(u => balances[u] < 110);
-        sender = possibleCheaters.length > 0 
-          ? possibleCheaters[Math.floor(Math.random() * possibleCheaters.length)] 
+        sender = possibleCheaters.length > 0
+          ? possibleCheaters[Math.floor(Math.random() * possibleCheaters.length)]
           : users[Math.floor(Math.random() * users.length)];
-          
+
         receiver = sender;
-        while(receiver === sender) {
+        while (receiver === sender) {
           receiver = users[Math.floor(Math.random() * users.length)];
         }
-        
+
         // Try to make amount > balance if possible, otherwise cost > balance
         if (balances[sender] < 70) {
-            let minAmount = Math.max(30, balances[sender] + 1);
-            let minMultiple = Math.ceil(minAmount / 5);
-            let maxMultiple = 14; // 70 / 5
-            
-            if (minMultiple <= maxMultiple) {
-                let options = maxMultiple - minMultiple + 1;
-                amount = (Math.floor(Math.random() * options) + minMultiple) * 5;
-            } else {
-                amount = 70;
-            }
-            fee = (Math.floor(Math.random() * 7) + 2) * 5; // 10-40
+          let minAmount = Math.max(30, balances[sender] + 1);
+          let minMultiple = Math.ceil(minAmount / 5);
+          let maxMultiple = 14; // 70 / 5
+
+          if (minMultiple <= maxMultiple) {
+            let options = maxMultiple - minMultiple + 1;
+            amount = (Math.floor(Math.random() * options) + minMultiple) * 5;
+          } else {
+            amount = 70;
+          }
+          fee = (Math.floor(Math.random() * 7) + 2) * 5; // 10-40
         } else {
-            amount = (Math.floor(Math.random() * 9) + 6) * 5; // 30-70
-            fee = (Math.floor(Math.random() * 7) + 2) * 5;    // 10-40
+          amount = (Math.floor(Math.random() * 9) + 6) * 5; // 30-70
+          fee = (Math.floor(Math.random() * 7) + 2) * 5;    // 10-40
+          if (amount + fee <= balances[sender]) {
+            amount = 70;
+            fee = 40;
             if (amount + fee <= balances[sender]) {
-                amount = 70;
-                fee = 40; 
-                if (amount + fee <= balances[sender]) {
-                    amount = Math.ceil((balances[sender] + 5) / 5) * 5; 
-                    fee = 10; 
-                }
+              amount = Math.ceil((balances[sender] + 5) / 5) * 5;
+              fee = 10;
             }
+          }
         }
       } else {
         // Normal valid transaction
         const possibleSenders = users.filter(u => balances[u] >= 40);
-        sender = possibleSenders.length > 0 
-          ? possibleSenders[Math.floor(Math.random() * possibleSenders.length)] 
+        sender = possibleSenders.length > 0
+          ? possibleSenders[Math.floor(Math.random() * possibleSenders.length)]
           : users[Math.floor(Math.random() * users.length)];
 
         receiver = sender;
-        while(receiver === sender) {
+        while (receiver === sender) {
           receiver = users[Math.floor(Math.random() * users.length)];
         }
-        
+
         let maxCost = balances[sender];
         if (maxCost < 40) maxCost = 40; // Fallback
 
@@ -136,7 +137,7 @@ function App() {
       if (selectedTxIds.length < 3) {
         const txToSelect = mempool.find(t => t.id === id);
         const currentBalances = balanceHistory[balanceHistory.length - 1];
-        
+
         const currentSenderSelected = mempool.filter(t => selectedTxIds.includes(t.id) && t.sender === txToSelect.sender);
         const selectedCost = currentSenderSelected.reduce((sum, t) => sum + t.amount + t.fee, 0);
 
@@ -165,7 +166,7 @@ function App() {
 
           // The top `needed` transactions that we are allowed to select from
           const allowedTxs = sortedUnselectedTxs.slice(0, needed);
-          
+
           if (!allowedTxs.some(t => t.id === txToSelect.id)) {
             setMessage(`Miners prioritize! You must select the highest available fees (older transactions first in case of a tie).`);
             return;
@@ -223,18 +224,15 @@ function App() {
   // Generate 7 columns for the balance table
   const columns = [0, 1, 2, 3, 4, 5, 6]
 
-  return (
-    <div className="app-container">
-      <div className="help-icon" onClick={() => setShowReadme(true)}>?</div>
-      {showReadme && (
-        <div className="modal-overlay" onClick={() => setShowReadme(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowReadme(false)}>x</button>
-            <div className="readme-text"><ReactMarkdown>{readmeContent}</ReactMarkdown></div>
-          </div>
-        </div>
-      )}
+  const renderHomeButton = () => (
+    <div className="home-btn" onClick={() => setCurrentView('menu')}>
+      <img src="/home.svg" alt="Home" />
+      <span>Main Menu</span>
+    </div>
+  )
 
+  const renderGame = () => (
+    <div className="app-container">
       {message && (
         <div className={message.includes('Successfully') ? "success" : "alert"}>
           {message}
@@ -259,8 +257,8 @@ function App() {
               </thead>
               <tbody>
                 {mempool.map(tx => (
-                  <tr 
-                    key={tx.id} 
+                  <tr
+                    key={tx.id}
                     className={`clickable ${selectedTxIds.includes(tx.id) ? 'selected' : ''}`}
                     onClick={() => toggleSelection(tx.id)}
                   >
@@ -367,9 +365,9 @@ function App() {
               Nonce
             </button>
             <div className="nonce-input-wrapper">
-              <input 
-                type="text" 
-                placeholder="?" 
+              <input
+                type="text"
+                placeholder="?"
                 value={nonceInput}
                 onChange={e => setNonceInput(e.target.value)}
               />
@@ -408,6 +406,62 @@ function App() {
         </div>
 
       </div>
+    </div>
+  )
+
+  if (currentView === 'menu') {
+    return (
+      <div className="menu-wrapper">
+        <div className="main-menu">
+          <div className="title-container">
+            <img src="/Frame 2.svg" alt="Title" className="menu-title" />
+            <img src="/handwrite.png" alt="Handwrite" className="handwrite-img" />
+          </div>
+          <div className="menu-buttons">
+            <button className="btn-pixel" onClick={() => setCurrentView('game')}>Start</button>
+            <button className="btn-pixel" onClick={() => setCurrentView('howToPlay')}>How to play</button>
+            <button className="btn-pixel" onClick={() => setCurrentView('aboutUs')}>About us</button>
+          </div>
+          <div className="menu-footer">
+            <img src="/cows.svg" alt="Cows" className="menu-cows" />
+            <div className="made-with-love">
+              Made with <img src="/love.svg" alt="love" /> by BitPolito
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentView === 'howToPlay') {
+    return (
+      <div className="view-container">
+        <div className="content-box">
+          <div className="readme-text"><ReactMarkdown>{readmeContent}</ReactMarkdown></div>
+        </div>
+        {renderHomeButton()}
+      </div>
+    )
+  }
+
+  if (currentView === 'aboutUs') {
+    return (
+      <div className="view-container about-view">
+        <div className="content-box">
+          <img src="/Frame 2.svg" alt="Title" className="about-title" />
+          <div className="readme-text"><ReactMarkdown>{aboutusContent}</ReactMarkdown></div>
+          <img src="/cows.svg" alt="Cows" className="about-cows" />
+        </div>
+        {renderHomeButton()}
+      </div>
+    )
+  }
+
+  // Default is game
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {renderGame()}
+      {renderHomeButton()}
     </div>
   )
 }

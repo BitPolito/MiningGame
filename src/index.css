@@ -8,7 +8,8 @@
 body {
   margin: 0;
   padding: 40px;
-  background-color: #f8f9fa; /* Slight off-white background to make white panels pop, per typical design, but user said "no color effects". We will use white for panels, maybe very light gray for background to distinguish. Actually, the image has a white/light-gray background. */
+  background-color: #f8f9fa;
+  /* Slight off-white background to make white panels pop, per typical design, but user said "no color effects". We will use white for panels, maybe very light gray for background to distinguish. Actually, the image has a white/light-gray background. */
   color: var(--color-blue);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
@@ -33,19 +34,40 @@ body {
     zoom: 1;
   }
 
-  .col-left, .col-right {
+  .col-left,
+  .col-right {
     display: contents;
   }
 
   /* Reorder sections for mobile */
-  .section-selected { order: 1; }
-  .section-nonce { order: 2; }
-  .section-mempool { order: 3; }
-  .section-blockchain { order: 4; }
-  .section-nameguide { order: 5; }
-  .section-balances { order: 6; }
-  .section-targets { order: 7; }
-  
+  .section-selected {
+    order: 1;
+  }
+
+  .section-nonce {
+    order: 2;
+  }
+
+  .section-mempool {
+    order: 3;
+  }
+
+  .section-blockchain {
+    order: 4;
+  }
+
+  .section-nameguide {
+    order: 5;
+  }
+
+  .section-balances {
+    order: 6;
+  }
+
+  .section-targets {
+    order: 7;
+  }
+
   body {
     padding: 15px;
   }
@@ -107,7 +129,8 @@ tr.clickable {
 tr.clickable.selected {
   background-color: var(--color-blue);
   color: var(--color-white);
-  border-radius: 8px; /* For the solid blue row */
+  border-radius: 8px;
+  /* For the solid blue row */
 }
 
 /* Need to make the td have radius for the first and last child to look like pill */
@@ -122,14 +145,17 @@ tr.clickable.selected td:last-child {
 }
 
 /* Balance Sheet */
-.balance-table th, .balance-table td {
+.balance-table th,
+.balance-table td {
   padding: 15px 5px;
   border: none;
 }
+
 .balance-table th {
   border-bottom: none;
   font-size: 0.8rem;
 }
+
 .user-icon {
   display: block;
   font-size: 1.5rem;
@@ -211,6 +237,7 @@ tr.clickable.selected td:last-child {
   text-align: center;
   font-weight: bold;
 }
+
 .success {
   grid-column: 1 / -1;
   padding: 15px;
@@ -254,7 +281,7 @@ tr.clickable.selected td:last-child {
   height: 45px;
   background-color: var(--color-blue);
   border-radius: 8px;
-  
+
 }
 
 .block-number {
@@ -342,7 +369,9 @@ tr.clickable.selected td:last-child {
   padding-right: 15px;
 }
 
-.readme-text h1, .readme-text h2, .readme-text h3 {
+.readme-text h1,
+.readme-text h2,
+.readme-text h3 {
   margin-top: 1.5em;
   margin-bottom: 0.5em;
 }
@@ -351,7 +380,187 @@ tr.clickable.selected td:last-child {
   margin-bottom: 1em;
 }
 
-.readme-text ul, .readme-text ol {
+.readme-text ul,
+.readme-text ol {
   margin-bottom: 1em;
   padding-left: 20px;
+}
+
+/* Main Menu & Navigation Styles */
+
+.home-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  background-color: var(--color-white);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 12px 20px;
+  font-weight: bold;
+  color: var(--color-blue);
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  transition: transform 0.1s, box-shadow 0.1s;
+  z-index: 100;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.home-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 10px 20px rgba(128, 128, 128, 0.6);
+}
+
+.home-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0px 4px 8px rgba(128, 128, 128, 0.4);
+}
+
+.home-btn img {
+  width: 24px;
+  height: 24px;
+}
+
+.menu-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90vh;
+}
+
+.main-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background-color: var(--color-white);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 50px;
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  max-width: 500px;
+  width: 100%;
+}
+
+.title-container {
+  position: relative;
+  width: 340px;
+  max-width: 90%;
+  margin-bottom: 20px;
+}
+
+.menu-title {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.handwrite-img {
+  display: block;
+  width: 80%;
+  margin-left: 10%;
+  margin-top: -10px;
+  margin-bottom: 10px;
+  height: auto;
+  object-fit: contain;
+  transform: rotate(-4deg);
+  z-index: 999;
+  pointer-events: none;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.btn-pixel {
+  background-color: var(--color-white);
+  color: var(--color-blue);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s, color 0.2s;
+}
+
+.btn-pixel:hover {
+  background-color: var(--color-white);
+  color: var(--color-blue);
+  box-shadow: 0px 10px 20px rgba(128, 128, 128, 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-pixel:active {
+  transform: translateY(2px);
+  box-shadow: 0px 4px 8px rgba(128, 128, 128, 0.4);
+}
+
+.menu-footer {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.menu-cows {
+  width: 200px;
+  height: auto;
+}
+
+.made-with-love {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--color-blue);
+}
+
+.made-with-love img {
+  width: 14px;
+  height: 14px;
+}
+
+/* View Container Styles */
+.view-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 20px 20px 20px;
+  min-height: 100vh;
+}
+
+.content-box {
+  background-color: var(--color-white);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 30px;
+  width: 100%;
+  max-width: 800px;
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.about-title {
+  max-width: 300px;
+  margin-bottom: 30px;
+}
+
+.about-cows {
+  width: 150px;
+  margin-top: 30px;
 }
