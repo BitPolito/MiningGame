@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-
+import readmeContent from '../README.md?raw'
+import ReactMarkdown from 'react-markdown'
 const UserIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: '0 auto 5px auto' }}>
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -18,6 +19,7 @@ function App() {
   const [selectedTxIds, setSelectedTxIds] = useState([])
   const [nonceInput, setNonceInput] = useState('')
   const [message, setMessage] = useState('')
+  const [showReadme, setShowReadme] = useState(false)
 
   const users = ["Alice", "Bob", "Carol", "Dave"]
 
@@ -223,6 +225,16 @@ function App() {
 
   return (
     <div className="app-container">
+      <div className="help-icon" onClick={() => setShowReadme(true)}>?</div>
+      {showReadme && (
+        <div className="modal-overlay" onClick={() => setShowReadme(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowReadme(false)}>x</button>
+            <div className="readme-text"><ReactMarkdown>{readmeContent}</ReactMarkdown></div>
+          </div>
+        </div>
+      )}
+
       {message && (
         <div className={message.includes('Successfully') ? "success" : "alert"}>
           {message}
