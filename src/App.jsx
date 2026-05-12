@@ -61,24 +61,24 @@ function App() {
         }
 
         // Try to make amount > balance if possible, otherwise cost > balance
-        if (balances[sender] < 70) {
+        if (balances[sender] < 60) {
           let minAmount = Math.max(30, balances[sender] + 1);
           let minMultiple = Math.ceil(minAmount / 5);
-          let maxMultiple = 14; // 70 / 5
+          let maxMultiple = 12; // 60 / 5
 
           if (minMultiple <= maxMultiple) {
             let options = maxMultiple - minMultiple + 1;
             amount = (Math.floor(Math.random() * options) + minMultiple) * 5;
           } else {
-            amount = 70;
+            amount = 60;
           }
-          fee = (Math.floor(Math.random() * 7) + 2) * 5; // 10-40
+          fee = (Math.floor(Math.random() * 5) + 2) * 5; // 10-30
         } else {
-          amount = (Math.floor(Math.random() * 9) + 6) * 5; // 30-70
-          fee = (Math.floor(Math.random() * 7) + 2) * 5;    // 10-40
+          amount = (Math.floor(Math.random() * 7) + 6) * 5; // 30-60
+          fee = (Math.floor(Math.random() * 5) + 2) * 5;    // 10-30
           if (amount + fee <= balances[sender]) {
-            amount = 70;
-            fee = 40;
+            amount = 60;
+            fee = 30;
             if (amount + fee <= balances[sender]) {
               amount = Math.ceil((balances[sender] + 5) / 5) * 5;
               fee = 10;
@@ -100,13 +100,13 @@ function App() {
         let maxCost = balances[sender];
         if (maxCost < 40) maxCost = 40; // Fallback
 
-        let maxAmountVal = Math.min(70, maxCost - 10);
+        let maxAmountVal = Math.min(60, maxCost - 10);
         let maxAmountMultiple = Math.floor(maxAmountVal / 5);
         if (maxAmountMultiple < 6) maxAmountMultiple = 6;
         let amountOptions = maxAmountMultiple - 6 + 1;
         amount = (Math.floor(Math.random() * amountOptions) + 6) * 5;
 
-        let maxFeeVal = Math.min(40, maxCost - amount);
+        let maxFeeVal = Math.min(30, maxCost - amount);
         let maxFeeMultiple = Math.floor(maxFeeVal / 5);
         if (maxFeeMultiple < 2) maxFeeMultiple = 2;
         let feeOptions = maxFeeMultiple - 2 + 1;
