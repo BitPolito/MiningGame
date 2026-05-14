@@ -1,5 +1,5 @@
 :root {
-  --color-white: #ffffff;
+  --color-white: hsl(0, 0%, 100%);
   --color-blue: #001CE0;
   --color-red: red;
   --border-radius: 12px;
@@ -8,7 +8,7 @@
 body {
   margin: 0;
   padding: 40px;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
   /* Slight off-white background to make white panels pop, per typical design, but user said "no color effects". We will use white for panels, maybe very light gray for background to distinguish. Actually, the image has a white/light-gray background. */
   color: var(--color-blue);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -70,6 +70,15 @@ body {
 
   body {
     padding: 15px;
+  }
+
+  .view-container {
+    padding: 15px 10px;
+  }
+
+  .content-box {
+    padding: 20px 15px;
+    width: 100%;
   }
 }
 
@@ -367,6 +376,25 @@ tr.clickable.selected td:last-child {
   font-size: 0.95rem;
   overflow-y: auto;
   padding-right: 15px;
+  width: 100%;
+  overflow-wrap: break-word;
+}
+
+.readme-text pre {
+  background-color: rgba(0, 28, 224, 0.05);
+  padding: 15px;
+  border-radius: 8px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.readme-text code {
+  font-family: monospace;
+}
+
+.readme-text img {
+  max-width: 100%;
+  height: auto;
 }
 
 .readme-text h1,
@@ -409,7 +437,7 @@ tr.clickable.selected td:last-child {
 
 .home-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0px 10px 20px rgba(128, 128, 128, 0.6);
+  box-shadow: 0px 10px 20px #65aff999;
 }
 
 .home-btn:active {
@@ -496,7 +524,7 @@ tr.clickable.selected td:last-child {
 .btn-pixel:hover {
   background-color: var(--color-white);
   color: var(--color-blue);
-  box-shadow: 0px 10px 20px rgba(128, 128, 128, 0.6);
+  box-shadow: 0px 10px 20px #65aff999;
   transform: translateY(-2px);
 }
 
