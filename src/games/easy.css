@@ -1,0 +1,512 @@
+:root {
+  --color-white: hsl(0, 0%, 100%);
+  --color-blue: #001CE0;
+  --color-red: red;
+  --border-radius: 12px;
+}
+.easy-game-wrapper body {
+  margin: 0;
+  padding: 40px;
+  background-color: #ffffff;
+  /* Slight off-white background to make white panels pop, per typical design, but user said "no color effects". We will use white for panels, maybe very light gray for background to distinguish. Actually, the image has a white/light-gray background. */
+  color: var(--color-blue);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+.easy-game-wrapper * {
+  box-sizing: border-box;
+}
+.easy-game-wrapper .app-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  zoom: 0.95;
+}
+
+@media (max-width: 768px) {
+.easy-game-wrapper .app-container {
+    display: flex;
+    flex-direction: column;
+    zoom: 1;
+  }
+.easy-game-wrapper .col-left, .easy-game-wrapper .col-right {
+    display: contents;
+  }
+.easy-game-wrapper /* Reorder sections for mobile */
+  .section-selected {
+    order: 1;
+  }
+.easy-game-wrapper .section-nonce {
+    order: 2;
+  }
+.easy-game-wrapper .section-mempool {
+    order: 3;
+  }
+.easy-game-wrapper .section-blockchain {
+    order: 4;
+  }
+.easy-game-wrapper .section-nameguide {
+    order: 5;
+  }
+.easy-game-wrapper .section-balances {
+    order: 6;
+  }
+.easy-game-wrapper .section-targets {
+    order: 7;
+  }
+.easy-game-wrapper body {
+    padding: 15px;
+  }
+.easy-game-wrapper .view-container {
+    padding: 15px 10px;
+  }
+.easy-game-wrapper .content-box {
+    padding: 20px 15px;
+    width: 100%;
+  }
+}
+.easy-game-wrapper /* Common Widget Styling */
+.widget-title {
+  background-color: var(--color-blue);
+  color: var(--color-white);
+  text-align: center;
+  padding: 15px;
+  border-radius: var(--border-radius);
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+}
+.easy-game-wrapper .widget-content {
+  background-color: var(--color-white);
+  /*border: 2px solid var(--color-blue);*/
+  border-radius: var(--border-radius);
+  padding: 20px;
+  min-height: 100px;
+  overflow-x: auto;
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+}
+.easy-game-wrapper /* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.easy-game-wrapper th {
+  color: var(--color-blue);
+  font-size: 0.9rem;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--color-blue);
+}
+.easy-game-wrapper td {
+  padding: 12px 5px;
+  text-align: center;
+  font-weight: 600;
+}
+.easy-game-wrapper /* Mempool table row styles */
+.mempool-table tr {
+  border-bottom: 1px solid rgba(0, 28, 224, 0.1);
+}
+.easy-game-wrapper .mempool-table tr:last-child {
+  border-bottom: none;
+}
+.easy-game-wrapper tr.clickable {
+  cursor: pointer;
+}
+.easy-game-wrapper tr.clickable.selected {
+  background-color: var(--color-blue);
+  color: var(--color-white);
+  border-radius: 8px;
+  /* For the solid blue row */
+}
+.easy-game-wrapper /* Need to make the td have radius for the first and last child to look like pill */
+tr.clickable.selected td:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+.easy-game-wrapper tr.clickable.selected td:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+.easy-game-wrapper /* Balance Sheet */
+.balance-table th, .easy-game-wrapper .balance-table td {
+  padding: 15px 5px;
+  border: none;
+}
+.easy-game-wrapper .balance-table th {
+  border-bottom: none;
+  font-size: 0.8rem;
+}
+.easy-game-wrapper .user-icon {
+  display: block;
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
+.easy-game-wrapper /* Nonce Row */
+.nonce-container {
+  display: flex;
+  gap: 20px;
+}
+.easy-game-wrapper .nonce-btn {
+  flex: 1;
+  background-color: var(--color-blue);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+.easy-game-wrapper .nonce-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.easy-game-wrapper .nonce-input-wrapper {
+  flex: 1;
+  border: 2px solid var(--color-blue);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-white);
+}
+.easy-game-wrapper .nonce-input-wrapper input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 3rem;
+  font-weight: bold;
+  color: var(--color-blue);
+  outline: none;
+}
+.easy-game-wrapper .nonce-input-wrapper input::placeholder {
+  color: var(--color-blue);
+  opacity: 0.5;
+}
+.easy-game-wrapper /* Target Boxes */
+.target-box {
+  text-align: center;
+  font-size: 3rem;
+  font-weight: bold;
+  padding: 30px;
+}
+.easy-game-wrapper .target-section {
+  margin-bottom: 20px;
+}
+.easy-game-wrapper .target-section:last-child {
+  margin-bottom: 0;
+}
+.easy-game-wrapper /* Alerts */
+.alert {
+  grid-column: 1 / -1;
+  padding: 15px;
+  border-radius: var(--border-radius);
+  background-color: var(--color-red);
+  color: var(--color-white);
+  text-align: center;
+  font-weight: bold;
+}
+.easy-game-wrapper .success {
+  grid-column: 1 / -1;
+  padding: 15px;
+  border-radius: var(--border-radius);
+  background-color: var(--color-blue);
+  color: var(--color-white);
+  text-align: center;
+  font-weight: bold;
+}
+.easy-game-wrapper /* Blockchain Visualizer */
+.blockchain-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 5px;
+}
+.easy-game-wrapper .block-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.easy-game-wrapper .block-connector {
+  width: 25px;
+  height: 2px;
+  margin-bottom: 30%;
+  background-color: var(--color-blue);
+}
+.easy-game-wrapper .block-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.easy-game-wrapper .block-square {
+  width: 45px;
+  height: 45px;
+  background-color: var(--color-blue);
+  border-radius: 8px;
+
+}
+.easy-game-wrapper .block-number {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: var(--color-blue);
+}
+.easy-game-wrapper /* Help Icon */
+.help-icon {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-blue);
+  color: var(--color-white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+.easy-game-wrapper .help-icon:hover {
+  transform: scale(1.05);
+}
+.easy-game-wrapper /* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.easy-game-wrapper /* Modal Content */
+.modal-content {
+  background-color: var(--color-white);
+  border: 3px solid var(--color-blue);
+  border-radius: var(--border-radius);
+  padding: 30px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+.easy-game-wrapper .modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--color-blue);
+  cursor: pointer;
+}
+.easy-game-wrapper .modal-close:hover {
+  color: var(--color-red);
+}
+.easy-game-wrapper .readme-text {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--color-blue);
+  line-height: 1.6;
+  font-size: 0.95rem;
+  overflow-y: auto;
+  padding-right: 15px;
+  width: 100%;
+  overflow-wrap: break-word;
+}
+.easy-game-wrapper .readme-text pre {
+  background-color: rgba(0, 28, 224, 0.05);
+  padding: 15px;
+  border-radius: 8px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.easy-game-wrapper .readme-text code {
+  font-family: monospace;
+}
+.easy-game-wrapper .readme-text img {
+  max-width: 100%;
+  height: auto;
+}
+.easy-game-wrapper .readme-text h1, .easy-game-wrapper .readme-text h2, .easy-game-wrapper .readme-text h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.easy-game-wrapper .readme-text p {
+  margin-bottom: 1em;
+}
+.easy-game-wrapper .readme-text ul, .easy-game-wrapper .readme-text ol {
+  margin-bottom: 1em;
+  padding-left: 20px;
+}
+.easy-game-wrapper /* Main Menu & Navigation Styles */
+
+.home-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  background-color: var(--color-white);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 12px 20px;
+  font-weight: bold;
+  color: var(--color-blue);
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  transition: transform 0.1s, box-shadow 0.1s;
+  z-index: 100;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.easy-game-wrapper .home-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 10px 20px #65aff999;
+}
+.easy-game-wrapper .home-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0px 4px 8px rgba(128, 128, 128, 0.4);
+}
+.easy-game-wrapper .home-btn img {
+  width: 24px;
+  height: 24px;
+}
+.easy-game-wrapper .menu-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90vh;
+}
+.easy-game-wrapper .main-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background-color: var(--color-white);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 50px;
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  max-width: 500px;
+  width: 100%;
+}
+.easy-game-wrapper .title-container {
+  position: relative;
+  width: 340px;
+  max-width: 90%;
+  margin-bottom: 20px;
+}
+.easy-game-wrapper .menu-title {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.easy-game-wrapper .handwrite-img {
+  display: block;
+  width: 80%;
+  margin-left: 10%;
+  margin-top: -10px;
+  margin-bottom: 10px;
+  height: auto;
+  object-fit: contain;
+  transform: rotate(-4deg);
+  z-index: 999;
+  pointer-events: none;
+}
+.easy-game-wrapper .menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 300px;
+}
+.easy-game-wrapper .btn-pixel {
+  background-color: var(--color-white);
+  color: var(--color-blue);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s, color 0.2s;
+}
+.easy-game-wrapper .btn-pixel:hover {
+  background-color: var(--color-white);
+  color: var(--color-blue);
+  box-shadow: 0px 10px 20px #65aff999;
+  transform: translateY(-2px);
+}
+.easy-game-wrapper .btn-pixel:active {
+  transform: translateY(2px);
+  box-shadow: 0px 4px 8px rgba(128, 128, 128, 0.4);
+}
+.easy-game-wrapper .menu-footer {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+.easy-game-wrapper .menu-cows {
+  width: 200px;
+  height: auto;
+}
+.easy-game-wrapper .made-with-love {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--color-blue);
+}
+.easy-game-wrapper .made-with-love img {
+  width: 14px;
+  height: 14px;
+}
+.easy-game-wrapper /* View Container Styles */
+.view-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 20px 20px 20px;
+  min-height: 100vh;
+}
+.easy-game-wrapper .content-box {
+  background-color: var(--color-white);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 30px;
+  width: 100%;
+  max-width: 800px;
+  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.easy-game-wrapper .about-title {
+  max-width: 300px;
+  margin-bottom: 30px;
+}
+.easy-game-wrapper .about-cows {
+  width: 150px;
+  margin-top: 30px;
+}
