@@ -68,20 +68,23 @@ export default async function handler(req, res) {
 
     if (action === 'mine') {
       const { seed, playerName } = req.body || JSON.parse(req.body);
-      const room = await kv.get(`room:${seed}`);
-      if (!room) return res.status(404).json({ error: 'Room not found' });
-      if (room.status !== 'playing') return res.status(400).json({ error: 'Game not active' });
+      
+      const updatedRoom = await kv.update(`room:${seed}`, (room) => {
+        if (room.status !== 'playing') return room;
 
-      const player = room.players.find(p => p.name === playerName);
-      if (player) {
-        player.blocks += 1;
-        if (player.blocks >= 6) {
-          room.status = 'finished';
-          room.winner = playerName;
+        const player = room.players.find(p => p.name === playerName);
+        if (player) {
+          player.blocks += 1;
+          if (player.blocks >= 6) {
+            room.status = 'finished';
+            room.winner = playerName;
+          }
         }
-        await kv.set(`room:${seed}`, room);
-      }
-      return res.status(200).json({ success: true, room });
+        return room;
+      });
+
+      if (!updatedRoom) return res.status(404).json({ error: 'Room not found' });
+      return res.status(200).json({ success: true, room: updatedRoom });
     }
 
     return res.status(400).json({ error: 'Invalid action' });

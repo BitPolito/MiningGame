@@ -36,5 +36,15 @@ export const kv = {
     db[key] = value;
     writeDB(db);
     return true;
+  },
+  update: async (key, updaterFn) => {
+    // Atomic update for local mock
+    const db = readDB();
+    const current = db[key] || null;
+    if (!current) return null;
+    const newVal = updaterFn(current);
+    db[key] = newVal;
+    writeDB(db);
+    return newVal;
   }
 };
