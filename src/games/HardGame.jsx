@@ -11,14 +11,18 @@ const UserIcon = ({ style, className }) => (
   </svg>
 )
 
-export default function HardGame({ onHome }) {
+export default function HardGame({ onHome, roomSeed, playerName, initialRoomData }) {
   const [currentView, setCurrentView] = useState('game')
   const [showHowToPlay, setShowHowToPlay] = useState(false)
 
   const users = ["Alice", "Bob", "Carol", "Dave"];
-  const [balances, setBalances] = useState({ Alice: 100, Bob: 100, Carol: 100, Dave: 100 });
+  const [balances, setBalances] = useState(
+    users.reduce((acc, user) => ({ ...acc, [user]: 100 }), {})
+  );
   const [mempool, setMempool] = useState([]);
   const [selectedTxIds, setSelectedTxIds] = useState([]);
+  const [roomData, setRoomData] = useState(initialRoomData);
+
 
   const [nonce, setNonce] = useState(0);
   const [isMining, setIsMining] = useState(false);
@@ -45,23 +49,45 @@ export default function HardGame({ onHome }) {
 
   useEffect(() => {
     generateNewTarget();
-    // Generate Mempool
+    
+    // Generate Mempool - using dynamic users
     const pool = [];
-    let currentBalances = { Alice: 100, Bob: 100, Carol: 100, Dave: 100 };
-    for (let i = 0; i < 10; i++) {
-      const validSenders = users.filter(u => currentBalances[u] >= 20);
-      const sender = validSenders.length > 0 ? validSenders[Math.floor(Math.random() * validSenders.length)] : users[Math.floor(Math.random() * users.length)];
-      let receiver = sender;
-      while (receiver === sender) {
-        receiver = users[Math.floor(Math.random() * users.length)];
+    let currentBalances = {};
+    users.forEach(u => currentBalances[u] = 100);
+    
+    let combs = [];
+    for (let s of users) {
+      for (let r of users) {
+        if (s !== r) combs.push({ sender: s, receiver: r });
       }
-      let maxAmount = currentBalances[sender] >= 20 ? currentBalances[sender] - 10 : 5;
-      if (maxAmount > 40) maxAmount = 40;
-      const amount = Math.floor(Math.random() * maxAmount) + 1;
-      const fee = Math.floor(Math.random() * 10) + 1;
-
-      currentBalances[sender] -= (amount + fee);
-
+    }
+    for (let i = combs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [combs[i], combs[j]] = [combs[j], combs[i]];
+    }
+    
+    let cheaterIndex = Math.floor(Math.random() * combs.length);
+    for (let i = 0; i < combs.length; i++) {
+      let { sender, receiver } = combs[i];
+      let amount, fee;
+      if (i === cheaterIndex) {
+        amount = currentBalances[sender] + Math.floor(Math.random() * 20) + 5;
+        if (amount < 20) amount = 20 + Math.floor(Math.random() * 20);
+        fee = Math.floor(Math.random() * 10) + 1;
+      } else {
+        let diff = currentBalances[sender] - currentBalances[receiver];
+        amount = Math.round(30 + diff / 3);
+        if (amount < 20) amount = 20 + Math.floor(Math.random() * 10);
+        if (amount > 70) amount = 70 - Math.floor(Math.random() * 10);
+        if (amount >= currentBalances[sender]) {
+          amount = currentBalances[sender] - 5;
+          if (amount < 1) amount = 1;
+        }
+        fee = Math.floor(Math.random() * 5) + 1;
+        currentBalances[sender] -= (amount + fee);
+        currentBalances[receiver] += amount;
+      }
+      
       pool.push({
         id: i + 1,
         sender,
@@ -73,6 +99,24 @@ export default function HardGame({ onHome }) {
     }
     setMempool(pool);
   }, []);
+
+  useEffect(() => {
+    let interval;
+    if (roomSeed && roomData && roomData.status !== 'finished') {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/room?action=status&seed=${roomSeed}`);
+          const data = await res.json();
+          if (data.success) {
+            setRoomData(data.room);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [roomSeed, roomData?.status]);
 
   useEffect(() => {
     if (selectedTxIds.length === 3) {
@@ -164,6 +208,14 @@ export default function HardGame({ onHome }) {
       newBalances[tx.receiver] += tx.amount;
     });
     setBalances(newBalances);
+    
+    if (roomSeed) {
+      fetch('/api/room?action=mine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seed: roomSeed, playerName })
+      }).catch(console.error);
+    }
 
     // Update Mempool
     let newMempool = mempool.filter(tx => !selectedTxIds.includes(tx.id));
@@ -247,6 +299,19 @@ export default function HardGame({ onHome }) {
 
       {/* LEFT COLUMN */}
       <div className="col-left">
+
+        {roomData && roomData.status === 'finished' && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ background: '#fff', padding: '40px', borderRadius: '12px', textAlign: 'center' }}>
+              <h1 style={{ fontSize: '3rem', margin: 0, color: roomData.winner === playerName ? '#4CAF50' : '#f44336' }}>
+                {roomData.winner === playerName ? 'YOU WON!' : `${roomData.winner} WON!`}
+              </h1>
+              <p style={{ fontSize: '1.5rem', marginTop: '20px' }}>{roomData.winner} was the first to mine 6 blocks.</p>
+              <button className="btn-pixel" onClick={onHome} style={{ marginTop: '30px' }}>Return to Lobby</button>
+            </div>
+          </div>
+        )}
+
         {/* Balances */}
         <div className="section-balances">
           <div className="widget-title">Balances (Genesis)</div>
@@ -463,6 +528,25 @@ export default function HardGame({ onHome }) {
         {message && (
           <div style={{ marginTop: '15px', padding: '15px', backgroundColor: message.includes('Target') || message.includes('generated') || message.includes('mined') ? 'var(--color-blue)' : 'var(--color-red)', color: 'white', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold' }}>
             {message}
+          </div>
+        )}
+        {/* Multiplayer Mining Race Section */}
+        {roomData && (
+          <div className="section-mining-race" style={{ marginTop: '20px', background: '#fff', padding: '15px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+            <div className="widget-title" style={{ fontSize: '1.2rem', marginBottom: '10px' }}>Multiplayer Mining Race</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {roomData.players.map(p => (
+                <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '80px', fontWeight: 'bold', color: p.name === playerName ? 'var(--color-blue)' : '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {p.name} {p.name === playerName && '(You)'}
+                  </div>
+                  <div style={{ flex: 1, background: '#eee', height: '20px', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div style={{ width: `${(p.blocks / 6) * 100}%`, background: p.blocks >= 6 ? '#4CAF50' : 'var(--color-blue)', height: '100%', transition: 'width 0.3s' }}></div>
+                  </div>
+                  <div style={{ width: '40px', textAlign: 'right', fontWeight: 'bold' }}>{p.blocks}/6</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
