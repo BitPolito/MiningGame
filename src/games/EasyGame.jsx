@@ -42,87 +42,76 @@ export default function EasyGame({ onHome }) {
   }
 
   const generateMempool = (currentBlockNum, balances) => {
-    const pool = [];
-    const cheaterIndex = Math.floor(Math.random() * 7);
+    let pool = [];
+    let valid = false;
+    let attempts = 0;
 
-    for (let i = 0; i < 7; i++) {
-      const isCheater = (i === cheaterIndex);
-
-      let sender, receiver, amount, fee;
-
-      if (isCheater) {
-        // Cheater: try to spend more than balance
-        const possibleCheaters = users.filter(u => balances[u] < 110);
-        sender = possibleCheaters.length > 0
-          ? possibleCheaters[Math.floor(Math.random() * possibleCheaters.length)]
-          : users[Math.floor(Math.random() * users.length)];
-
-        receiver = sender;
-        while (receiver === sender) {
-          receiver = users[Math.floor(Math.random() * users.length)];
+    while (!valid && attempts < 10000) {
+      pool = [];
+      attempts++;
+      let simulatedBalances = { ...balances };
+      let cheaterIndex = Math.floor(Math.random() * 12);
+      
+      let combs = [];
+      for (let s of users) {
+        for (let r of users) {
+          if (s !== r) combs.push({ sender: s, receiver: r });
         }
-
-        // Try to make amount > balance if possible, otherwise cost > balance
-        if (balances[sender] < 60) {
-          let minAmount = Math.max(30, balances[sender] + 1);
-          let minMultiple = Math.ceil(minAmount / 5);
-          let maxMultiple = 12; // 60 / 5
-
-          if (minMultiple <= maxMultiple) {
-            let options = maxMultiple - minMultiple + 1;
-            amount = (Math.floor(Math.random() * options) + minMultiple) * 5;
-          } else {
-            amount = 60;
-          }
-          fee = (Math.floor(Math.random() * 5) + 2) * 5; // 10-30
-        } else {
-          amount = (Math.floor(Math.random() * 7) + 6) * 5; // 30-60
-          fee = (Math.floor(Math.random() * 5) + 2) * 5;    // 10-30
-          if (amount + fee <= balances[sender]) {
-            amount = 60;
-            fee = 30;
-            if (amount + fee <= balances[sender]) {
-              amount = Math.ceil((balances[sender] + 5) / 5) * 5;
-              fee = 10;
-            }
-          }
-        }
-      } else {
-        // Normal valid transaction
-        const possibleSenders = users.filter(u => balances[u] >= 40);
-        sender = possibleSenders.length > 0
-          ? possibleSenders[Math.floor(Math.random() * possibleSenders.length)]
-          : users[Math.floor(Math.random() * users.length)];
-
-        receiver = sender;
-        while (receiver === sender) {
-          receiver = users[Math.floor(Math.random() * users.length)];
-        }
-
-        let maxCost = balances[sender];
-        if (maxCost < 40) maxCost = 40; // Fallback
-
-        let maxAmountVal = Math.min(60, maxCost - 10);
-        let maxAmountMultiple = Math.floor(maxAmountVal / 5);
-        if (maxAmountMultiple < 6) maxAmountMultiple = 6;
-        let amountOptions = maxAmountMultiple - 6 + 1;
-        amount = (Math.floor(Math.random() * amountOptions) + 6) * 5;
-
-        let maxFeeVal = Math.min(30, maxCost - amount);
-        let maxFeeMultiple = Math.floor(maxFeeVal / 5);
-        if (maxFeeMultiple < 2) maxFeeMultiple = 2;
-        let feeOptions = maxFeeMultiple - 2 + 1;
-        fee = (Math.floor(Math.random() * feeOptions) + 2) * 5;
+      }
+      
+      // shuffle combinations
+      for (let i = combs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [combs[i], combs[j]] = [combs[j], combs[i]];
       }
 
-      pool.push({
-        id: currentBlockNum * 10 + i, // unique ids across blocks
-        displayId: i + 1, // matching the image roughly for visual
-        sender,
-        receiver,
-        amount,
-        fee
-      });
+      for (let i = 0; i < 12; i++) {
+        const isCheater = (i === cheaterIndex);
+        let { sender, receiver } = combs[i];
+        let amount, fee;
+
+        if (isCheater) {
+          const currentBal = simulatedBalances[sender];
+          amount = currentBal + Math.floor(Math.random() * 20) + 5;
+          if (amount < 20) amount = 20 + Math.floor(Math.random() * 20);
+          fee = Math.floor(Math.random() * 10) + 1;
+        } else {
+          let diff = simulatedBalances[sender] - simulatedBalances[receiver];
+          amount = Math.round(30 + diff / 3);
+
+          if (amount < 20) amount = 20 + Math.floor(Math.random() * 10);
+          if (amount > 70) amount = 70 - Math.floor(Math.random() * 10);
+
+          let currentBal = simulatedBalances[sender];
+          if (amount >= currentBal) {
+            amount = currentBal - 5;
+            if (amount < 1) amount = 1;
+          }
+
+          let maxFee = currentBal - amount;
+          fee = Math.floor(Math.random() * Math.min(10, maxFee)) + 1;
+          if (fee < 1) fee = 1;
+
+          simulatedBalances[sender] -= (amount + fee);
+          simulatedBalances[receiver] += amount;
+        }
+
+        pool.push({
+          id: currentBlockNum * 100 + i,
+          displayId: i + 1,
+          sender,
+          receiver,
+          amount,
+          fee
+        });
+      }
+
+      let vals = users.map(u => simulatedBalances[u]);
+      let mean = vals.reduce((a, b) => a + b, 0) / 4;
+      let variance = vals.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / 4;
+      if (variance <= 100) {
+        valid = true;
+      }
     }
     setMempool(pool);
   }
