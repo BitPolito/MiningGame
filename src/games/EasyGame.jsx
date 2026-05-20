@@ -20,6 +20,7 @@ export default function EasyGame({ onHome }) {
   const [selectedTxIds, setSelectedTxIds] = useState([])
   const [nonceInput, setNonceInput] = useState('')
   const [message, setMessage] = useState('')
+  const [errorTxId, setErrorTxId] = useState(null)
   const [currentView, setCurrentView] = useState('game')
 
   const users = ["Alice", "Bob", "Carol", "Dave"]
@@ -144,7 +145,8 @@ export default function EasyGame({ onHome }) {
 
         // Validation 1: Sufficient Balance (Cumulative)
         if (selectedCost + txToSelect.amount + txToSelect.fee > currentBalances[txToSelect.sender]) {
-          setMessage(`Insufficient balance: ${txToSelect.sender} only has ${currentBalances[txToSelect.sender]}, needs ${selectedCost + txToSelect.amount + txToSelect.fee} for all selected transactions.`);
+          setErrorTxId(id);
+          setTimeout(() => setErrorTxId(null), 500);
           return;
         }
 
@@ -169,7 +171,8 @@ export default function EasyGame({ onHome }) {
           const allowedTxs = sortedUnselectedTxs.slice(0, needed);
 
           if (!allowedTxs.some(t => t.id === txToSelect.id)) {
-            setMessage(`Miners prioritize! You must select the highest available fees (older transactions first in case of a tie).`);
+            setErrorTxId(id);
+            setTimeout(() => setErrorTxId(null), 500);
             return;
           }
         }
@@ -234,12 +237,6 @@ export default function EasyGame({ onHome }) {
 
   const renderGame = () => (
     <div className="app-container">
-      {message && (
-        <div className={message.includes('Successfully') ? "success" : "alert"}>
-          {message}
-        </div>
-      )}
-
       {/* LEFT COLUMN */}
       <div className="col-left">
         {/* Mempool Section */}
@@ -260,7 +257,7 @@ export default function EasyGame({ onHome }) {
                 {mempool.map(tx => (
                   <tr
                     key={tx.id}
-                    className={`clickable ${selectedTxIds.includes(tx.id) ? 'selected' : ''}`}
+                    className={`clickable ${selectedTxIds.includes(tx.id) ? 'selected' : ''} ${errorTxId === tx.id ? 'error-shake' : ''}`}
                     onClick={() => toggleSelection(tx.id)}
                   >
                     <td>{tx.displayId}</td>
@@ -407,6 +404,13 @@ export default function EasyGame({ onHome }) {
             ))}
           </div>
         </div>
+
+        {/* Notifications */}
+        {message && (
+          <div style={{ marginTop: '15px', padding: '15px', backgroundColor: message.includes('Successfully') ? 'var(--color-blue)' : 'var(--color-red)', color: 'white', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+            {message}
+          </div>
+        )}
 
       </div>
     </div>

@@ -35,7 +35,16 @@ export default function HardGame({ onHome }) {
   const [verifyNonce, setVerifyNonce] = useState("");
   const [difficulty, setDifficulty] = useState('easy');
 
+  const generateNewTarget = () => {
+    let randomTarget = "";
+    for (let i = 0; i < 62; i++) {
+      randomTarget += Math.floor(Math.random() * 16).toString(16);
+    }
+    setTargetHash('00' + randomTarget);
+  };
+
   useEffect(() => {
+    generateNewTarget();
     // Generate Mempool
     const pool = [];
     let currentBalances = { Alice: 100, Bob: 100, Carol: 100, Dave: 100 };
@@ -70,13 +79,7 @@ export default function HardGame({ onHome }) {
       const selectedTxs = mempool.filter(tx => selectedTxIds.includes(tx.id));
       const baseStr = selectedTxs.map(tx => `${tx.sender}to${tx.receiver}${tx.amount}${tx.date}`).join('-');
 
-      setNumZeros(4);
-
-      let randomTarget = "";
-      for (let i = 0; i < 62; i++) {
-        randomTarget += Math.floor(Math.random() * 16).toString(16);
-      }
-      setTargetHash('00' + randomTarget);
+      setNumZeros(3);
 
       const realTxHash = SHA256(baseStr).toString();
 
@@ -88,7 +91,6 @@ export default function HardGame({ onHome }) {
     } else {
       setBaseString("");
       setTxHash("");
-      setTargetHash("");
       setNonce(0);
       setMiningDone(false);
       setIsMining(false);
@@ -215,17 +217,17 @@ export default function HardGame({ onHome }) {
     setVerifyRaw("");
     setVerifyNonce("");
     setMessage("Block mined successfully! Block #" + blocks.length + " added.");
+    generateNewTarget();
   }
 
   const selectedTxs = mempool.filter(tx => selectedTxIds.includes(tx.id));
 
   // Compute Hash Result and Target
-  let targetDisplay = "Select transactions to generate target...";
+  let targetDisplay = targetHash || "Generating target...";
   let hashResultDisplay = "N/A";
   let isWin = false;
 
   if (baseString) {
-    targetDisplay = targetHash;
     const currentHash = SHA256(txHash + nonce).toString();
     hashResultDisplay = currentHash;
     if (miningDone) {
