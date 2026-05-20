@@ -179,19 +179,49 @@ export default function HardGame({ onHome, roomSeed, playerName, initialRoomData
   }, [isMining, nonce, txHash, targetHash]);
 
   const toggleSelection = (id) => {
-    setMessage("");
+    setMessage('');
     if (selectedTxIds.includes(id)) {
       setSelectedTxIds(selectedTxIds.filter(txId => txId !== id));
     } else {
       if (selectedTxIds.length < 3) {
-        // Validate fee
-        const sortedMempool = [...mempool].sort((a, b) => b.fee - a.fee);
-        const top3 = sortedMempool.slice(0, 3);
+        const txToSelect = mempool.find(t => t.id === id);
+        const currentBalances = balanceHistory[balanceHistory.length - 1];
 
-        if (!top3.some(t => t.id === id)) {
+        const currentSenderSelected = mempool.filter(t => selectedTxIds.includes(t.id) && t.sender === txToSelect.sender);
+        const selectedCost = currentSenderSelected.reduce((sum, t) => sum + t.amount + t.fee, 0);
+
+        // Validation 1: Sufficient Balance (Cumulative)
+        if (selectedCost + txToSelect.amount + txToSelect.fee > currentBalances[txToSelect.sender]) {
           setErrorTxId(id);
           setTimeout(() => setErrorTxId(null), 500);
           return;
+        }
+
+        // Validation 2: Highest Fee Priority
+        const validUnselectedTxs = mempool.filter(t => {
+          if (selectedTxIds.includes(t.id)) return false;
+          const senderSelectedCost = mempool.filter(sel => selectedTxIds.includes(sel.id) && sel.sender === t.sender).reduce((sum, sel) => sum + sel.amount + sel.fee, 0);
+          return (senderSelectedCost + t.amount + t.fee <= currentBalances[t.sender]);
+        });
+
+        const needed = 3 - selectedTxIds.length;
+        if (needed > 0 && validUnselectedTxs.length > 0) {
+          // Sort descending by fee, then ascending by id (older first)
+          const sortedUnselectedTxs = [...validUnselectedTxs].sort((a, b) => {
+            if (b.fee !== a.fee) {
+              return b.fee - a.fee;
+            }
+            return a.id - b.id;
+          });
+
+          // The top `needed` transactions that we are allowed to select from
+          const allowedTxs = sortedUnselectedTxs.slice(0, needed);
+
+          if (!allowedTxs.some(t => t.id === txToSelect.id)) {
+            setErrorTxId(id);
+            setTimeout(() => setErrorTxId(null), 500);
+            return;
+          }
         }
 
         setSelectedTxIds([...selectedTxIds, id]);
