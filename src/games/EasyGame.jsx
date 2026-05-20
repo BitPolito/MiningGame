@@ -240,8 +240,8 @@ const getNameValue = (name) => {
     }
   }
 
-  // Generate 7 columns for the balance table
-  const columns = users.map((_, i) => i)
+  // Generate 7 columns for the balance table (blocks 0 to 6)
+  const columns = [0, 1, 2, 3, 4, 5, 6];
 
   const renderHomeButton = () => (
     <div className="home-btn" onClick={onHome}>
@@ -339,16 +339,19 @@ const getNameValue = (name) => {
         {/* Blockchain Visualizer Section */}
         <div className="section-blockchain" style={{ marginBottom: '30px' }}>
           <div className="widget-title" style={{ fontSize: '0.9rem', padding: '8px' }}>BlockChain</div>
-          <div className="widget-content blockchain-container" style={{ justifyContent: 'flex-start' }}>
-            {[...Array(blockNum).keys()].map((i, index, arr) => (
-              <div key={i} className="block-wrapper">
-                <div className="block-column">
-                  <div className="block-square"></div>
-                  <div className="block-number">#{i}</div>
+          <div className="widget-content blockchain-container" style={{ justifyContent: 'center' }}>
+            {[0, 1, 2, 3, 4, 5, 6].map((i, index, arr) => {
+              const isMined = i < blockNum;
+              return (
+                <div key={i} className="block-wrapper" style={{ opacity: isMined ? 1 : 0.3 }}>
+                  <div className="block-column">
+                    <div className="block-square" style={{ backgroundColor: isMined ? 'var(--color-blue)' : '#ccc' }}></div>
+                    <div className="block-number" style={{ color: isMined ? 'var(--color-blue)' : '#999' }}>#{i}</div>
+                  </div>
+                  {index < arr.length - 1 && <div className="block-connector" style={{ backgroundColor: isMined && (i + 1) < blockNum ? 'var(--color-blue)' : '#ccc' }}></div>}
                 </div>
-                {index < arr.length - 1 && <div className="block-connector"></div>}
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 

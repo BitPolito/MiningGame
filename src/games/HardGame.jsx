@@ -16,9 +16,10 @@ export default function HardGame({ onHome, roomSeed, playerName, initialRoomData
   const [showHowToPlay, setShowHowToPlay] = useState(false)
 
   const users = ["Alice", "Bob", "Carol", "Dave"];
-  const [balances, setBalances] = useState(
+  const [balanceHistory, setBalanceHistory] = useState([
     users.reduce((acc, user) => ({ ...acc, [user]: 100 }), {})
-  );
+  ]);
+  const columns = [0, 1, 2, 3, 4, 5, 6];
   const [mempool, setMempool] = useState([]);
   const [selectedTxIds, setSelectedTxIds] = useState([]);
   const [roomData, setRoomData] = useState(initialRoomData);
@@ -202,12 +203,13 @@ export default function HardGame({ onHome, roomSeed, playerName, initialRoomData
     const selectedTxs = mempool.filter(tx => selectedTxIds.includes(tx.id));
 
     // Update balances
-    const newBalances = { ...balances };
+    const lastBalances = balanceHistory[balanceHistory.length - 1];
+    const newBalances = { ...lastBalances };
     selectedTxs.forEach(tx => {
       newBalances[tx.sender] -= (tx.amount + tx.fee);
       newBalances[tx.receiver] += tx.amount;
     });
-    setBalances(newBalances);
+    setBalanceHistory([...balanceHistory, newBalances]);
     
     if (roomSeed) {
       fetch('/api/room?action=mine', {
@@ -312,22 +314,32 @@ export default function HardGame({ onHome, roomSeed, playerName, initialRoomData
           </div>
         )}
 
-        {/* Balances */}
+        {/* Balance Sheet Section */}
         <div className="section-balances">
-          <div className="widget-title">Balances (Genesis)</div>
+          <div className="widget-title">Balance sheet</div>
           <div className="widget-content">
             <table className="balance-table">
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left' }}>User</th>
-                  <th>Balance</th>
+                  <th style={{ textAlign: 'left' }}>Block</th>
+                  {columns.map(col => (
+                    <th key={col}>{col}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
                   <tr key={u}>
-                    <td style={{ textAlign: 'left' }}><UserIcon /> {u}</td>
-                    <td>{balances[u]}</td>
+                    <td style={{ textAlign: 'left' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <UserIcon style={{ margin: 0 }} />
+                        <span>{u}</span>
+                      </div>
+                    </td>
+                    {columns.map(col => {
+                      const bal = balanceHistory[col] ? balanceHistory[col][u] : '-';
+                      return <td key={col}>{bal}</td>;
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -464,20 +476,24 @@ export default function HardGame({ onHome, roomSeed, playerName, initialRoomData
         {/* Blockchain Visualizer */}
         <div className="section-blockchain" style={{ marginTop: '15px' }}>
           <div className="widget-title">Blockchain</div>
-          <div className="widget-content blockchain-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', overflowX: 'auto', padding: '10px' }}>
-            {blocks.map((block, index, arr) => (
-              <div key={block.id} className="block-wrapper" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                <div
-                  className="block-column"
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                  onClick={() => setSelectedBlock(block)}
-                >
-                  <div className="block-square" style={{ width: '45px', height: '45px', backgroundColor: 'var(--color-blue)', borderRadius: '8px', transition: 'transform 0.1s' }} onMouseOver={e => e.target.style.transform = 'scale(1.1)'} onMouseOut={e => e.target.style.transform = 'scale(1)'}></div>
-                  <div className="block-number" style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--color-blue)' }}>#{block.id}</div>
+          <div className="widget-content blockchain-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', overflowX: 'auto', padding: '10px' }}>
+            {[0, 1, 2, 3, 4, 5, 6].map((i, index, arr) => {
+              const isMined = i < blocks.length;
+              const block = blocks[i] || { id: i };
+              return (
+                <div key={i} className="block-wrapper" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, opacity: isMined ? 1 : 0.3 }}>
+                  <div
+                    className="block-column"
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: isMined ? 'pointer' : 'default' }}
+                    onClick={() => isMined && setSelectedBlock(block)}
+                  >
+                    <div className="block-square" style={{ width: '45px', height: '45px', backgroundColor: isMined ? 'var(--color-blue)' : '#ccc', borderRadius: '8px', transition: 'transform 0.1s' }} onMouseOver={e => isMined && (e.target.style.transform = 'scale(1.1)')} onMouseOut={e => e.target.style.transform = 'scale(1)'}></div>
+                    <div className="block-number" style={{ fontWeight: 'bold', fontSize: '0.85rem', color: isMined ? 'var(--color-blue)' : '#999' }}>#{i}</div>
+                  </div>
+                  {index < arr.length - 1 && <div className="block-connector" style={{ width: '25px', height: '2px', backgroundColor: isMined && (i + 1) < blocks.length ? 'var(--color-blue)' : '#ccc', marginBottom: '30%' }}></div>}
                 </div>
-                {index < arr.length - 1 && <div className="block-connector" style={{ width: '25px', height: '2px', backgroundColor: 'var(--color-blue)', marginBottom: '30%' }}></div>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
