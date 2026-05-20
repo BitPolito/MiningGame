@@ -1,5 +1,5 @@
 :root {
-  --color-white: hsl(0, 0%, 100%);
+  --color-white: #ffffff;
   --color-blue: #001CE0;
   --color-red: red;
   --border-radius: 12px;
@@ -8,7 +8,7 @@
 body {
   margin: 0;
   padding: 40px;
-  background-color: #ffffff;
+  background-color: #f9f9f9;
   color: var(--color-blue);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
