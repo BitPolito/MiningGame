@@ -43,7 +43,7 @@ export default function HardGame({
   blocksToWin: blocksToWinProp = 3,
 }) {
   const { tr } = useLocale();
-  const gameSeed = roomSeed || 'solo';
+  const [gameSeed] = useState(() => roomSeed || Math.random().toString(36).substring(2, 10));
 
   const [balanceHistory, setBalanceHistory] = useState([initialBalances()]);
   const [mempool, setMempool] = useState(() =>

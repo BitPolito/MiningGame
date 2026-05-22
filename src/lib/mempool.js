@@ -241,7 +241,7 @@ export function generateMempool({
     const mean = vals.reduce((a, b) => a + b, 0) / users.length;
     const variance =
       vals.reduce((sum, v) => sum + (v - mean) ** 2, 0) / users.length;
-    if (variance <= 100 && canCompleteBlockSelection(pool, stableBalances)) return pool;
+    if (variance <= 225 && canCompleteBlockSelection(pool, stableBalances)) return pool;
   }
 
   return buildPlayableFallback({

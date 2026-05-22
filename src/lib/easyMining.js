@@ -15,7 +15,7 @@ export function computeBlockValue(txs) {
 }
 
 export function initialEasyTarget() {
-  return 550;
+  return 750;
 }
 
 /** Deterministic next target (multiplayer sync). */
