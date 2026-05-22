@@ -29,6 +29,7 @@ import {
   pickNewerRoom,
 } from '../lib/roomConfig';
 import { reportMine } from '../lib/roomApi';
+import { normalizePlayerName } from '../lib/playerNames';
 import { useLocale } from '../i18n/LocaleContext';
 import { useRoomPoll } from '../hooks/useRoomPoll';
 import { useSha256 } from '../hooks/useSha256';
@@ -88,10 +89,20 @@ export default function HardGame({
   const blocksToWinLive = useMemo(
     () =>
       clampBlocksToWin(
-        roomSeed ? getRoomBlocksToWin(roomData ?? initialRoomData) : blocksToWinProp,
+        roomSeed ? getRoomBlocksToWin(effectiveRoom) : blocksToWinProp,
       ),
-    [roomSeed, roomData, initialRoomData, blocksToWinProp],
+    [roomSeed, effectiveRoom, blocksToWinProp],
   );
+
+  const myRoomPlayer = useMemo(() => {
+    if (!effectiveRoom?.players?.length || !playerName) return null;
+    const key = normalizePlayerName(playerName);
+    return effectiveRoom.players.find((p) => normalizePlayerName(p.name) === key) ?? null;
+  }, [effectiveRoom, playerName]);
+
+  const blocksMinedLive = roomSeed
+    ? (myRoomPlayer?.blocks ?? 0)
+    : Math.max(0, blocks.length - 1);
   const columns = useMemo(() => getBlockColumns(blocksToWinLive), [blocksToWinLive]);
 
   const [soloWon, setSoloWon] = useState(false);
@@ -120,6 +131,13 @@ export default function HardGame({
       setRollCount(0);
     }
   }, [selectedTxIds.length]);
+
+  useEffect(() => {
+    if (!gameOver) return;
+    setMiningDone(false);
+    setFinalHash('');
+    setRollingDice(false);
+  }, [gameOver]);
 
   const currentBalances = balanceHistory[balanceHistory.length - 1];
 
@@ -167,14 +185,17 @@ export default function HardGame({
     setNonce(0);
     setFinalHash('');
     setMiningDone(false);
-    setVerifyRaw('');
-    setVerifyNonce('');
     setLastMinedBlockId(newBlockId);
     setMessageKey('blockMinedHard');
 
     if (roomSeed) {
-      const result = await reportMine(roomSeed, playerName, newBlockId);
-      if (result?.room) syncRoomFromServer(result.room);
+      const blockIndex = (myRoomPlayer?.blocks ?? 0) + 1;
+      const result = await reportMine(roomSeed, playerName, blockIndex);
+      if (result?.room) {
+        syncRoomFromServer(result.room);
+      } else {
+        setMessageKey('errConnect');
+      }
     } else if (newBlockId >= blocksToWinLive) {
       setSoloWon(true);
     }
@@ -259,7 +280,7 @@ export default function HardGame({
               setShowHowToPlay(true);
             }}
             difficulty="hard"
-            blocksMined={Math.max(0, blocks.length - 1)}
+            blocksMined={blocksMinedLive}
             blockGoal={blocksToWinLive}
             roomSeed={roomSeed}
             selectionCount={selectedTxIds.length}
@@ -293,8 +314,8 @@ export default function HardGame({
 
           <GameWorkspaceLayout
             columns={columns}
-            minedCount={blocks.length}
-            blocksMined={Math.max(0, blocks.length - 1)}
+            minedCount={roomSeed ? blocksMinedLive + 1 : blocks.length}
+            blocksMined={blocksMinedLive}
             blockGoal={blocksToWinLive}
             onBlockClick={(i) => blocks[i] && setSelectedBlock(blocks[i])}
             chainClickable
