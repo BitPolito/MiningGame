@@ -291,7 +291,10 @@ export function replenishMempool(mempool, balances, blockNum, roomSeed) {
     });
   }
 
-  const next = [...mempool, ...newTxs];
+  const next = [...mempool, ...newTxs].map((tx, i) => ({
+    ...tx,
+    displayId: i + 1,
+  }));
   if (canCompleteBlockSelection(next, stableBalances)) return next;
 
   return generateMempool({
