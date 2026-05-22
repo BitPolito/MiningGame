@@ -479,6 +479,7 @@ tr.clickable.selected td:last-child {
   transform: none;
   box-shadow: 0px 8px 15px var(--bp-shadow-md);
 }
+
 .help-icon {
   position: fixed;
   top: 20px;
@@ -498,6 +499,7 @@ tr.clickable.selected td:last-child {
   box-shadow: 0 4px 6px var(--bp-shadow-sm);
   transition: transform 0.2s;
 }
+
 .help-icon:hover {
   transform: scale(1.05);
 }
