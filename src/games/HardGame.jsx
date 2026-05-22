@@ -63,6 +63,7 @@ export default function HardGame({
   const [nonce, setNonce] = useState(0);
   const [finalHash, setFinalHash] = useState('');
   const [miningDone, setMiningDone] = useState(false);
+  const [hasAcknowledgedPow, setHasAcknowledgedPow] = useState(false);
   const [rollingDice, setRollingDice] = useState(false);
   const [diceFaces, setDiceFaces] = useState(emptyDiceFaces);
   const [rollCount, setRollCount] = useState(0);
@@ -126,6 +127,7 @@ export default function HardGame({
       setNonce(0);
       setFinalHash('');
       setMiningDone(false);
+      setHasAcknowledgedPow(false);
       setRollingDice(false);
       setDiceFaces(emptyDiceFaces());
       setRollCount(0);
@@ -135,6 +137,7 @@ export default function HardGame({
   useEffect(() => {
     if (!gameOver) return;
     setMiningDone(false);
+    setHasAcknowledgedPow(false);
     setFinalHash('');
     setRollingDice(false);
   }, [gameOver]);
@@ -185,6 +188,7 @@ export default function HardGame({
     setNonce(0);
     setFinalHash('');
     setMiningDone(false);
+    setHasAcknowledgedPow(false);
     setLastMinedBlockId(newBlockId);
     setMessageKey('blockMinedHard');
 
@@ -222,6 +226,7 @@ export default function HardGame({
       setNonce(rolledNonce);
       setFinalHash(hash);
       setMiningDone(valid);
+      setHasAcknowledgedPow(false);
       setMessageKey(valid ? 'powHashValid' : 'powHashInvalid');
     } finally {
       setRollingDice(false);
@@ -296,11 +301,11 @@ export default function HardGame({
           />
 
           <PowFoundOverlay
-            open={powFound && !gameOver}
+            open={powFound && !hasAcknowledgedPow && !gameOver}
             nonce={nonce}
             diceFaces={diceFaces}
             finalHash={finalHash}
-            onMine={handleMineBlock}
+            onClose={() => setHasAcknowledgedPow(true)}
           />
 
           <WinOverlay
@@ -410,6 +415,14 @@ export default function HardGame({
                       </PanelSection>
                     )}
 
+                    {baseString && (
+                      <PanelSection title={tr('rawTxData')} variant="mono">
+                        <div className="bp-hash bp-hash--compact" style={{ wordBreak: 'break-all', fontSize: '0.8em', color: 'var(--text-dim)' }}>
+                          {baseString}
+                        </div>
+                      </PanelSection>
+                    )}
+
                     {(canRollDice || powFound) && (
                       <PanelSection title={tr('rollDice')} variant="action">
                         <PowDicePanel
@@ -429,6 +442,15 @@ export default function HardGame({
                         <div className={`bp-hash bp-hash--result${powFound ? ' bp-hash--win' : ''}`}>
                           {finalHash}
                         </div>
+                      </PanelSection>
+                    )}
+
+                    {powFound && hasAcknowledgedPow && !gameOver && (
+                      <PanelSection variant="action">
+                        <button type="button" className="bp-btn bp-btn-solid bp-btn--block bp-btn--pulse" onClick={handleMineBlock}>
+                          <BpIcon src={ICON.pickaxe} className="bp-icon" tone="on-solid" />
+                          <span className="bp-btn__label">{tr('mineBlock')}</span>
+                        </button>
                       </PanelSection>
                     )}
                   </PanelCard>

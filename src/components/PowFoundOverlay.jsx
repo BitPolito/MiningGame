@@ -2,7 +2,7 @@ import BpIcon from './BpIcon';
 import { ICON } from '../assets/icons';
 import { useLocale } from '../i18n/LocaleContext';
 
-export default function PowFoundOverlay({ open, nonce, diceFaces, finalHash, onMine }) {
+export default function PowFoundOverlay({ open, nonce, diceFaces, finalHash, onClose }) {
   const { tr } = useLocale();
 
   if (!open) return null;
@@ -39,9 +39,8 @@ export default function PowFoundOverlay({ open, nonce, diceFaces, finalHash, onM
             </div>
           )}
         </dl>
-        <button type="button" className="bp-btn bp-btn-solid bp-btn--block" onClick={onMine}>
-          <BpIcon src={ICON.pickaxe} className="bp-icon" tone="on-solid" />
-          <span className="bp-btn__label">{tr('mineBlock')}</span>
+        <button type="button" className="bp-btn bp-btn-solid bp-btn--block" onClick={onClose}>
+          <span className="bp-btn__label">{tr('close')}</span>
         </button>
       </div>
     </div>
