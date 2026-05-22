@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import HowToPlay from '../HowToPlay';
 import GameHud from '../components/game/GameHud';
 import WinOverlay from '../components/WinOverlay';
@@ -22,7 +22,12 @@ import {
   nextEasyTarget,
 } from '../lib/easyMining';
 import { initialBalances } from '../lib/gameConstants';
-import { getBlockColumns, getRoomBlocksToWin, clampBlocksToWin } from '../lib/roomConfig';
+import {
+  getBlockColumns,
+  getRoomBlocksToWin,
+  clampBlocksToWin,
+  pickNewerRoom,
+} from '../lib/roomConfig';
 import { reportMine } from '../lib/roomApi';
 import { useLocale } from '../i18n/LocaleContext';
 import { useRoomPoll } from '../hooks/useRoomPoll';
@@ -52,8 +57,16 @@ export default function EasyGame({
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [rulesGuideMode, setRulesGuideMode] = useState('easy');
 
-  const [roomData] = useRoomPoll(roomSeed, !!roomSeed, 'game');
-  const effectiveRoom = roomData ?? initialRoomData;
+  const [roomData, setRoomData] = useRoomPoll(
+    roomSeed,
+    !!roomSeed,
+    'game',
+    initialRoomData,
+  );
+  const effectiveRoom = useMemo(
+    () => pickNewerRoom(roomData, initialRoomData),
+    [roomData, initialRoomData],
+  );
 
   const blocksToWinLive = useMemo(
     () => clampBlocksToWin(roomSeed ? getRoomBlocksToWin(effectiveRoom) : blocksToWinProp),
@@ -96,7 +109,14 @@ export default function EasyGame({
     setMessageKey(getRejectReasonKey(id, mempool, selectedTxIds, currentBalances));
   };
 
-  const handleMine = () => {
+  const syncRoomFromServer = useCallback(
+    (room) => {
+      if (room) setRoomData((prev) => pickNewerRoom(prev, room));
+    },
+    [setRoomData],
+  );
+
+  const handleMine = async () => {
     if (gameOver) return;
     if (selectedTxIds.length !== 3) {
       setMessageKey('errSelect3');
@@ -134,7 +154,9 @@ export default function EasyGame({
     setMessageKey('blockMinedOk');
 
     if (roomSeed) {
-      reportMine(roomSeed, playerName, nextBlock - 1);
+      const result = await reportMine(roomSeed, playerName, nextBlock - 1);
+      if (result?.room) syncRoomFromServer(result.room);
+      else if (!result?.success) setMessageKey('errConnect');
     } else if (nextBlock > blocksToWinLive) {
       setSoloWon(true);
     }

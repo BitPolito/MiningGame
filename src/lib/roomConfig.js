@@ -27,3 +27,12 @@ export function getRoomBlocksToWin(room) {
   if (room?.blocksToWin != null) return clampBlocksToWin(room.blocksToWin);
   return DEFAULT_BLOCKS_TO_WIN;
 }
+
+/** Prefer the room document with the latest `updatedAt` (avoids stale poll state). */
+export function pickNewerRoom(a, b) {
+  if (!a) return b ?? null;
+  if (!b) return a;
+  const ta = a.updatedAt ?? 0;
+  const tb = b.updatedAt ?? 0;
+  return tb >= ta ? b : a;
+}

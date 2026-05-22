@@ -386,7 +386,7 @@ export default async function handler(req, res) {
         return fail(res, 400, 'Game is not in progress');
       }
 
-      const prevPlayer = before.players.find((p) => p.name === playerName.trim());
+      const prevPlayer = findPlayer(before, { playerName });
       if (!prevPlayer) return res.status(400).json({ error: 'Player not in room' });
 
       const goal = clampBlocksToWin(before.blocksToWin);
@@ -402,7 +402,7 @@ export default async function handler(req, res) {
       const updatedRoom = await kv.update(roomKey(code), (room) => {
         if (!room || room.status !== 'playing') return room;
 
-        const player = room.players.find((p) => p.name === playerName.trim());
+        const player = findPlayer(room, { playerName });
         if (!player || player.blocks >= goal) return room;
 
         player.blocks += 1;
@@ -420,7 +420,7 @@ export default async function handler(req, res) {
 
       if (!updatedRoom) return fail(res, 404, 'Room not found');
 
-      const p = updatedRoom.players.find((pl) => pl.name === playerName.trim());
+      const p = findPlayer(updatedRoom, { playerName });
       if (!p || p.blocks === prevPlayer.blocks) {
         return fail(res, 409, 'Mine not recorded');
       }

@@ -2957,6 +2957,10 @@ a.bp-btn--link {
   border-bottom: none;
 }
 
+.bp-race-row--leading .bp-race-bar__fill {
+  background: linear-gradient(90deg, var(--bp-blue), var(--bp-500));
+}
+
 .bp-race-bar {
   height: 8px;
   border-radius: 999px;

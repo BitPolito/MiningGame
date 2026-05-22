@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import HowToPlay from '../HowToPlay';
 import ModalCloseButton from '../components/ModalCloseButton';
 import GameHud from '../components/game/GameHud';
@@ -22,7 +22,12 @@ import { generateMempool, replenishMempool, stabilizeBalances } from '../lib/mem
 import { generateTargetHash, isProofOfWorkValid, LEADING_ZEROS } from '../lib/targetHash';
 import { sha256Hex } from '../lib/sha256';
 import { initialBalances } from '../lib/gameConstants';
-import { getBlockColumns, getRoomBlocksToWin, clampBlocksToWin } from '../lib/roomConfig';
+import {
+  getBlockColumns,
+  getRoomBlocksToWin,
+  clampBlocksToWin,
+  pickNewerRoom,
+} from '../lib/roomConfig';
 import { reportMine } from '../lib/roomApi';
 import { useLocale } from '../i18n/LocaleContext';
 import { useRoomPoll } from '../hooks/useRoomPoll';
@@ -69,8 +74,16 @@ export default function HardGame({
     { id: 0, nonce: 0, dateMined: new Date().toLocaleString(), transactions: [] },
   ]);
   const [selectedBlock, setSelectedBlock] = useState(null);
-  const [roomData] = useRoomPoll(roomSeed, !!roomSeed, 'game');
-  const effectiveRoom = roomData ?? initialRoomData;
+  const [roomData, setRoomData] = useRoomPoll(
+    roomSeed,
+    !!roomSeed,
+    'game',
+    initialRoomData,
+  );
+  const effectiveRoom = useMemo(
+    () => pickNewerRoom(roomData, initialRoomData),
+    [roomData, initialRoomData],
+  );
 
   const blocksToWinLive = useMemo(
     () =>
@@ -110,7 +123,14 @@ export default function HardGame({
 
   const currentBalances = balanceHistory[balanceHistory.length - 1];
 
-  const commitBlock = (blockNonce) => {
+  const syncRoomFromServer = useCallback(
+    (room) => {
+      if (room) setRoomData((prev) => pickNewerRoom(prev, room));
+    },
+    [setRoomData],
+  );
+
+  const commitBlock = async (blockNonce) => {
     if (gameOver || selectedTxIds.length !== 3) return;
 
     const lastBalances = { ...balanceHistory[balanceHistory.length - 1] };
@@ -153,7 +173,8 @@ export default function HardGame({
     setMessageKey('blockMinedHard');
 
     if (roomSeed) {
-      reportMine(roomSeed, playerName, newBlockId);
+      const result = await reportMine(roomSeed, playerName, newBlockId);
+      if (result?.room) syncRoomFromServer(result.room);
     } else if (newBlockId >= blocksToWinLive) {
       setSoloWon(true);
     }
@@ -161,7 +182,7 @@ export default function HardGame({
 
   const handleMineBlock = () => {
     if (!miningDone || !finalHash || gameOver) return;
-    commitBlock(nonce);
+    void commitBlock(nonce);
   };
 
   const rollDiceForPow = async () => {

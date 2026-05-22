@@ -14,8 +14,15 @@ export default function MiningRace({ roomData, playerName }) {
       {roomData.players.map((p) => {
         const pct = Math.min(100, (p.blocks / goal) * 100);
         const won = p.blocks >= goal;
+        const isLeader =
+          !won &&
+          p.blocks > 0 &&
+          p.blocks === Math.max(...roomData.players.map((x) => x.blocks));
         return (
-          <div key={p.name} className="bp-race-row">
+          <div
+            key={p.name}
+            className={`bp-race-row${isLeader ? ' bp-race-row--leading' : ''}`}
+          >
             <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>
               {p.name}
               {p.name === playerName && (

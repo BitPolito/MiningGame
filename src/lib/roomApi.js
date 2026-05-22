@@ -120,6 +120,7 @@ export async function fetchRoomStatus(seed) {
   try {
     const res = await fetch(
       `/api/room?action=status&seed=${encodeURIComponent(seed.trim().toUpperCase())}`,
+      { cache: 'no-store' },
     );
     const data = await parseJsonResponse(res);
     if (!res.ok || !data.success) {
@@ -133,21 +134,25 @@ export async function fetchRoomStatus(seed) {
 
 /** Report a successfully mined block to the room API. */
 export async function reportMine(roomSeed, playerName, blockIndex) {
-  if (!roomSeed || !playerName) return null;
+  if (!roomSeed || !playerName) return { success: false, error: 'missing_params' };
   try {
     const res = await fetch('/api/room?action=mine', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         seed: String(roomSeed).trim().toUpperCase(),
-        playerName,
+        playerName: String(playerName).trim(),
         blockIndex,
       }),
     });
-    return await parseJsonResponse(res);
+    const data = await parseJsonResponse(res);
+    if (!res.ok || data.success === false) {
+      return { success: false, error: mapApiError(data, 'Mine not recorded') };
+    }
+    return data;
   } catch (e) {
     console.error(e);
-    return null;
+    return { success: false, error: 'connect' };
   }
 }
 

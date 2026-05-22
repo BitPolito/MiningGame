@@ -1,6 +1,7 @@
 import BpIcon from './BpIcon';
 import { ICON } from '../assets/icons';
 import { getRoomBlocksToWin } from '../lib/roomConfig';
+import { normalizePlayerName } from '../lib/playerNames';
 import { useLocale } from '../i18n/LocaleContext';
 
 export default function WinOverlay({
@@ -31,7 +32,8 @@ export default function WinOverlay({
 
   if (!roomData || roomData.status !== 'finished') return null;
 
-  const won = roomData.winner === playerName;
+  const won =
+    normalizePlayerName(roomData.winner) === normalizePlayerName(playerName);
   const title = won ? tr('youWon') : tr('playerWon', { name: roomData.winner });
 
   return (

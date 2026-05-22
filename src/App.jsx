@@ -453,7 +453,7 @@ function App() {
       }
     };
 
-    const interval = setInterval(tick, currentView === 'game' ? 2000 : 1000);
+    const interval = setInterval(tick, 1000);
     tick();
     return () => clearInterval(interval);
   }, [currentView, roomSeed, sessionId, minerName, playerName, isHostUser]);
