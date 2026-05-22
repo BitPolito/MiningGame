@@ -51,7 +51,7 @@ export default function HardGame({
       balances: initialBalances(),
       blockNum: 1,
       roomSeed: gameSeed,
-      requireVariance: false,
+      requireVariance: true,
       txDate: '-2026/05',
     }),
   );

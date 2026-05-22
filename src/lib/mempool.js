@@ -301,7 +301,7 @@ export function replenishMempool(mempool, balances, blockNum, roomSeed) {
     balances: stableBalances,
     blockNum,
     roomSeed: `${roomSeed}-replenish-fallback`,
-    requireVariance: false,
+    requireVariance: true,
     txDate: '202605',
   });
 }

@@ -7,7 +7,7 @@ export const LEADING_ZEROS = 1;
  * Full Bitcoin-style check also compares hash < target (median ~19 rolls).
  * Prefix-only is tuned for faster dice sessions (median ~11 rolls); see npm run simulate:pow.
  */
-export const HARD_POW_CHECK_TARGET = false;
+export const HARD_POW_CHECK_TARGET = true;
 
 export function isProofOfWorkValid(
   finalHash,
@@ -19,7 +19,7 @@ export function isProofOfWorkValid(
   const prefix = '0'.repeat(leadingZeros);
   if (!finalHash.startsWith(prefix)) return false;
   if (!checkTarget) return true;
-  return finalHash < targetHash;
+  return finalHash <= targetHash;
 }
 
 export function generateTargetHash(roomSeed = '', blockNum = 1) {
