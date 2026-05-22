@@ -1,0 +1,254 @@
+/**
+ * Text colors — strict BitPolito palette hierarchy.
+ * Load last so it overrides legacy / accent leaks.
+ *
+ * --bp-text         primary copy (= --bp-blue #001CE0)
+ * --bp-text-muted   secondary / labels (--bp-600)
+ * --bp-text-soft    tertiary (--bp-500)
+ * --bp-blue         brand blue, same as primary text
+ * --bp-on-blue      text on solid blue fills
+ */
+
+.bp-app {
+  color: var(--bp-text);
+}
+
+/* Titoli e testo principale → #001CE0 (--bp-text / --bp-blue) */
+.bp-flow-header__title,
+.bp-page-title,
+.bp-panel__title,
+.bp-collapse__title,
+.bp-collapse--panel .bp-collapse__title,
+.bp-rules-modal__title,
+.bp-action-card__title,
+.bp-setup-panel__title,
+.bp-form-section__title,
+.bp-results-hero__title,
+.bp-results-board__name,
+.bp-results-board__score,
+.bp-game-pinboard__title,
+.bp-game-pinboard__progress,
+.bp-game-tabs__tab,
+.bp-game-tabs__tab .bp-game-tabs__label,
+.bp-status,
+.bp-game-hud__pill,
+.easy-formula-panel__title,
+.bp-hud-tile__value,
+.bp-hud-tile__value--mono,
+.bp-hud-block__nums,
+.bp-win-card__title,
+.bp-win-card__title--won,
+.bp-results-hero--won .bp-results-hero__title {
+  color: var(--bp-text);
+}
+
+/* Secondario: didascalie, label, sottotitoli */
+.bp-flow-header__sub,
+.bp-action-card__desc,
+.menu-wrapper .menu-tagline__detail,
+.bp-hint,
+.bp-label,
+.bp-setup-panel__hint,
+.bp-hash__label,
+.bp-table th,
+.bp-status-chip__label,
+.bp-pow-found-card__row dt,
+.bp-pow-dice__rolls,
+.bp-empty,
+.bp-panel-section__title,
+.easy-formula-panel__hint,
+.bp-results-hero__sub,
+.bp-results-board__title,
+.bp-results-board__rank {
+  color: var(--bp-text-muted);
+}
+
+.bp-back-btn {
+  color: var(--bp-text-muted);
+}
+
+.bp-back-btn:hover {
+  color: var(--bp-text);
+}
+
+/* Body & data */
+.bp-input,
+.bp-input--mono,
+.bp-hash,
+.bp-hash--compact,
+.bp-hash--result,
+.bp-table td,
+.bp-status,
+.bp-status-chip__value,
+.bp-status-chip__value--mono,
+.bp-pow-dice__nonce-value,
+.bp-pow-found-card__row dd,
+.easy-formula-panel__eq,
+.bp-rules-modal__body,
+.readme-text,
+.modal-content,
+.modal-header h3 {
+  color: var(--bp-text);
+}
+
+.bp-input::placeholder {
+  color: var(--bp-400);
+}
+
+.easy-formula-panel__op {
+  color: var(--bp-text-soft);
+}
+
+/* Cards & menus */
+.bp-action-card {
+  color: var(--bp-text);
+}
+
+.menu-wrapper .menu-tagline__lead {
+  color: var(--bp-text);
+}
+
+.bp-collapse__title {
+  color: var(--bp-text);
+}
+
+.bp-results-board__rank {
+  color: var(--bp-text-soft);
+}
+
+/* Legacy index.css screens still in bundle */
+.lobby-title,
+.lobby-label,
+.lobby-subtitle,
+.difficulty-picker,
+.mining-race-name,
+.modal-close,
+.help-icon + span {
+  color: var(--bp-text);
+}
+
+.lobby-player-you,
+.lobby-waiting-text,
+.lobby-error-hint {
+  color: var(--bp-text-muted);
+}
+
+/* Accents — semantic & interactive */
+.bp-btn-solid,
+.bp-btn-solid .bp-btn__label,
+.bp-mine-btn,
+.bp-action-card--primary,
+.bp-action-card--primary .bp-action-card__title,
+.bp-action-card--primary .bp-action-card__desc,
+.bp-rules-modal__tab--active,
+.lobby-seed-display {
+  color: var(--bp-on-blue);
+}
+
+.help-icon {
+  color: var(--bp-on-blue);
+}
+
+.lang-toggle .lang-toggle-active,
+.game-toast--err {
+  color: var(--bp-on-blue);
+}
+
+.bp-btn-outline {
+  color: var(--bp-blue);
+}
+
+.bp-btn-ghost {
+  color: var(--bp-text);
+}
+
+.bp-btn-ghost:hover {
+  color: var(--bp-blue);
+}
+
+.bp-modal-close {
+  color: var(--bp-text-muted);
+}
+
+.bp-modal-close:hover {
+  color: var(--bp-blue);
+}
+
+.bp-status--mining {
+  color: var(--bp-amber);
+}
+
+.bp-hash--win,
+.bp-pow-found-card__title {
+  color: var(--bp-green);
+}
+
+.bp-win-card__title--lost {
+  color: var(--bp-red);
+}
+
+.bp-error,
+.bp-field-error,
+.bp-api-banner,
+.lobby-error {
+  color: var(--bp-red);
+}
+
+.bp-api-banner p {
+  color: var(--bp-red-ink);
+}
+
+.bp-game-hud__pill--hard {
+  background: var(--bp-blue);
+  border-color: var(--bp-blue);
+  color: var(--bp-on-blue);
+}
+
+.bp-mining-toolbar__input,
+.bp-pow-toolbar__nonce-value {
+  color: var(--bp-blue);
+}
+
+.bp-fee {
+  color: var(--bp-text);
+}
+
+.bp-table tr.bp-row--picked .mempool-check {
+  color: var(--bp-on-blue);
+}
+
+.bp-difficulty__title {
+  color: var(--bp-text);
+}
+
+.bp-difficulty__btn:not(.bp-difficulty__btn--active) .bp-difficulty__icon {
+  color: var(--bp-blue);
+}
+
+.game-toast--ok {
+  color: var(--bp-text);
+}
+
+.bp-flow-link-btn,
+a.bp-btn--link.bp-btn-outline {
+  color: var(--bp-blue);
+}
+
+.bp-nav-actions__btn.bp-btn-ghost {
+  color: var(--bp-text-muted);
+}
+
+.bp-nav-actions__btn.bp-btn-ghost:hover {
+  color: var(--bp-blue);
+}
+
+.bp-nav-actions__link,
+.bp-nav-actions__link span {
+  color: var(--bp-text-muted);
+}
+
+.bp-nav-actions__link:hover,
+.bp-nav-actions__link:hover span {
+  color: var(--bp-blue);
+  text-decoration: none;
+}

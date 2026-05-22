@@ -1,0 +1,553 @@
+/**
+ * Card and panel content organization — sections, stacks, secondary tools.
+ */
+
+.bp-panel__body--sections {
+  gap: var(--bp-space-3);
+}
+
+/* Inner sections */
+.bp-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-2);
+  min-width: 0;
+}
+
+.bp-panel-section__title {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--bp-text-muted);
+  line-height: 1.2;
+}
+
+.bp-panel-section__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-2);
+  min-width: 0;
+}
+
+.bp-panel-section--status .bp-panel-section__content {
+  gap: var(--bp-space-2);
+}
+
+.bp-panel-section--action {
+  padding: var(--bp-space-3);
+  border-radius: var(--bp-radius);
+  border: 1px solid var(--bp-200);
+  background: var(--bp-50);
+}
+
+.bp-panel-section--action .bp-pow-toolbar {
+  margin: 0;
+}
+
+.bp-panel-section--mono .bp-hash {
+  margin: 0;
+}
+
+.bp-panel-section--mono .bp-hash--compact,
+.bp-panel-section--mono .bp-hash--result {
+  padding: var(--bp-space-2) var(--bp-space-3);
+  font-size: 0.72rem;
+  text-align: left;
+}
+
+/* Mempool card: intro + table */
+.bp-mempool-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-2);
+  padding: 0 var(--bp-space-3);
+}
+
+.bp-panel__body--flush .bp-mempool-intro {
+  padding-top: 0;
+}
+
+.bp-panel__body--flush .bp-mempool-intro .bp-collapse,
+.bp-panel__body--flush .bp-mempool-foot .bp-collapse {
+  margin: 0;
+}
+
+.bp-mempool-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-2);
+  padding: var(--bp-space-2) var(--bp-space-3) var(--bp-space-3);
+  border-top: 1px solid var(--bp-100);
+}
+
+.bp-panel__body--flush > .bp-table-wrap {
+  margin-top: 0;
+  border-top: 1px solid var(--bp-200);
+}
+
+.bp-panel-section--mine .bp-mining-toolbar {
+  margin-top: var(--bp-space-2);
+}
+
+.bp-panel-section--mine .easy-formula-panel {
+  margin: 0;
+}
+
+/* Secondary tools column (balance, verifier, name guide) */
+.bp-game-workspace__tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+}
+
+.bp-collapse--panel {
+  border-radius: var(--bp-radius-lg);
+  border: var(--bp-border-width) solid var(--bp-200);
+  background: var(--bp-surface);
+  box-shadow: var(--bp-shadow-elev);
+  overflow: hidden;
+}
+
+.bp-collapse--panel .bp-collapse__trigger {
+  padding: 12px 14px;
+  background: var(--bp-surface);
+  border-bottom: 1px solid var(--bp-200);
+}
+
+.bp-collapse--panel .bp-collapse__title {
+  color: var(--bp-text);
+  font-size: 0.9rem;
+}
+
+.bp-collapse--panel .bp-collapse__body {
+  padding: var(--bp-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-2);
+}
+
+.bp-collapse--panel .bp-table-wrap {
+  margin: 0;
+  border-radius: var(--bp-radius);
+  border: 1px solid var(--bp-200);
+  overflow: auto;
+}
+
+.bp-collapse--panel .bp-input + .bp-hash--compact {
+  margin-top: 0;
+}
+
+/* Aside column — equal card weight */
+.bp-game-workspace__aside {
+  gap: var(--bp-space-3);
+}
+
+.bp-game-workspace__aside .bp-panel--compact .bp-panel__body {
+  padding: var(--bp-space-2) var(--bp-space-3) var(--bp-space-3);
+}
+
+.bp-game-workspace__aside .bp-chain {
+  padding: var(--bp-space-2) 0;
+}
+
+@media (min-width: 901px) {
+  .bp-game-workspace__main {
+    min-width: 0;
+  }
+
+  .bp-game-workspace__aside {
+    min-width: 260px;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 900px) {
+  .bp-game-workspace__aside {
+    position: static;
+  }
+
+  .bp-panel__body--scroll.bp-panel__body--tall {
+    max-height: min(52vh, 360px);
+  }
+}
+
+/* --- Lobby / flow cards --- */
+.bp-flow-card {
+  max-width: 520px;
+  margin-inline: auto;
+}
+
+.bp-lobby-form {
+  width: 100%;
+}
+
+.bp-settings-sheet {
+  display: grid;
+  gap: var(--bp-space-3);
+}
+
+.bp-lobby-grid {
+  display: grid;
+  gap: var(--bp-space-4);
+}
+
+@media (min-width: 640px) {
+  .bp-lobby-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.bp-lobby-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+}
+
+.bp-menu-actions {
+  display: grid;
+  gap: var(--bp-space-2);
+  width: 100%;
+}
+
+/* --- Host dashboard --- */
+.bp-host-dash {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-4);
+  width: 100%;
+}
+
+.bp-host-dash__hero {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--bp-space-3);
+  padding: var(--bp-space-3);
+  background: var(--bp-tint-blue-6);
+  border-radius: var(--bp-radius-md);
+}
+
+.bp-host-dash__label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bp-text-muted);
+}
+
+.bp-host-dash__host-name {
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--bp-text);
+}
+
+.bp-host-dash__status {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: var(--bp-text-muted);
+}
+
+.bp-host-dash__insights {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-2);
+}
+
+.bp-host-dash__insight {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.bp-host-dash__insight--accent {
+  color: var(--bp-blue);
+  font-weight: 600;
+}
+
+.bp-host-dash__winner {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.bp-host-dash__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-2);
+}
+
+.bp-host-race-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+}
+
+.bp-host-race-list__row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: var(--bp-space-2);
+  align-items: start;
+}
+
+.bp-host-race-list__rank {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--bp-text-muted);
+  min-width: 1.25rem;
+}
+
+.bp-host-race-list__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.bp-host-race-list__name {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.bp-host-race-list__meta {
+  font-size: 0.75rem;
+  color: var(--bp-text-muted);
+}
+
+.bp-field-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--bp-space-2);
+  cursor: pointer;
+}
+
+.bp-field-checkbox input {
+  margin-top: 0.2rem;
+  accent-color: var(--bp-blue);
+}
+
+.bp-restore-banner {
+  text-align: center;
+  padding: var(--bp-space-2);
+  font-size: 0.9rem;
+  color: var(--bp-text-muted);
+}
+
+/* --- Game workspace: pinned chain + tabs + content --- */
+.bp-game-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+  min-width: 0;
+}
+
+.bp-game-sticky-zone {
+  position: sticky;
+  top: 108px;
+  z-index: 32;
+  margin: 0 calc(-1 * var(--bp-space-3, 14px));
+  padding: 0 var(--bp-space-3, 14px) var(--bp-space-2);
+  background: var(--bp-canvas);
+  border-bottom: 1px solid var(--bp-200);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--bp-blue) 5%, transparent);
+}
+
+.bp-game-pinboard__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: var(--bp-space-1);
+}
+
+.bp-game-pinboard__title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bp-game-pinboard__progress {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bp-game-pinboard .bp-chain {
+  padding: 6px 2px 10px;
+}
+
+.bp-game-pinboard .bp-chain__cube {
+  width: 34px;
+  height: 34px;
+}
+
+.bp-game-sticky-zone .bp-game-tabs__bar {
+  position: static;
+  margin: 0;
+  padding: 10px 0 6px;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.bp-game-workspace--solo-tab .bp-game-sticky-zone {
+  padding-bottom: var(--bp-space-1);
+}
+
+.bp-game-workspace__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
+  gap: var(--bp-space-3);
+  align-items: start;
+}
+
+.bp-game-workspace__body--solo {
+  grid-template-columns: 1fr;
+}
+
+.bp-game-workspace__main {
+  min-width: 0;
+}
+
+/* --- In-game section tabs --- */
+.bp-game-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+  min-width: 0;
+}
+
+.bp-game-tabs__panels {
+  min-width: 0;
+}
+
+.bp-game-tabs__bar {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 10px;
+  margin: 0;
+  background: var(--bp-canvas);
+  border-radius: var(--bp-radius);
+  scrollbar-width: thin;
+}
+
+.bp-game-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 2px solid var(--bp-200);
+  border-radius: var(--bp-radius);
+  background: var(--bp-white);
+  color: var(--bp-text);
+  font-family: var(--bp-font);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.bp-game-tabs__label {
+  padding: 0 2px;
+}
+
+.bp-game-tabs__tab:hover {
+  border-color: var(--bp-400);
+  color: var(--bp-text);
+  text-decoration: none;
+}
+
+.bp-game-tabs__tab--active {
+  border-color: var(--bp-blue);
+  background: var(--bp-blue);
+  color: var(--bp-on-blue);
+  box-shadow: var(--bp-shadow-elev);
+}
+
+.bp-game-tabs__tab--active .bp-game-tabs__label {
+  color: var(--bp-on-blue);
+}
+
+.bp-game-tabs__badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 7px;
+  margin-left: 2px;
+  border-radius: 999px;
+  background: var(--bp-tint-blue-15);
+  color: var(--bp-blue);
+  flex-shrink: 0;
+}
+
+.bp-game-tabs__tab--active .bp-game-tabs__badge {
+  background: var(--bp-on-solid-subtle);
+  color: var(--bp-on-blue);
+}
+
+.bp-game-tabs__panel {
+  display: none;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+  min-width: 0;
+}
+
+.bp-game-tabs__panel--active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+}
+
+.bp-game-tabs__panel .bp-panel {
+  margin-bottom: 0;
+}
+
+/* Play tab: mempool + mining in one scrollable column */
+.bp-game-play-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+}
+
+.bp-game-play-stack .bp-panel--mempool-full .bp-panel__body {
+  max-height: none;
+  overflow: visible;
+}
+
+.bp-game-play-stack .bp-panel--mempool-full .bp-table-wrap {
+  max-height: none;
+  overflow: visible;
+}
+
+.bp-game-tabs__bar--duo .bp-game-tabs__tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .bp-game-sticky-zone {
+    top: 128px;
+  }
+
+  .bp-game-workspace__body {
+    grid-template-columns: 1fr;
+  }
+}

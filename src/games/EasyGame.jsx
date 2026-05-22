@@ -1,481 +1,306 @@
-import './easy.css';
-import { useState, useEffect } from 'react'
-import ReactMarkdown from 'react-markdown'
-import HowToPlay from '../HowToPlay'
-const UserIcon = ({ style, className }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ display: 'block', margin: '0 auto 5px auto', ...style }}>
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-    <circle cx="12" cy="7" r="4"></circle>
-  </svg>
-)
+import { useState, useMemo } from 'react';
+import HowToPlay from '../HowToPlay';
+import GameHud from '../components/game/GameHud';
+import WinOverlay from '../components/WinOverlay';
+import GameToast from '../components/GameToast';
+import PanelCard from '../components/PanelCard';
+import MempoolTable from '../components/game/MempoolTable';
+import MempoolNameGuide from '../components/game/MempoolNameGuide';
+import BalanceSheetTable from '../components/game/BalanceSheetTable';
+import MempoolRulesPanel from '../components/game/MempoolRulesPanel';
+import CollapsibleSection from '../components/game/CollapsibleSection';
+import GameWorkspaceLayout from '../components/game/GameWorkspaceLayout';
+import PanelSection from '../components/game/PanelSection';
+import EasyFormulaPanel from '../components/game/EasyFormulaPanel';
+import BpIcon from '../components/BpIcon';
+import { ICON } from '../assets/icons';
+import { canSelectTransaction, getRejectReasonKey } from '../lib/txSelection';
+import { generateMempool, stabilizeBalances } from '../lib/mempool';
+import {
+  computeBlockValue,
+  initialEasyTarget,
+  nextEasyTarget,
+} from '../lib/easyMining';
+import { initialBalances } from '../lib/gameConstants';
+import { getBlockColumns, getRoomBlocksToWin, clampBlocksToWin } from '../lib/roomConfig';
+import { reportMine } from '../lib/roomApi';
+import { useLocale } from '../i18n/LocaleContext';
+import { useRoomPoll } from '../hooks/useRoomPoll';
 
-export default function EasyGame({ onHome, roomSeed, playerName, initialRoomData }) {
-  const users = ["Alice", "Bob", "Carol", "Dave"];
-  
-  const [balanceHistory, setBalanceHistory] = useState([
-    users.reduce((acc, user) => ({ ...acc, [user]: 100 }), {})
-  ])
-  const [blockNum, setBlockNum] = useState(1)
-  const [prevTarget, setPrevTarget] = useState(0)
-  const [target, setTarget] = useState(550)
-  const [mempool, setMempool] = useState([])
-  const [selectedTxIds, setSelectedTxIds] = useState([])
-  const [nonceInput, setNonceInput] = useState('')
-  const [message, setMessage] = useState('')
-  const [errorTxId, setErrorTxId] = useState(null)
-  const [currentView, setCurrentView] = useState('game')
+export default function EasyGame({
+  onHome,
+  onViewResults,
+  roomSeed = '',
+  playerName = '',
+  initialRoomData = null,
+  blocksToWin: blocksToWinProp = 3,
+}) {
+  const { tr } = useLocale();
+  const gameSeed = roomSeed || 'solo';
 
-  const [showHowToPlay, setShowHowToPlay] = useState(false)
-  const [roomData, setRoomData] = useState(initialRoomData)
-  
-const getNameValue = (name) => {
-    let val = 0;
-    for (let i = 0; i < name.length; i++) {
-      val += name.toUpperCase().charCodeAt(i) - 64;
-    }
-    return val;
-  }
+  const [balanceHistory, setBalanceHistory] = useState([initialBalances()]);
+  const [blockNum, setBlockNum] = useState(1);
+  const [prevTarget, setPrevTarget] = useState(0);
+  const [target, setTarget] = useState(() => initialEasyTarget());
+  const [mempool, setMempool] = useState(() =>
+    generateMempool({ balances: initialBalances(), blockNum: 1, roomSeed: gameSeed }),
+  );
+  const [selectedTxIds, setSelectedTxIds] = useState([]);
+  const [gameTab, setGameTab] = useState('play');
+  const [nonceInput, setNonceInput] = useState('');
+  const [messageKey, setMessageKey] = useState(null);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [rulesGuideMode, setRulesGuideMode] = useState('easy');
 
-  const nameValues = users.reduce((acc, user) => ({ ...acc, [user]: getNameValue(user) }), {})
+  const [roomData] = useRoomPoll(roomSeed, !!roomSeed, 'game');
+  const effectiveRoom = roomData ?? initialRoomData;
 
-  const generateMempool = (currentBlockNum, balances) => {
-    let pool = [];
-    let valid = false;
-    let attempts = 0;
+  const blocksToWinLive = useMemo(
+    () => clampBlocksToWin(roomSeed ? getRoomBlocksToWin(effectiveRoom) : blocksToWinProp),
+    [roomSeed, effectiveRoom, blocksToWinProp],
+  );
+  const columns = useMemo(() => getBlockColumns(blocksToWinLive), [blocksToWinLive]);
 
-    while (!valid && attempts < 10000) {
-      pool = [];
-      attempts++;
-      let simulatedBalances = { ...balances };
-      const numTxs = users.length * (users.length - 1);
-      let cheaterIndex = Math.floor(Math.random() * numTxs);
-      
-      let combs = [];
-      for (let s of users) {
-        for (let r of users) {
-          if (s !== r) combs.push({ sender: s, receiver: r });
-        }
-      }
-      
-      // shuffle combinations
-      for (let i = combs.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [combs[i], combs[j]] = [combs[j], combs[i]];
-      }
+  const [soloWon, setSoloWon] = useState(false);
+  const gameOver = soloWon || effectiveRoom?.status === 'finished';
 
-      for (let i = 0; i < numTxs; i++) {
-        const isCheater = (i === cheaterIndex);
-        let { sender, receiver } = combs[i];
-        let amount, fee;
+  const currentBalances = balanceHistory[balanceHistory.length - 1];
 
-        if (isCheater) {
-          const currentBal = simulatedBalances[sender];
-          amount = currentBal + Math.floor(Math.random() * 20) + 5;
-          if (amount < 20) amount = 20 + Math.floor(Math.random() * 20);
-          fee = Math.floor(Math.random() * 10) + 1;
-        } else {
-          let diff = simulatedBalances[sender] - simulatedBalances[receiver];
-          amount = Math.round(30 + diff / 3);
+  const selectedTxs = useMemo(
+    () => mempool.filter((tx) => selectedTxIds.includes(tx.id)),
+    [mempool, selectedTxIds],
+  );
 
-          if (amount < 20) amount = 20 + Math.floor(Math.random() * 10);
-          if (amount > 70) amount = 70 - Math.floor(Math.random() * 10);
-
-          let currentBal = simulatedBalances[sender];
-          if (amount >= currentBal) {
-            amount = currentBal - 5;
-            if (amount < 1) amount = 1;
-          }
-
-          let maxFee = currentBal - amount;
-          fee = Math.floor(Math.random() * Math.min(10, maxFee)) + 1;
-          if (fee < 1) fee = 1;
-
-          simulatedBalances[sender] -= (amount + fee);
-          simulatedBalances[receiver] += amount;
-        }
-
-        pool.push({
-          id: currentBlockNum * 100 + i,
-          displayId: i + 1,
-          sender,
-          receiver,
-          amount,
-          fee
-        });
-      }
-
-      let vals = users.map(u => simulatedBalances[u]);
-      let mean = vals.reduce((a, b) => a + b, 0) / users.length;
-      let variance = vals.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / users.length;
-      if (variance <= 100) {
-        valid = true;
-      }
-    }
-    setMempool(pool);
-  }
-
-  useEffect(() => {
-    generateMempool(blockNum, balanceHistory[0])
-  }, [])
-
-  useEffect(() => {
-    let interval;
-    if (roomSeed && roomData && roomData.status !== 'finished') {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/room?action=status&seed=${roomSeed}`);
-          const data = await res.json();
-          if (data.success) {
-            setRoomData(data.room);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [roomSeed, roomData?.status]);
-
+  const toastMessage = messageKey ? tr(messageKey) : '';
+  const toastVariant = !messageKey || messageKey === 'blockMinedOk' ? 'ok' : 'err';
 
   const toggleSelection = (id) => {
-    setMessage('')
+    if (gameOver) return;
+    setMessageKey(null);
+
     if (selectedTxIds.includes(id)) {
-      setSelectedTxIds(selectedTxIds.filter(txId => txId !== id))
-    } else {
-      if (selectedTxIds.length < 3) {
-        const txToSelect = mempool.find(t => t.id === id);
-        const currentBalances = balanceHistory[balanceHistory.length - 1];
-
-        const currentSenderSelected = mempool.filter(t => selectedTxIds.includes(t.id) && t.sender === txToSelect.sender);
-        const selectedCost = currentSenderSelected.reduce((sum, t) => sum + t.amount + t.fee, 0);
-
-        // Validation 1: Sufficient Balance (Cumulative)
-        if (selectedCost + txToSelect.amount + txToSelect.fee > currentBalances[txToSelect.sender]) {
-          setErrorTxId(id);
-          setTimeout(() => setErrorTxId(null), 500);
-          return;
-        }
-
-        // Validation 2: Highest Fee Priority
-        const validUnselectedTxs = mempool.filter(t => {
-          if (selectedTxIds.includes(t.id)) return false;
-          const senderSelectedCost = mempool.filter(sel => selectedTxIds.includes(sel.id) && sel.sender === t.sender).reduce((sum, sel) => sum + sel.amount + sel.fee, 0);
-          return (senderSelectedCost + t.amount + t.fee <= currentBalances[t.sender]);
-        });
-
-        const needed = 3 - selectedTxIds.length;
-        if (needed > 0 && validUnselectedTxs.length > 0) {
-          // Sort descending by fee, then ascending by id (older first)
-          const sortedUnselectedTxs = [...validUnselectedTxs].sort((a, b) => {
-            if (b.fee !== a.fee) {
-              return b.fee - a.fee;
-            }
-            return a.id - b.id;
-          });
-
-          // The top `needed` transactions that we are allowed to select from
-          const allowedTxs = sortedUnselectedTxs.slice(0, needed);
-
-          if (!allowedTxs.some(t => t.id === txToSelect.id)) {
-            setErrorTxId(id);
-            setTimeout(() => setErrorTxId(null), 500);
-            return;
-          }
-        }
-
-        setSelectedTxIds([...selectedTxIds, id])
-      }
+      setSelectedTxIds(selectedTxIds.filter((txId) => txId !== id));
+      return;
     }
-  }
+
+    if (selectedTxIds.length >= 3) {
+      setMessageKey('errSelect3');
+      return;
+    }
+
+    if (canSelectTransaction(id, mempool, selectedTxIds, currentBalances)) {
+      setSelectedTxIds([...selectedTxIds, id]);
+      return;
+    }
+
+    setMessageKey(getRejectReasonKey(id, mempool, selectedTxIds, currentBalances));
+  };
 
   const handleMine = () => {
+    if (gameOver) return;
     if (selectedTxIds.length !== 3) {
-      setMessage('Please select exactly 3 transactions.')
-      return
+      setMessageKey('errSelect3');
+      return;
     }
 
-    const selectedTxs = mempool.filter(tx => selectedTxIds.includes(tx.id))
-    let blockValue = 0
-    selectedTxs.forEach(tx => {
-      blockValue += nameValues[tx.sender] + nameValues[tx.receiver] + tx.amount + tx.fee
-    })
-
-    const parsedNonce = parseInt(nonceInput, 10)
-    if (isNaN(parsedNonce) || parsedNonce <= 0) {
-      setMessage('Please enter a valid positive number for Nonce.')
-      return
+    const blockValue = computeBlockValue(selectedTxs);
+    const parsedNonce = parseInt(nonceInput, 10);
+    if (Number.isNaN(parsedNonce) || parsedNonce <= 0) {
+      setMessageKey('errNoncePositive');
+      return;
+    }
+    if (prevTarget + parsedNonce + blockValue !== target) {
+      setMessageKey('errNonceWrong');
+      return;
     }
 
-    if (prevTarget + parsedNonce + blockValue === target) {
-      // Success! Update balances
-      const currentBalances = { ...balanceHistory[balanceHistory.length - 1] }
+    const newBalances = { ...currentBalances };
+    selectedTxs.forEach((tx) => {
+      newBalances[tx.sender] -= tx.amount + tx.fee;
+      newBalances[tx.receiver] += tx.amount;
+    });
+    const stabilized = stabilizeBalances(newBalances);
 
-      selectedTxs.forEach(tx => {
-        currentBalances[tx.sender] -= (tx.amount + tx.fee)
-        currentBalances[tx.receiver] += tx.amount
-        
-        // Emit mine event to backend
-        if (roomSeed && tx === selectedTxs[0]) {
-          fetch('/api/room?action=mine', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ seed: roomSeed, playerName })
-          }).catch(console.error);
-        }
-    
-      })
+    const nextBlock = blockNum + 1;
+    setBalanceHistory([...balanceHistory, stabilized]);
+    setBlockNum(nextBlock);
+    setPrevTarget(target);
+    setTarget(nextEasyTarget(target, nextBlock, gameSeed));
+    setMempool(
+      generateMempool({ balances: stabilized, blockNum: nextBlock, roomSeed: gameSeed }),
+    );
+    setSelectedTxIds([]);
+    setNonceInput('');
+    setMessageKey('blockMinedOk');
 
-      setBalanceHistory([...balanceHistory, currentBalances])
-      setBlockNum(blockNum + 1)
-      setPrevTarget(target)
-      // Increase target by at least 700 to ensure the next nonce will always be > 0 
-      // (Max possible blockValue for 3 txs is around 618)
-      setTarget(target + Math.floor(Math.random() * 500) + 700)
-      generateMempool(blockNum + 1, currentBalances)
-      setSelectedTxIds([])
-      setNonceInput('')
-      setMessage('Block Mined Successfully! On to the next block.')
-    } else {
-      setMessage('Incorrect Nonce! Try again.')
+    if (roomSeed) {
+      reportMine(roomSeed, playerName, nextBlock - 1);
+    } else if (nextBlock > blocksToWinLive) {
+      setSoloWon(true);
     }
-  }
+  };
 
-  // Generate 7 columns for the balance table (blocks 0 to 6)
-  const columns = [0, 1, 2, 3, 4, 5, 6];
-
-  const renderHomeButton = () => (
-    <div className="home-btn" onClick={onHome}>
-      <img src="/home.svg" alt="Home" />
-      <span>Main Menu</span>
-    </div>
-  )
-
-  const renderGame = () => (
-    <div className="app-container">
-      {/* LEFT COLUMN */}
-      <div className="col-left">
-
-      {roomData && roomData.status === 'finished' && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div style={{ background: '#fff', padding: '40px', borderRadius: '12px', textAlign: 'center' }}>
-            <h1 style={{ fontSize: '3rem', margin: 0, color: roomData.winner === playerName ? '#4CAF50' : '#f44336' }}>
-              {roomData.winner === playerName ? 'YOU WON!' : `${roomData.winner} WON!`}
-            </h1>
-            <p style={{ fontSize: '1.5rem', marginTop: '20px' }}>{roomData.winner} was the first to mine 6 blocks.</p>
-            <button className="btn-pixel" onClick={onHome} style={{ marginTop: '30px' }}>Return to Lobby</button>
-          </div>
-        </div>
-      )}
-
-        {/* Mempool Section */}
-        <div className="section-mempool">
-          <div className="widget-title">Mempool</div>
-          <div className="widget-content" style={{ marginBottom: '30px' }}>
-            <table className="mempool-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Amount</th>
-                  <th>Fees</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mempool.map(tx => (
-                  <tr
-                    key={tx.id}
-                    className={`clickable ${selectedTxIds.includes(tx.id) ? 'selected' : ''} ${errorTxId === tx.id ? 'error-shake' : ''}`}
-                    onClick={() => toggleSelection(tx.id)}
-                  >
-                    <td>{tx.displayId}</td>
-                    <td><UserIcon /> {tx.sender}</td>
-                    <td><UserIcon /> {tx.receiver}</td>
-                    <td>{tx.amount}</td>
-                    <td>{tx.fee}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Balance Sheet Section */}
-        <div className="section-balances">
-          <div className="widget-title">Balance sheet</div>
-          <div className="widget-content">
-            <table className="balance-table">
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left' }}>Block</th>
-                  {columns.map(col => (
-                    <th key={col}>{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => (
-                  <tr key={u}>
-                    <td style={{ textAlign: 'left' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <UserIcon style={{ margin: 0 }} />
-                        <span>{u}</span>
-                      </div>
-                    </td>
-                    {columns.map(col => {
-                      const bal = balanceHistory[col] ? balanceHistory[col][u] : '-'
-                      return <td key={col}>{bal}</td>
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT COLUMN */}
-      <div className="col-right">
-        {/* Blockchain Visualizer Section */}
-        <div className="section-blockchain" style={{ marginBottom: '30px' }}>
-          <div className="widget-title" style={{ fontSize: '0.9rem', padding: '8px' }}>BlockChain</div>
-          <div className="widget-content blockchain-container" style={{ justifyContent: 'center' }}>
-            {[0, 1, 2, 3, 4, 5, 6].map((i, index, arr) => {
-              const isMined = i < blockNum;
-              return (
-                <div key={i} className="block-wrapper" style={{ opacity: isMined ? 1 : 0.3 }}>
-                  <div className="block-column">
-                    <div className="block-square" style={{ backgroundColor: isMined ? 'var(--color-blue)' : '#ccc' }}></div>
-                    <div className="block-number" style={{ color: isMined ? 'var(--color-blue)' : '#999' }}>#{i}</div>
-                  </div>
-                  {index < arr.length - 1 && <div className="block-connector" style={{ backgroundColor: isMined && (i + 1) < blockNum ? 'var(--color-blue)' : '#ccc' }}></div>}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Selected Transactions Section */}
-        <div className="section-selected">
-          <div className="widget-title">Selected transactions</div>
-          <div className="widget-content" style={{ marginBottom: '30px', minHeight: '220px' }}>
-            <table className="mempool-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Amount</th>
-                  <th>Fees</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mempool.filter(tx => selectedTxIds.includes(tx.id)).map(tx => (
-                  <tr key={tx.id}>
-                    <td>{tx.displayId}</td>
-                    <td><UserIcon /> {tx.sender}</td>
-                    <td><UserIcon /> {tx.receiver}</td>
-                    <td>{tx.amount}</td>
-                    <td>{tx.fee}</td>
-                  </tr>
-                ))}
-                {selectedTxIds.length === 0 && (
-                  <tr>
-                    <td colSpan="5" style={{ opacity: 0.5, paddingTop: '40px' }}>No transactions selected</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Nonce Section */}
-        <div className="section-nonce" style={{ marginBottom: '30px' }}>
-          <div className="nonce-container">
-            <button className="nonce-btn" onClick={handleMine} disabled={selectedTxIds.length !== 3}>
-              Nonce
-            </button>
-            <div className="nonce-input-wrapper">
-              <input
-                type="text"
-                placeholder="?"
-                value={nonceInput}
-                onChange={e => setNonceInput(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Target Section */}
-        <div className="section-targets">
-          <div className="target-section">
-            <div className="widget-title">Block Target</div>
-            <div className="widget-content target-box">
-              {target}
-            </div>
-          </div>
-
-          <div className="target-section">
-            <div className="widget-title">Previous Block Target</div>
-            <div className="widget-content target-box">
-              {prevTarget}
-            </div>
-          </div>
-        </div>
-
-        {/* Name Values Guide Section */}
-        <div className="section-nameguide" style={{ marginTop: '20px' }}>
-          <div className="widget-title" style={{ fontSize: '0.9rem', padding: '8px' }}>Name Guide</div>
-          <div className="widget-content" style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '10px', minHeight: 'auto' }}>
-            {users.map(u => (
-              <div key={u} style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>{u}</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--color-blue)' }}>{nameValues[u]}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Notifications */}
-        {message && (
-          <div style={{ marginTop: '15px', padding: '15px', backgroundColor: message.includes('Successfully') ? 'var(--color-blue)' : 'var(--color-red)', color: 'white', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold' }}>
-            {message}
-          </div>
-        )}
-
-        {/* Multiplayer Mining Race Section */}
-        {roomData && (
-          <div className="section-mining-race" style={{ marginTop: '20px', background: '#fff', padding: '15px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-            <div className="widget-title" style={{ fontSize: '1.2rem', marginBottom: '10px' }}>Multiplayer Mining Race</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {roomData.players.map(p => (
-                <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '80px', fontWeight: 'bold', color: p.name === playerName ? 'var(--color-blue)' : '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {p.name} {p.name === playerName && '(You)'}
-                  </div>
-                  <div style={{ flex: 1, background: '#eee', height: '20px', borderRadius: '10px', overflow: 'hidden' }}>
-                    <div style={{ width: `${(p.blocks / 6) * 100}%`, background: p.blocks >= 6 ? '#4CAF50' : 'var(--color-blue)', height: '100%', transition: 'width 0.3s' }}></div>
-                  </div>
-                  <div style={{ width: '40px', textAlign: 'right', fontWeight: 'bold' }}>{p.blocks}/6</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-      </div>
-    </div>
-  )
-
-  
   return (
-    <div className="easy-game-wrapper">
-      <div className="view-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div className="help-icon" onClick={() => setShowHowToPlay(true)}>?</div>
-        {renderGame()}
-        {renderHomeButton()}
-      </div>
-      {showHowToPlay && <HowToPlay difficulty="easy" onClose={() => setShowHowToPlay(false)} />}
+    <div className="bp-app">
+      <main className="bp-main bp-main--wide">
+        <div className="bp-game">
+          <GameHud
+            onHome={onHome}
+            onHelp={() => {
+              setRulesGuideMode('easy');
+              setShowHowToPlay(true);
+            }}
+            difficulty="easy"
+            blocksMined={Math.max(0, blockNum - 1)}
+            blockGoal={blocksToWinLive}
+            roomSeed={roomSeed}
+            selectionCount={selectedTxIds.length}
+            stats={[
+              { label: tr('blockTarget'), value: target },
+              { label: tr('prevBlockTarget'), value: prevTarget },
+            ]}
+          />
+
+          <WinOverlay
+            roomData={effectiveRoom}
+            playerName={playerName}
+            onHome={onHome}
+            onViewResults={onViewResults}
+            soloWin={soloWon}
+            blocksToWin={blocksToWinLive}
+          />
+
+          <GameWorkspaceLayout
+            columns={columns}
+            minedCount={blockNum}
+            blocksMined={Math.max(0, blockNum - 1)}
+            blockGoal={blocksToWinLive}
+            roomData={effectiveRoom}
+            playerName={playerName}
+            showRace={!!roomSeed}
+            gameTab={gameTab}
+            onGameTabChange={setGameTab}
+            tabs={[
+              {
+                id: 'play',
+                label: tr('gameTabPlay'),
+                iconSrc: ICON.pickaxe,
+                badge: `${selectedTxIds.length}/3`,
+              },
+            ]}
+            panels={{
+              play: (
+                <div className="bp-game-play-stack">
+                  {selectedTxIds.length > 0 && (
+                    <PanelCard
+                      title={tr('selectedTx')}
+                      iconSrc={ICON.save}
+                      compact
+                      active={selectedTxIds.length === 3}
+                      bodyClassName="bp-panel__body--flush"
+                    >
+                      <MempoolTable
+                        transactions={selectedTxs}
+                        selectedIds={selectedTxIds}
+                        emptyMessage={tr('noTxSelected')}
+                        inlineNameValues
+                      />
+                    </PanelCard>
+                  )}
+                  <PanelCard
+                    className="bp-panel--mempool-full"
+                    title={tr('mempool')}
+                    iconSrc={ICON.wallet}
+                    bodyClassName="bp-panel__body--flush"
+                  >
+                    <div className="bp-mempool-intro">
+                      <p className="bp-hint bp-hint--compact">{tr('mempoolHintEasyShort')}</p>
+                      <CollapsibleSection
+                        title={tr('mempoolRulesTitle')}
+                        iconSrc={ICON.info}
+                        defaultOpen={false}
+                      >
+                        <MempoolRulesPanel variant="compact" />
+                      </CollapsibleSection>
+                    </div>
+                    <MempoolTable
+                      transactions={mempool}
+                      selectedIds={selectedTxIds}
+                      onToggle={toggleSelection}
+                      disabled={gameOver}
+                    />
+                    <div className="bp-mempool-foot">
+                      <CollapsibleSection
+                        title={tr('nameGuide')}
+                        iconSrc={ICON.info}
+                        defaultOpen={false}
+                      >
+                        <MempoolNameGuide />
+                      </CollapsibleSection>
+                      <CollapsibleSection
+                        title={tr('balanceSheet')}
+                        iconSrc={ICON.coin}
+                        defaultOpen={false}
+                      >
+                        <BalanceSheetTable columns={columns} balanceHistory={balanceHistory} />
+                      </CollapsibleSection>
+                    </div>
+                  </PanelCard>
+                  <PanelCard
+                    title={tr('mineBlock')}
+                    iconSrc={ICON.pickaxe}
+                    active
+                    bodyClassName="bp-panel__body--sections"
+                  >
+                    <PanelSection variant="mine">
+                      <EasyFormulaPanel />
+                      <div className="bp-mining-toolbar">
+                        <label className="bp-mining-toolbar__field" htmlFor="nonce-easy">
+                          <span className="bp-mining-toolbar__label">{tr('nonce')}</span>
+                          <input
+                            id="nonce-easy"
+                            className="bp-mining-toolbar__input"
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="?"
+                            value={nonceInput}
+                            onChange={(e) => setNonceInput(e.target.value)}
+                            disabled={gameOver}
+                            autoComplete="off"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          className="bp-btn bp-btn-solid bp-mining-toolbar__btn"
+                          onClick={handleMine}
+                          disabled={selectedTxIds.length !== 3 || gameOver}
+                        >
+                          <BpIcon src={ICON.pickaxe} className="bp-icon--sm" tone="on-solid" />
+                          <span className="bp-btn__label">{tr('mineBlock')}</span>
+                        </button>
+                      </div>
+                    </PanelSection>
+                  </PanelCard>
+                </div>
+              ),
+                }}
+          />
+        </div>
+      </main>
+
+      <GameToast
+        message={toastMessage}
+        variant={toastVariant}
+        onDismiss={() => setMessageKey(null)}
+      />
+
+      {showHowToPlay && (
+        <HowToPlay
+          key={rulesGuideMode}
+          initialDifficulty={rulesGuideMode}
+          onClose={() => setShowHowToPlay(false)}
+        />
+      )}
     </div>
   );
 }

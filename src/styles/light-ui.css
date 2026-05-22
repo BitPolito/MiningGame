@@ -1,0 +1,124 @@
+/**
+ * Light UI layer — spacing and polish on top of bitpolito.css tokens.
+ * Borders/hover echo bitpolito.it (2px blue outlines, subtle scale on pressables).
+ */
+
+.bp-flow-header__title,
+.bp-panel__title,
+.bp-setup-panel__title,
+.bp-form-section__title {
+  font-weight: 700;
+}
+
+.bp-flow-header__sub,
+.bp-setup-panel__hint,
+.bp-label,
+.bp-hint {
+  color: var(--bp-text-muted);
+}
+
+/* Menu */
+.menu-wrapper .main-menu {
+  padding: 24px 20px 28px;
+}
+
+.menu-wrapper .menu-tagline__lead {
+  color: var(--bp-text);
+}
+
+.menu-wrapper .menu-tagline__detail {
+  color: var(--bp-text-muted);
+}
+
+
+/* Flow */
+.bp-flow-card {
+  padding: 20px 18px 18px;
+}
+
+.bp-flow__main {
+  padding-bottom: 64px;
+}
+
+.bp-setup-panel--compact {
+  padding: 12px;
+}
+
+.bp-panel__head {
+  padding: 10px 12px;
+}
+
+/* Inputs */
+.bp-input {
+  border: var(--bp-border-width) solid var(--bp-200);
+  color: var(--bp-text);
+  font-weight: 500;
+}
+
+.bp-input::placeholder {
+  color: var(--bp-400);
+}
+
+.bp-input:focus {
+  border-color: var(--bp-blue);
+  box-shadow: 0 0 0 2px var(--bp-tint-blue-8);
+}
+
+/* Stepper */
+.bp-stepper__btn {
+  border: var(--bp-border-width) solid var(--bp-200);
+}
+
+.bp-stepper__value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--bp-text);
+}
+
+.bp-stepper-field--compact .bp-stepper__value {
+  font-size: 1.35rem;
+}
+
+/* Mine CTA */
+.bp-mine-btn {
+  min-height: 52px;
+  border-width: var(--bp-border-width);
+}
+
+.bp-mine-btn:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: var(--bp-shadow-btn);
+}
+
+/* Tables */
+.bp-table th {
+  color: var(--bp-text-muted);
+}
+
+.bp-table td {
+  color: var(--bp-text);
+}
+
+/* Toast */
+.game-toast--err {
+  color: var(--bp-on-blue);
+}
+
+/* Modals / guides */
+.readme-text,
+.how-to-play-body {
+  font-family: var(--bp-font);
+  color: var(--bp-text);
+}
+
+.bp-confirm-dialog__message {
+  color: var(--bp-text-muted);
+}
+
+.bp-game-hud__nav-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}

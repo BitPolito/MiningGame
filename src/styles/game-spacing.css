@@ -1,0 +1,209 @@
+/**
+ * Vertical rhythm and gaps — game + lobby flows.
+ */
+
+:root {
+  --bp-space-1: 6px;
+  --bp-space-2: 10px;
+  --bp-space-3: 14px;
+  --bp-space-4: 18px;
+  --bp-space-5: 24px;
+}
+
+/* --- Game shell --- */
+.bp-game {
+  padding: 0 var(--bp-space-3) var(--bp-space-5);
+}
+
+.bp-game-hud {
+  margin: 0 0 var(--bp-space-3);
+  padding: var(--bp-space-2) var(--bp-space-3) var(--bp-space-3);
+}
+
+.bp-game-hud__nav {
+  margin-bottom: 0;
+  padding-bottom: var(--bp-space-2);
+}
+
+.bp-game-hud__metrics {
+  gap: var(--bp-space-2);
+}
+
+.bp-game-workspace {
+  gap: var(--bp-space-3);
+}
+
+.bp-game .bp-status-bar {
+  margin-bottom: 0;
+}
+
+.bp-game-workspace__main,
+.bp-game-workspace__aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+}
+
+.bp-game .bp-panel {
+  margin-bottom: 0;
+}
+
+.bp-game-workspace__aside > .bp-race,
+.bp-game-workspace__aside > :last-child {
+  margin-top: 0;
+}
+
+/* --- Panel body stacks --- */
+.bp-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-2);
+  padding: var(--bp-space-3);
+}
+
+.bp-panel--compact .bp-panel__body {
+  padding: var(--bp-space-2) var(--bp-space-3);
+  gap: var(--bp-space-2);
+}
+
+.bp-panel__body--flush {
+  padding: var(--bp-space-3) 0 0;
+  gap: var(--bp-space-2);
+}
+
+.bp-panel__body--flush > .bp-hint--inset,
+.bp-panel__body--flush > .bp-collapse,
+.bp-panel__body--flush > .bp-rules-card {
+  margin-inline: var(--bp-space-3);
+}
+
+.bp-panel__body--flush > .bp-table-wrap {
+  margin-top: var(--bp-space-1);
+}
+
+.bp-panel__body .bp-collapse {
+  margin: 0;
+  box-shadow: none;
+  background: var(--bp-surface);
+}
+
+.bp-panel__body .bp-rules-card,
+.bp-panel__body .bp-rules-card--compact {
+  margin: 0;
+}
+
+.bp-hint--inset {
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Tools stack (balance, verifier, guides) --- */
+.bp-game-workspace__tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+}
+
+/* --- Mining / formula blocks --- */
+.bp-game .bp-status,
+.bp-game .bp-pow-dice,
+.bp-game .bp-pow-nonce,
+.bp-game .easy-formula-panel,
+.bp-game .bp-mining-toolbar,
+.bp-game .bp-pow-toolbar {
+  margin: 0;
+}
+
+.bp-game .bp-hash--compact,
+.bp-game .bp-hash--result {
+  margin-top: 0;
+}
+
+.bp-game .bp-pow-nonce__btn {
+  margin-top: var(--bp-space-1);
+}
+
+/* --- Flow / lobby --- */
+.bp-flow-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+}
+
+.bp-flow-header__sub {
+  margin-bottom: 0;
+}
+
+.bp-flow-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+}
+
+.bp-flow-footer {
+  margin-top: 0;
+  padding-top: var(--bp-space-3);
+}
+
+.bp-lobby-form {
+  gap: var(--bp-space-4);
+}
+
+.bp-lobby-form > .bp-field {
+  margin: 0;
+}
+
+.bp-flow-body .bp-join-status {
+  margin: 0;
+}
+
+.bp-room-invite--compact {
+  margin: 0;
+}
+
+.bp-room-settings {
+  margin: 0;
+}
+
+.bp-flow-chrome {
+  margin-bottom: var(--bp-space-3);
+}
+
+.bp-flow-chrome__toolbar {
+  margin-bottom: var(--bp-space-2);
+}
+
+.bp-flow__bottom-nav {
+  margin-top: var(--bp-space-3);
+  padding-bottom: var(--bp-space-2);
+}
+
+.bp-main {
+  padding-bottom: var(--bp-space-5);
+}
+
+.bp-menu-actions {
+  gap: var(--bp-space-2);
+  margin-bottom: var(--bp-space-3);
+}
+
+.menu-wrapper .menu-tagline {
+  margin-bottom: var(--bp-space-4);
+}
+
+.menu-wrapper .bp-nav-actions--menu {
+  margin-top: var(--bp-space-4);
+}
+
+.bp-error {
+  margin-bottom: 0;
+}
+
+/* --- Aside race panel --- */
+.bp-panel .bp-race-row:first-child {
+  padding-top: 0;
+}
+
+.bp-panel .bp-race-row {
+  padding: var(--bp-space-2) 0;
+}

@@ -1,0 +1,162 @@
+/**
+ * Correzioni contrasto — testi che “scompaiono” per inherit / legacy index.css.
+ * Testo principale dell’app: #001CE0 (--bp-text = --bp-blue).
+ */
+
+/* Titoli / copy principale — forza blu brand se qualche foglio legacy vince */
+.bp-flow-header__title,
+.bp-panel__title,
+.bp-action-card__title,
+.bp-collapse__title,
+.bp-game-tabs__tab:not(.bp-game-tabs__tab--active),
+.bp-game-tabs__tab:not(.bp-game-tabs__tab--active) .bp-game-tabs__label,
+.bp-status,
+.bp-hud-tile__value,
+.bp-race-row > span:first-child,
+.bp-race-row > span:last-child {
+  color: #001ce0;
+  color: var(--bp-text);
+}
+
+/* Non ereditare colori sbagliati sui bottoni-card */
+.bp-action-card--primary,
+.bp-action-card--primary .bp-action-card__title,
+.bp-action-card--primary .bp-action-card__desc,
+.bp-action-card--primary .bp-action-card__chevron {
+  color: var(--bp-on-blue);
+}
+
+.bp-action-card--primary .bp-action-card__chevron svg {
+  stroke: var(--bp-on-blue);
+  opacity: 0.85;
+}
+
+.bp-action-card:not(.bp-action-card--primary) .bp-action-card__chevron {
+  color: var(--bp-text-soft);
+}
+
+/* Lang toggle — attivo su pill blu */
+button.lang-toggle span {
+  color: var(--bp-text-muted);
+}
+
+button.lang-toggle .lang-toggle-active {
+  color: var(--bp-on-blue);
+  background: var(--bp-blue);
+}
+
+/* Pulsanti */
+.bp-btn-solid,
+.bp-btn-solid .bp-btn__label,
+.bp-mine-btn {
+  color: var(--bp-on-blue);
+}
+
+.bp-btn-outline,
+.bp-btn-outline .bp-btn__label {
+  color: var(--bp-blue);
+}
+
+.bp-btn-ghost,
+.bp-btn-ghost .bp-btn__label {
+  color: var(--bp-text-muted);
+}
+
+.bp-btn-ghost:hover,
+.bp-btn-ghost:hover .bp-btn__label {
+  color: var(--bp-blue);
+}
+
+/* Tabelle — vince su regole globali index.css */
+.bp-table th {
+  color: var(--bp-600);
+}
+
+.bp-table td {
+  color: var(--bp-blue);
+}
+
+.bp-table tr.bp-row--picked td {
+  color: var(--bp-text);
+}
+
+/* Sezioni interne card */
+.bp-panel-section__title {
+  color: var(--bp-text-muted);
+}
+
+/* Footer / link */
+.menu-wrapper .made-with-love {
+  color: var(--bp-text-muted);
+}
+
+.menu-wrapper .made-with-love .bp-footer__brand {
+  color: var(--bp-blue);
+}
+
+.bp-footer__line {
+  color: var(--bp-text-muted);
+}
+
+/* Toast */
+.game-toast--ok {
+  color: var(--bp-text);
+  background: var(--bp-white);
+}
+
+.game-toast--err {
+  color: var(--bp-on-blue);
+}
+
+.game-toast-close {
+  color: inherit;
+}
+
+/* Modali */
+.modal-content,
+.bp-rules-modal,
+.how-to-play-modal {
+  color: var(--bp-text);
+  background: var(--bp-white);
+}
+
+.modal-header h3,
+.bp-rules-modal__title,
+.how-to-play-header h2 {
+  color: var(--bp-text);
+}
+
+/* Difficulty — selected card is solid blue (see bitpolito.css); lock readable text */
+.bp-difficulty__btn--active .bp-difficulty__title {
+  color: var(--bp-on-blue);
+}
+
+.bp-difficulty__btn--active .bp-difficulty__desc {
+  color: var(--bp-on-blue-muted);
+}
+
+.bp-difficulty__btn--active .bp-difficulty__icon {
+  color: var(--bp-on-blue);
+}
+
+/* Rules modal tabs — active pill on blue */
+.bp-rules-modal__tab--active {
+  color: var(--bp-on-blue);
+}
+
+/* Game section tabs — active tab on blue */
+.bp-game-tabs__tab--active,
+.bp-game-tabs__tab--active .bp-game-tabs__label {
+  color: var(--bp-on-blue);
+}
+
+/* Hash labels */
+.bp-hash__label {
+  color: var(--bp-text-muted);
+}
+
+.bp-hash,
+.bp-hash--compact,
+.bp-hash--result {
+  color: var(--bp-blue);
+}

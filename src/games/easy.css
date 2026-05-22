@@ -1,16 +1,16 @@
 :root {
   --color-white: hsl(0, 0%, 100%);
-  --color-blue: #001CE0;
+  --color-blue: var(--bp-blue);
   --color-red: red;
   --border-radius: 12px;
 }
 .easy-game-wrapper body {
   margin: 0;
   padding: 40px;
-  background-color: #ffffff;
+  background-color: var(--bp-white);
   /* Slight off-white background to make white panels pop, per typical design, but user said "no color effects". We will use white for panels, maybe very light gray for background to distinguish. Actually, the image has a white/light-gray background. */
   color: var(--color-blue);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: inherit;
 }
 .easy-game-wrapper * {
   box-sizing: border-box;
@@ -21,7 +21,6 @@
   gap: 30px;
   max-width: 1200px;
   margin: 0 auto;
-  zoom: 0.95;
 }
 
 @media (max-width: 768px) {
@@ -76,7 +75,7 @@
   font-size: 1.2rem;
   font-weight: bold;
   margin-bottom: 10px;
-  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  box-shadow: 0px 8px 15px var(--bp-shadow-md);
 }
 .easy-game-wrapper .widget-content {
   background-color: var(--color-white);
@@ -85,7 +84,7 @@
   padding: 20px;
   min-height: 100px;
   overflow-x: auto;
-  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  box-shadow: 0px 8px 15px var(--bp-shadow-md);
 }
 .easy-game-wrapper /* Tables */
 table {
@@ -105,7 +104,7 @@ table {
 }
 .easy-game-wrapper /* Mempool table row styles */
 .mempool-table tr {
-  border-bottom: 1px solid rgba(0, 28, 224, 0.1);
+  border-bottom: 1px solid var(--bp-200);
 }
 .easy-game-wrapper .mempool-table tr:last-child {
   border-bottom: none;
@@ -270,7 +269,7 @@ tr.clickable.selected td:first-child {
   font-weight: bold;
   cursor: pointer;
   z-index: 100;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px var(--bp-shadow-sm);
   transition: transform 0.2s;
 }
 .easy-game-wrapper .help-icon:hover {
@@ -283,7 +282,7 @@ tr.clickable.selected td:first-child {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--bp-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -299,7 +298,7 @@ tr.clickable.selected td:first-child {
   max-width: 800px;
   max-height: 80vh;
   position: relative;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 25px var(--bp-tint-blue-20);
   display: flex;
   flex-direction: column;
 }
@@ -318,7 +317,7 @@ tr.clickable.selected td:first-child {
   color: var(--color-red);
 }
 .easy-game-wrapper .readme-text {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: inherit;
   color: var(--color-blue);
   line-height: 1.6;
   font-size: 0.95rem;
@@ -328,7 +327,7 @@ tr.clickable.selected td:first-child {
   overflow-wrap: break-word;
 }
 .easy-game-wrapper .readme-text pre {
-  background-color: rgba(0, 28, 224, 0.05);
+  background-color: var(--bp-tint-blue-6);
   padding: 15px;
   border-radius: 8px;
   overflow-x: auto;
@@ -366,7 +365,7 @@ tr.clickable.selected td:first-child {
   padding: 12px 20px;
   font-weight: bold;
   color: var(--color-blue);
-  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  box-shadow: 0px 8px 15px var(--bp-shadow-md);
   transition: transform 0.1s, box-shadow 0.1s;
   z-index: 100;
   margin-top: 20px;
@@ -374,11 +373,11 @@ tr.clickable.selected td:first-child {
 }
 .easy-game-wrapper .home-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0px 10px 20px #65aff999;
+  box-shadow: 0px 10px 20px var(--bp-shadow-btn);
 }
 .easy-game-wrapper .home-btn:active {
   transform: translateY(2px);
-  box-shadow: 0px 4px 8px rgba(128, 128, 128, 0.4);
+  box-shadow: 0px 4px 8px var(--bp-shadow-md);
 }
 .easy-game-wrapper .home-btn img {
   width: 24px;
@@ -400,7 +399,7 @@ tr.clickable.selected td:first-child {
   border: none;
   border-radius: var(--border-radius);
   padding: 50px;
-  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  box-shadow: 0px 8px 15px var(--bp-shadow-md);
   max-width: 500px;
   width: 100%;
 }
@@ -442,21 +441,21 @@ tr.clickable.selected td:first-child {
   padding: 15px 30px;
   font-size: 1.1rem;
   font-weight: bold;
-  font-family: 'Inter', sans-serif;
+  font-family: inherit;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  box-shadow: 0px 8px 15px var(--bp-shadow-md);
   transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s, color 0.2s;
 }
 .easy-game-wrapper .btn-pixel:hover {
   background-color: var(--color-white);
   color: var(--color-blue);
-  box-shadow: 0px 10px 20px #65aff999;
+  box-shadow: 0px 10px 20px var(--bp-shadow-btn);
   transform: translateY(-2px);
 }
 .easy-game-wrapper .btn-pixel:active {
   transform: translateY(2px);
-  box-shadow: 0px 4px 8px rgba(128, 128, 128, 0.4);
+  box-shadow: 0px 4px 8px var(--bp-shadow-md);
 }
 .easy-game-wrapper .menu-footer {
   margin-top: 40px;
@@ -497,7 +496,7 @@ tr.clickable.selected td:first-child {
   padding: 30px;
   width: 100%;
   max-width: 800px;
-  box-shadow: 0px 8px 15px rgba(128, 128, 128, 0.4);
+  box-shadow: 0px 8px 15px var(--bp-shadow-md);
   display: flex;
   flex-direction: column;
   align-items: center;

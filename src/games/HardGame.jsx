@@ -1,645 +1,451 @@
-import { useState, useEffect, useRef } from 'react'
-import ReactMarkdown from 'react-markdown'
-import HowToPlay from '../HowToPlay'
+import { useState, useEffect, useMemo } from 'react';
+import HowToPlay from '../HowToPlay';
+import ModalCloseButton from '../components/ModalCloseButton';
+import GameHud from '../components/game/GameHud';
+import WinOverlay from '../components/WinOverlay';
+import PowFoundOverlay from '../components/PowFoundOverlay';
+import PowDicePanel from '../components/game/PowDicePanel';
+import { emptyDiceFaces, nonceFromDiceRoll } from '../lib/powDice';
+import GameToast from '../components/GameToast';
+import PanelCard from '../components/PanelCard';
+import MempoolTable from '../components/game/MempoolTable';
+import MempoolRulesPanel from '../components/game/MempoolRulesPanel';
+import BalanceSheetTable from '../components/game/BalanceSheetTable';
+import LiveVerifierPanel from '../components/game/LiveVerifierPanel';
+import CollapsibleSection from '../components/game/CollapsibleSection';
+import GameWorkspaceLayout from '../components/game/GameWorkspaceLayout';
+import PanelSection from '../components/game/PanelSection';
+import BpIcon from '../components/BpIcon';
+import { ICON } from '../assets/icons';
+import { canSelectTransaction, getRejectReasonKey } from '../lib/txSelection';
+import { generateMempool, replenishMempool, stabilizeBalances } from '../lib/mempool';
+import { generateTargetHash, isProofOfWorkValid, LEADING_ZEROS } from '../lib/targetHash';
+import { sha256Hex } from '../lib/sha256';
+import { initialBalances } from '../lib/gameConstants';
+import { getBlockColumns, getRoomBlocksToWin, clampBlocksToWin } from '../lib/roomConfig';
+import { reportMine } from '../lib/roomApi';
+import { useLocale } from '../i18n/LocaleContext';
+import { useRoomPoll } from '../hooks/useRoomPoll';
+import { useSha256 } from '../hooks/useSha256';
 
-import SHA256 from 'crypto-js/sha256';
+export default function HardGame({
+  onHome,
+  onViewResults,
+  roomSeed = '',
+  playerName = '',
+  initialRoomData = null,
+  blocksToWin: blocksToWinProp = 3,
+}) {
+  const { tr } = useLocale();
+  const gameSeed = roomSeed || 'solo';
 
-const UserIcon = ({ style, className }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ display: 'inline-block', marginRight: '5px', verticalAlign: 'middle', ...style }}>
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-    <circle cx="12" cy="7" r="4"></circle>
-  </svg>
-)
-
-export default function HardGame({ onHome, roomSeed, playerName, initialRoomData }) {
-  const [currentView, setCurrentView] = useState('game')
-  const [showHowToPlay, setShowHowToPlay] = useState(false)
-
-  const users = ["Alice", "Bob", "Carol", "Dave"];
-  const [balanceHistory, setBalanceHistory] = useState([
-    users.reduce((acc, user) => ({ ...acc, [user]: 100 }), {})
-  ]);
-  const columns = [0, 1, 2, 3, 4, 5, 6];
-  const [mempool, setMempool] = useState([]);
+  const [balanceHistory, setBalanceHistory] = useState([initialBalances()]);
+  const [mempool, setMempool] = useState(() =>
+    generateMempool({
+      balances: initialBalances(),
+      blockNum: 1,
+      roomSeed: gameSeed,
+      requireVariance: false,
+      txDate: '-2026/05',
+    }),
+  );
   const [selectedTxIds, setSelectedTxIds] = useState([]);
-  const [roomData, setRoomData] = useState(initialRoomData);
-
+  const [gameTab, setGameTab] = useState('play');
+  const [targetHash, setTargetHash] = useState(() => generateTargetHash(gameSeed, 1));
+  const [blockNum, setBlockNum] = useState(1);
 
   const [nonce, setNonce] = useState(0);
-  const [isMining, setIsMining] = useState(false);
+  const [finalHash, setFinalHash] = useState('');
   const [miningDone, setMiningDone] = useState(false);
-  const [numZeros, setNumZeros] = useState(2);
-  const [baseString, setBaseString] = useState("");
-  const [txHash, setTxHash] = useState("");
-  const [targetHash, setTargetHash] = useState("");
-  const [message, setMessage] = useState("");
-  const [blocks, setBlocks] = useState([{ id: 0, nonce: 0, dateMined: new Date().toLocaleString(), transactions: [] }]);
+  const [rollingDice, setRollingDice] = useState(false);
+  const [diceFaces, setDiceFaces] = useState(emptyDiceFaces);
+  const [rollCount, setRollCount] = useState(0);
+  const [messageKey, setMessageKey] = useState(null);
+  const [lastMinedBlockId, setLastMinedBlockId] = useState(null);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [rulesGuideMode, setRulesGuideMode] = useState('hard');
+
+  const [blocks, setBlocks] = useState([
+    { id: 0, nonce: 0, dateMined: new Date().toLocaleString(), transactions: [] },
+  ]);
   const [selectedBlock, setSelectedBlock] = useState(null);
-  const [errorTxId, setErrorTxId] = useState(null);
-  const [verifyRaw, setVerifyRaw] = useState("");
-  const [verifyNonce, setVerifyNonce] = useState("");
-  const [difficulty, setDifficulty] = useState('easy');
+  const [roomData] = useRoomPoll(roomSeed, !!roomSeed, 'game');
+  const effectiveRoom = roomData ?? initialRoomData;
 
-  const generateNewTarget = () => {
-    let randomTarget = "";
-    for (let i = 0; i < 62; i++) {
-      randomTarget += Math.floor(Math.random() * 16).toString(16);
-    }
-    setTargetHash('00' + randomTarget);
-  };
+  const blocksToWinLive = useMemo(
+    () =>
+      clampBlocksToWin(
+        roomSeed ? getRoomBlocksToWin(roomData ?? initialRoomData) : blocksToWinProp,
+      ),
+    [roomSeed, roomData, initialRoomData, blocksToWinProp],
+  );
+  const columns = useMemo(() => getBlockColumns(blocksToWinLive), [blocksToWinLive]);
 
-  useEffect(() => {
-    generateNewTarget();
-    
-    // Generate Mempool - using dynamic users
-    const pool = [];
-    let currentBalances = {};
-    users.forEach(u => currentBalances[u] = 100);
-    
-    let combs = [];
-    for (let s of users) {
-      for (let r of users) {
-        if (s !== r) combs.push({ sender: s, receiver: r });
-      }
-    }
-    for (let i = combs.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [combs[i], combs[j]] = [combs[j], combs[i]];
-    }
-    
-    let cheaterIndex = Math.floor(Math.random() * combs.length);
-    for (let i = 0; i < combs.length; i++) {
-      let { sender, receiver } = combs[i];
-      let amount, fee;
-      if (i === cheaterIndex) {
-        amount = currentBalances[sender] + Math.floor(Math.random() * 20) + 5;
-        if (amount < 20) amount = 20 + Math.floor(Math.random() * 20);
-        fee = Math.floor(Math.random() * 10) + 1;
-      } else {
-        let diff = currentBalances[sender] - currentBalances[receiver];
-        amount = Math.round(30 + diff / 3);
-        if (amount < 20) amount = 20 + Math.floor(Math.random() * 10);
-        if (amount > 70) amount = 70 - Math.floor(Math.random() * 10);
-        if (amount >= currentBalances[sender]) {
-          amount = currentBalances[sender] - 5;
-          if (amount < 1) amount = 1;
-        }
-        fee = Math.floor(Math.random() * 5) + 1;
-        currentBalances[sender] -= (amount + fee);
-        currentBalances[receiver] += amount;
-      }
-      
-      pool.push({
-        id: i + 1,
-        sender,
-        receiver,
-        amount,
-        fee,
-        date: "-2026/05"
-      });
-    }
-    setMempool(pool);
-  }, []);
+  const [soloWon, setSoloWon] = useState(false);
+  const gameOver = soloWon || effectiveRoom?.status === 'finished';
+  const selectedTxs = useMemo(
+    () => mempool.filter((tx) => selectedTxIds.includes(tx.id)),
+    [mempool, selectedTxIds],
+  );
+
+  const baseString = useMemo(() => {
+    if (selectedTxs.length !== 3) return '';
+    return selectedTxs
+      .map((tx) => `${tx.sender}to${tx.receiver}${tx.amount}${tx.date}`)
+      .join('-');
+  }, [selectedTxs]);
+
+  const txHash = useSha256(baseString);
 
   useEffect(() => {
-    let interval;
-    if (roomSeed && roomData && roomData.status !== 'finished') {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/room?action=status&seed=${roomSeed}`);
-          const data = await res.json();
-          if (data.success) {
-            setRoomData(data.room);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [roomSeed, roomData?.status]);
-
-  useEffect(() => {
-    if (selectedTxIds.length === 3) {
-      const selectedTxs = mempool.filter(tx => selectedTxIds.includes(tx.id));
-      const baseStr = selectedTxs.map(tx => `${tx.sender}to${tx.receiver}${tx.amount}${tx.date}`).join('-');
-
-      setNumZeros(3);
-
-      const realTxHash = SHA256(baseStr).toString();
-
-      setBaseString(baseStr);
-      setTxHash(realTxHash);
+    if (selectedTxIds.length !== 3) {
       setNonce(0);
+      setFinalHash('');
       setMiningDone(false);
-      setIsMining(false);
-    } else {
-      setBaseString("");
-      setTxHash("");
-      setNonce(0);
-      setMiningDone(false);
-      setIsMining(false);
+      setRollingDice(false);
+      setDiceFaces(emptyDiceFaces());
+      setRollCount(0);
     }
-  }, [selectedTxIds]);
+  }, [selectedTxIds.length]);
 
-  const startMining = () => {
-    if (!baseString) return;
-    setIsMining(true);
-    setMiningDone(false);
-    setNonce(0);
-  };
+  const currentBalances = balanceHistory[balanceHistory.length - 1];
 
-  useEffect(() => {
-    let timer;
-    if (isMining) {
-      timer = setTimeout(() => {
-        let currentNonce = nonce;
-        let found = false;
-        let finalHash = "";
+  const commitBlock = (blockNonce) => {
+    if (gameOver || selectedTxIds.length !== 3) return;
 
-        // Batch 10 attempts per tick to speed it up while animating
-        for (let i = 0; i < 10; i++) {
-          finalHash = SHA256(txHash + currentNonce).toString();
-          if (finalHash.startsWith("00") && finalHash < targetHash) {
-            found = true;
-            break;
-          }
-          currentNonce++;
-        }
-
-        setNonce(currentNonce);
-
-        if (found) {
-          setIsMining(false);
-          setMiningDone(true);
-        }
-      }, 0);
-    }
-    return () => clearTimeout(timer);
-  }, [isMining, nonce, txHash, targetHash]);
-
-  const toggleSelection = (id) => {
-    setMessage('');
-    if (selectedTxIds.includes(id)) {
-      setSelectedTxIds(selectedTxIds.filter(txId => txId !== id));
-    } else {
-      if (selectedTxIds.length < 3) {
-        const txToSelect = mempool.find(t => t.id === id);
-        const currentBalances = balanceHistory[balanceHistory.length - 1];
-
-        const currentSenderSelected = mempool.filter(t => selectedTxIds.includes(t.id) && t.sender === txToSelect.sender);
-        const selectedCost = currentSenderSelected.reduce((sum, t) => sum + t.amount + t.fee, 0);
-
-        // Validation 1: Sufficient Balance (Cumulative)
-        if (selectedCost + txToSelect.amount + txToSelect.fee > currentBalances[txToSelect.sender]) {
-          setErrorTxId(id);
-          setTimeout(() => setErrorTxId(null), 500);
-          return;
-        }
-
-        // Validation 2: Highest Fee Priority
-        const validUnselectedTxs = mempool.filter(t => {
-          if (selectedTxIds.includes(t.id)) return false;
-          const senderSelectedCost = mempool.filter(sel => selectedTxIds.includes(sel.id) && sel.sender === t.sender).reduce((sum, sel) => sum + sel.amount + sel.fee, 0);
-          return (senderSelectedCost + t.amount + t.fee <= currentBalances[t.sender]);
-        });
-
-        const needed = 3 - selectedTxIds.length;
-        if (needed > 0 && validUnselectedTxs.length > 0) {
-          // Sort descending by fee, then ascending by id (older first)
-          const sortedUnselectedTxs = [...validUnselectedTxs].sort((a, b) => {
-            if (b.fee !== a.fee) {
-              return b.fee - a.fee;
-            }
-            return a.id - b.id;
-          });
-
-          // The top `needed` transactions that we are allowed to select from
-          const allowedTxs = sortedUnselectedTxs.slice(0, needed);
-
-          if (!allowedTxs.some(t => t.id === txToSelect.id)) {
-            setErrorTxId(id);
-            setTimeout(() => setErrorTxId(null), 500);
-            return;
-          }
-        }
-
-        setSelectedTxIds([...selectedTxIds, id]);
-      }
-    }
-  }
-
-  const handleMine = () => {
-    const selectedTxs = mempool.filter(tx => selectedTxIds.includes(tx.id));
-
-    // Update balances
-    const lastBalances = balanceHistory[balanceHistory.length - 1];
-    const newBalances = { ...lastBalances };
-    selectedTxs.forEach(tx => {
-      newBalances[tx.sender] -= (tx.amount + tx.fee);
-      newBalances[tx.receiver] += tx.amount;
+    const lastBalances = { ...balanceHistory[balanceHistory.length - 1] };
+    selectedTxs.forEach((tx) => {
+      lastBalances[tx.sender] -= tx.amount + tx.fee;
+      lastBalances[tx.receiver] += tx.amount;
     });
-    setBalanceHistory([...balanceHistory, newBalances]);
-    
-    if (roomSeed) {
-      fetch('/api/room?action=mine', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seed: roomSeed, playerName })
-      }).catch(console.error);
-    }
+    const stabilized = stabilizeBalances(lastBalances);
+    const newBlockId = blocks.length;
 
-    // Update Mempool
-    let newMempool = mempool.filter(tx => !selectedTxIds.includes(tx.id));
-    // Add 3 new random txs
-    let maxId = Math.max(...mempool.map(t => t.id), 0);
-    let simulatedBalances = { ...newBalances };
-    newMempool.forEach(tx => {
-      if (simulatedBalances[tx.sender] !== undefined) {
-        simulatedBalances[tx.sender] -= (tx.amount + tx.fee);
-      }
-    });
+    setBalanceHistory([...balanceHistory, stabilized]);
+    setBlocks([
+      ...blocks,
+      {
+        id: newBlockId,
+        nonce: blockNonce,
+        dateMined: new Date().toLocaleString(),
+        transactions: [...selectedTxs],
+      },
+    ]);
 
-    for (let i = 0; i < 3; i++) {
-      const validSenders = users.filter(u => simulatedBalances[u] >= 15);
-      const sender = validSenders.length > 0 ? validSenders[Math.floor(Math.random() * validSenders.length)] : users[0];
-      let receiver = sender;
-      while (receiver === sender) receiver = users[Math.floor(Math.random() * users.length)];
-
-      let maxAmount = simulatedBalances[sender] >= 15 ? simulatedBalances[sender] - 10 : 5;
-      if (maxAmount > 40) maxAmount = 40;
-      const amount = Math.floor(Math.random() * maxAmount) + 1;
-      const fee = Math.floor(Math.random() * 10) + 1;
-
-      simulatedBalances[sender] -= (amount + fee);
-
-      newMempool.push({
-        id: maxId + i + 1,
-        sender, receiver,
-        amount,
-        fee,
-        date: "202605"
-      });
-    }
-    setMempool(newMempool);
-
-    // Update Blockchain
-    const newBlock = {
-      id: blocks.length,
-      nonce: nonce,
-      dateMined: new Date().toLocaleString(),
-      transactions: [...selectedTxs]
-    };
-    setBlocks([...blocks, newBlock]);
-
-    // Reset
+    const nextBlock = blockNum + 1;
+    setBlockNum(nextBlock);
+    setMempool(
+      replenishMempool(
+        mempool.filter((tx) => !selectedTxIds.includes(tx.id)),
+        stabilized,
+        nextBlock,
+        gameSeed,
+      ),
+    );
+    setTargetHash(generateTargetHash(gameSeed, nextBlock));
     setSelectedTxIds([]);
     setNonce(0);
+    setFinalHash('');
     setMiningDone(false);
-    setBaseString("");
-    setTxHash("");
-    setVerifyRaw("");
-    setVerifyNonce("");
-    setMessage("Block mined successfully! Block #" + blocks.length + " added.");
-    generateNewTarget();
-  }
+    setVerifyRaw('');
+    setVerifyNonce('');
+    setLastMinedBlockId(newBlockId);
+    setMessageKey('blockMinedHard');
 
-  const selectedTxs = mempool.filter(tx => selectedTxIds.includes(tx.id));
-
-  // Compute Hash Result and Target
-  let targetDisplay = targetHash || "Generating target...";
-  let hashResultDisplay = "N/A";
-  let isWin = false;
-
-  if (baseString) {
-    const currentHash = SHA256(txHash + nonce).toString();
-    hashResultDisplay = currentHash;
-    if (miningDone) {
-      isWin = true;
+    if (roomSeed) {
+      reportMine(roomSeed, playerName, newBlockId);
+    } else if (newBlockId >= blocksToWinLive) {
+      setSoloWon(true);
     }
-  }
+  };
 
-  const renderHomeButton = () => (
-    <div className="home-btn" onClick={onHome}>
-      <img src="/home.svg" alt="Home" />
-      <span>Main Menu</span>
-    </div>
-  )
+  const handleMineBlock = () => {
+    if (!miningDone || !finalHash || gameOver) return;
+    commitBlock(nonce);
+  };
 
-  const renderGame = () => (
-    <div className="app-container">
+  const rollDiceForPow = async () => {
+    if (!txHash || !targetHash || gameOver || rollingDice || miningDone) return;
 
-      {/* LEFT COLUMN */}
-      <div className="col-left">
+    setRollingDice(true);
+    setMessageKey(null);
+    const nextRoll = rollCount + 1;
+    try {
+      await new Promise((r) => setTimeout(r, 420));
+      const { dice, nonce: rolledNonce } = nonceFromDiceRoll(nextRoll);
+      const hash = await sha256Hex(txHash + rolledNonce);
+      const valid = isProofOfWorkValid(hash, targetHash);
+      setRollCount(nextRoll);
+      setDiceFaces(dice);
+      setNonce(rolledNonce);
+      setFinalHash(hash);
+      setMiningDone(valid);
+      setMessageKey(valid ? 'powHashValid' : 'powHashInvalid');
+    } finally {
+      setRollingDice(false);
+    }
+  };
 
-        {roomData && roomData.status === 'finished' && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <div style={{ background: '#fff', padding: '40px', borderRadius: '12px', textAlign: 'center' }}>
-              <h1 style={{ fontSize: '3rem', margin: 0, color: roomData.winner === playerName ? '#4CAF50' : '#f44336' }}>
-                {roomData.winner === playerName ? 'YOU WON!' : `${roomData.winner} WON!`}
-              </h1>
-              <p style={{ fontSize: '1.5rem', marginTop: '20px' }}>{roomData.winner} was the first to mine 6 blocks.</p>
-              <button className="btn-pixel" onClick={onHome} style={{ marginTop: '30px' }}>Return to Lobby</button>
-            </div>
-          </div>
-        )}
+  const toggleSelection = (id) => {
+    if (gameOver) return;
+    setMessageKey(null);
 
-        {/* Balance Sheet Section */}
-        <div className="section-balances">
-          <div className="widget-title">Balance sheet</div>
-          <div className="widget-content">
-            <table className="balance-table">
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left' }}>Block</th>
-                  {columns.map(col => (
-                    <th key={col}>{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => (
-                  <tr key={u}>
-                    <td style={{ textAlign: 'left' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <UserIcon style={{ margin: 0 }} />
-                        <span>{u}</span>
-                      </div>
-                    </td>
-                    {columns.map(col => {
-                      const bal = balanceHistory[col] ? balanceHistory[col][u] : '-';
-                      return <td key={col}>{bal}</td>;
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+    if (selectedTxIds.includes(id)) {
+      setSelectedTxIds(selectedTxIds.filter((txId) => txId !== id));
+      return;
+    }
 
-        {/* Mempool */}
-        <div className="section-mempool" style={{ marginTop: '15px' }}>
-          <div className="widget-title">Mempool</div>
-          <div className="widget-content">
-            <table className="mempool-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Amount</th>
-                  <th>Fee</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mempool.map(tx => {
-                  return (
-                    <tr
-                      key={tx.id}
-                      className={`clickable ${selectedTxIds.includes(tx.id) ? 'selected' : ''} ${errorTxId === tx.id ? 'error-shake' : ''}`}
-                      onClick={() => toggleSelection(tx.id)}
-                    >
-                      <td>{tx.id}</td>
-                      <td>{tx.sender}</td>
-                      <td>{tx.receiver}</td>
-                      <td>{tx.amount}</td>
-                      <td>{tx.fee}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+    if (selectedTxIds.length >= 3) {
+      setMessageKey('errSelect3');
+      return;
+    }
 
-        {/* Selected Txs */}
-        <div className="section-selected" style={{ marginTop: '15px' }}>
-          <div className="widget-title">Selected Transactions</div>
-          <div className="widget-content" style={{ minHeight: '180px' }}>
-            <table className="mempool-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Amount</th>
-                  <th>Fee</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedTxs.map(tx => (
-                  <tr key={tx.id}>
-                    <td>{tx.id}</td>
-                    <td>{tx.sender}</td>
-                    <td>{tx.receiver}</td>
-                    <td>{tx.amount}</td>
-                    <td>{tx.fee}</td>
-                  </tr>
-                ))}
-                {selectedTxs.length === 0 && (
-                  <tr>
-                    <td colSpan="5" style={{ opacity: 0.5, paddingTop: '20px', textAlign: 'center' }}>No transactions selected</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+    if (canSelectTransaction(id, mempool, selectedTxIds, currentBalances)) {
+      setSelectedTxIds([...selectedTxIds, id]);
+      return;
+    }
 
-      {/* RIGHT COLUMN */}
-      <div className="col-right">
-        {/* Target */}
-        <div className="section-targets">
-          <div className="widget-title">Block Target</div>
-          <div className="widget-content hash-box">
-            {targetDisplay}
-          </div>
-        </div>
+    setMessageKey(getRejectReasonKey(id, mempool, selectedTxIds, currentBalances));
+  };
 
-        {/* Mining Controls */}
-        <div className="section-nonce" style={{ marginTop: '15px' }}>
-          <div className="widget-title">Mining Controller</div>
-          <div className="widget-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
-            <button
-              className={`btn-pixel ${isMining ? 'btn-disabled' : ''}`}
-              style={{ width: '80%', padding: '15px', fontSize: '1rem' }}
-              onClick={startMining}
-              disabled={isMining || !baseString || isWin}
-            >
-              {isMining ? 'Mining...' : 'Start to increase nonce'}
-            </button>
-            <div style={{ marginTop: '15px', fontSize: '1.2rem', fontWeight: 'bold' }}>
-              Nonce: {nonce}
-            </div>
-            <div style={{ marginTop: '5px', fontSize: '0.8rem', opacity: 0.7 }}>
-              {isMining ? 'Searching for a valid hash...' : 'Click to start find nonce'}
-            </div>
-          </div>
-        </div>
+  const canRollDice = selectedTxIds.length === 3 && !!txHash && !gameOver && !miningDone;
+  const powFound = miningDone && !!finalHash;
+  const toastMessage =
+    messageKey === 'blockMinedHard' && lastMinedBlockId != null
+      ? tr('blockMinedHard', { n: lastMinedBlockId })
+      : messageKey
+        ? tr(messageKey)
+        : '';
+  const toastVariant =
+    !messageKey ||
+    messageKey === 'blockMinedHard' || messageKey === 'powHashValid'
+      ? 'ok'
+      : 'err';
 
-        {/* Hash Result */}
-        <div className="section-hash" style={{ marginTop: '15px' }}>
-          <div className="widget-title">Hash Result</div>
-          <div className={`widget-content hash-box ${isWin ? 'win-hash' : ''}`}>
-            {hashResultDisplay}
-            {isWin && (
-              <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '2px dashed rgba(21, 87, 36, 0.3)' }}>
-                <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '5px', textTransform: 'uppercase' }}>Transactions Hash</div>
-                <div style={{ wordBreak: 'break-all', marginBottom: '15px' }}>{txHash}</div>
-                <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '5px', textTransform: 'uppercase' }}>Raw Transaction Data</div>
-                <div style={{ wordBreak: 'break-all', fontSize: '0.9rem', color: '#155724' }}>{baseString}</div>
-              </div>
-            )}
-          </div>
-          {isWin && (
-            <button
-              className="btn-pixel"
-              style={{ width: '100%', marginTop: '15px', padding: '15px', fontSize: '1.2rem', backgroundColor: '#28a745', color: 'white', border: 'none' }}
-              onClick={handleMine}
-            >
-              MINE BLOCK!
-            </button>
-          )}
-        </div>
+  const targetShort =
+    targetHash && targetHash.length > 12
+      ? `${targetHash.slice(0, 8)}…${targetHash.slice(-4)}`
+      : targetHash || tr('targetPending');
 
-        {/* Blockchain Visualizer */}
-        <div className="section-blockchain" style={{ marginTop: '15px' }}>
-          <div className="widget-title">Blockchain</div>
-          <div className="widget-content blockchain-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', overflowX: 'auto', padding: '10px' }}>
-            {[0, 1, 2, 3, 4, 5, 6].map((i, index, arr) => {
-              const isMined = i < blocks.length;
-              const block = blocks[i] || { id: i };
-              return (
-                <div key={i} className="block-wrapper" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, opacity: isMined ? 1 : 0.3 }}>
-                  <div
-                    className="block-column"
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: isMined ? 'pointer' : 'default' }}
-                    onClick={() => isMined && setSelectedBlock(block)}
-                  >
-                    <div className="block-square" style={{ width: '45px', height: '45px', backgroundColor: isMined ? 'var(--color-blue)' : '#ccc', borderRadius: '8px', transition: 'transform 0.1s' }} onMouseOver={e => isMined && (e.target.style.transform = 'scale(1.1)')} onMouseOut={e => e.target.style.transform = 'scale(1)'}></div>
-                    <div className="block-number" style={{ fontWeight: 'bold', fontSize: '0.85rem', color: isMined ? 'var(--color-blue)' : '#999' }}>#{i}</div>
-                  </div>
-                  {index < arr.length - 1 && <div className="block-connector" style={{ width: '25px', height: '2px', backgroundColor: isMined && (i + 1) < blocks.length ? 'var(--color-blue)' : '#ccc', marginBottom: '30%' }}></div>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* SHA-256 Verifier */}
-        <div className="section-verifier" style={{ marginTop: '15px' }}>
-          <div className="widget-title">Live SHA-256 Verifier</div>
-          <div className="widget-content" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div className="win-hash" style={{ padding: '15px', borderRadius: '8px', border: '1px solid #c3e6cb', fontWeight: 'bold' }}>
-              <textarea
-                value={verifyRaw}
-                onChange={e => setVerifyRaw(e.target.value)}
-                placeholder="Paste raw transaction data here..."
-                style={{ width: '100%', minHeight: '60px', padding: '10px', borderRadius: '8px', border: '1px solid #c3e6cb', resize: 'vertical', backgroundColor: 'rgba(255,255,255,0.7)', color: '#155724' }}
-              />
-
-              <hr style={{ border: 'none', borderTop: '2px dashed rgba(21, 87, 36, 0.3)', margin: '15px 0' }} />
-
-              <div style={{ wordBreak: 'break-all', textAlign: 'center' }}>
-                {verifyRaw ? SHA256(verifyRaw).toString() : "Awaiting input..."}
-              </div>
-
-              <hr style={{ border: 'none', borderTop: '2px dashed rgba(21, 87, 36, 0.3)', margin: '15px 0' }} />
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ wordBreak: 'break-all', flex: 1, fontSize: '0.9rem', opacity: 0.8, textAlign: 'right' }}>
-                  {verifyRaw ? SHA256(verifyRaw).toString() : "..."}
-                </div>
-                <div style={{ fontSize: '1.2rem', color: '#155724' }}>|</div>
-                <input
-                  type="text"
-                  value={verifyNonce}
-                  onChange={e => setVerifyNonce(e.target.value)}
-                  placeholder="Nonce"
-                  style={{ width: '120px', padding: '10px', borderRadius: '8px', border: '1px solid #c3e6cb', backgroundColor: 'rgba(255,255,255,0.7)', color: '#155724', textAlign: 'center', fontWeight: 'bold' }}
-                />
-              </div>
-
-              <hr style={{ border: 'none', borderTop: '2px dashed rgba(21, 87, 36, 0.3)', margin: '15px 0' }} />
-
-              <div style={{ wordBreak: 'break-all', textAlign: 'center', fontSize: '1.1rem' }}>
-                {verifyRaw && verifyNonce ? SHA256(SHA256(verifyRaw).toString() + verifyNonce).toString() : "Final output will appear here..."}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Notifications */}
-        {message && (
-          <div style={{ marginTop: '15px', padding: '15px', backgroundColor: message.includes('Target') || message.includes('generated') || message.includes('mined') ? 'var(--color-blue)' : 'var(--color-red)', color: 'white', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold' }}>
-            {message}
-          </div>
-        )}
-        {/* Multiplayer Mining Race Section */}
-        {roomData && (
-          <div className="section-mining-race" style={{ marginTop: '20px', background: '#fff', padding: '15px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-            <div className="widget-title" style={{ fontSize: '1.2rem', marginBottom: '10px' }}>Multiplayer Mining Race</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {roomData.players.map(p => (
-                <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '80px', fontWeight: 'bold', color: p.name === playerName ? 'var(--color-blue)' : '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {p.name} {p.name === playerName && '(You)'}
-                  </div>
-                  <div style={{ flex: 1, background: '#eee', height: '20px', borderRadius: '10px', overflow: 'hidden' }}>
-                    <div style={{ width: `${(p.blocks / 6) * 100}%`, background: p.blocks >= 6 ? '#4CAF50' : 'var(--color-blue)', height: '100%', transition: 'width 0.3s' }}></div>
-                  </div>
-                  <div style={{ width: '40px', textAlign: 'right', fontWeight: 'bold' }}>{p.blocks}/6</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-    </div>
-  )
-
-  
   return (
-    <div className="hard-game-wrapper">
-      <div className="view-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div className="help-icon" onClick={() => setShowHowToPlay(true)}>?</div>
-        {renderGame()}
-        {renderHomeButton()}
-      </div>
+    <div className="bp-app">
+      <main className="bp-main bp-main--wide">
+        <div className="bp-game">
+          <GameHud
+            onHome={onHome}
+            onHelp={() => {
+              setRulesGuideMode('hard');
+              setShowHowToPlay(true);
+            }}
+            difficulty="hard"
+            blocksMined={Math.max(0, blocks.length - 1)}
+            blockGoal={blocksToWinLive}
+            roomSeed={roomSeed}
+            selectionCount={selectedTxIds.length}
+            stats={[
+              {
+                label: tr('blockTarget'),
+                value: targetShort,
+                mono: true,
+                wide: true,
+                title: targetHash,
+              },
+            ]}
+          />
+
+          <PowFoundOverlay
+            open={powFound && !gameOver}
+            nonce={nonce}
+            diceFaces={diceFaces}
+            finalHash={finalHash}
+            onMine={handleMineBlock}
+          />
+
+          <WinOverlay
+            roomData={effectiveRoom}
+            playerName={playerName}
+            onHome={onHome}
+            onViewResults={onViewResults}
+            soloWin={soloWon}
+            blocksToWin={blocksToWinLive}
+          />
+
+          <GameWorkspaceLayout
+            columns={columns}
+            minedCount={blocks.length}
+            blocksMined={Math.max(0, blocks.length - 1)}
+            blockGoal={blocksToWinLive}
+            onBlockClick={(i) => blocks[i] && setSelectedBlock(blocks[i])}
+            chainClickable
+            roomData={effectiveRoom}
+            playerName={playerName}
+            showRace={!!roomSeed}
+            gameTab={gameTab}
+            onGameTabChange={setGameTab}
+            tabs={[
+              {
+                id: 'play',
+                label: tr('gameTabPlay'),
+                iconSrc: ICON.pickaxe,
+                badge: `${selectedTxIds.length}/3`,
+              },
+            ]}
+            panels={{
+              play: (
+                <div className="bp-game-play-stack">
+                  {selectedTxIds.length > 0 && (
+                    <PanelCard
+                      title={tr('selectedTxHard')}
+                      iconSrc={ICON.save}
+                      compact
+                      active={selectedTxIds.length === 3}
+                      bodyClassName="bp-panel__body--flush"
+                    >
+                      <MempoolTable
+                        transactions={selectedTxs}
+                        selectedIds={selectedTxIds}
+                        showUserIcons={false}
+                        emptyMessage={tr('noTxSelected')}
+                      />
+                    </PanelCard>
+                  )}
+                  <PanelCard
+                    className="bp-panel--mempool-full"
+                    title={tr('mempool')}
+                    iconSrc={ICON.wallet}
+                    bodyClassName="bp-panel__body--flush"
+                  >
+                    <div className="bp-mempool-intro">
+                      <p className="bp-hint bp-hint--compact">{tr('mempoolHintShort')}</p>
+                      <CollapsibleSection
+                        title={tr('mempoolRulesTitle')}
+                        iconSrc={ICON.info}
+                        defaultOpen={false}
+                      >
+                        <MempoolRulesPanel variant="compact" />
+                      </CollapsibleSection>
+                    </div>
+                    <MempoolTable
+                      transactions={mempool}
+                      selectedIds={selectedTxIds}
+                      onToggle={toggleSelection}
+                      disabled={gameOver}
+                      showUserIcons={false}
+                    />
+                    <div className="bp-mempool-foot">
+                      <CollapsibleSection
+                        title={tr('balanceSheet')}
+                        iconSrc={ICON.coin}
+                        defaultOpen={false}
+                      >
+                        <BalanceSheetTable columns={columns} balanceHistory={balanceHistory} />
+                      </CollapsibleSection>
+                    </div>
+                  </PanelCard>
+                  <PanelCard
+                    title={tr('miningController')}
+                    iconSrc={ICON.pickaxe}
+                    active={powFound || selectedTxIds.length === 3}
+                    bodyClassName="bp-panel__body--sections"
+                  >
+                    <PanelSection variant="status">
+                      <div className={`bp-status${rollingDice ? ' bp-status--mining' : ''}`}>
+                        {rollingDice && <span className="bp-spinner" />}
+                        {rollingDice
+                          ? tr('powRolling')
+                          : powFound
+                            ? tr('miningReady')
+                            : canRollDice
+                              ? tr('powDiceHint')
+                              : tr('miningNeedTx')}
+                      </div>
+                      <p className="bp-hint">{tr('powTargetHint', { zeros: LEADING_ZEROS })}</p>
+                    </PanelSection>
+
+                    {txHash && (
+                      <PanelSection title={tr('txHash')} variant="mono">
+                        <div className="bp-hash bp-hash--compact">{txHash}</div>
+                      </PanelSection>
+                    )}
+
+                    {(canRollDice || powFound) && (
+                      <PanelSection title={tr('rollDice')} variant="action">
+                        <PowDicePanel
+                          diceFaces={diceFaces}
+                          rollCount={rollCount}
+                          nonce={nonce}
+                          rolling={rollingDice}
+                          disabled={!canRollDice}
+                          powFound={powFound}
+                          onRoll={rollDiceForPow}
+                        />
+                      </PanelSection>
+                    )}
+
+                    {finalHash && (
+                      <PanelSection title={tr('hashResult')} variant="mono">
+                        <div className={`bp-hash bp-hash--result${powFound ? ' bp-hash--win' : ''}`}>
+                          {finalHash}
+                        </div>
+                      </PanelSection>
+                    )}
+                  </PanelCard>
+
+                  <CollapsibleSection
+                    title={tr('liveVerifier')}
+                    iconSrc={ICON.microscope}
+                    defaultOpen={false}
+                  >
+                    <LiveVerifierPanel />
+                  </CollapsibleSection>
+                </div>
+              ),
+                }}
+          />
+        </div>
+      </main>
+
+      <GameToast
+        message={toastMessage}
+        variant={toastVariant}
+        onDismiss={() => setMessageKey(null)}
+      />
+
       {selectedBlock && (
         <div className="modal-overlay" onClick={() => setSelectedBlock(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ margin: 0 }}>Block #{selectedBlock.id} Details</h3>
-              <button className="modal-close" onClick={() => setSelectedBlock(null)}>✖</button>
+              <h3>{tr('blockDetails', { n: selectedBlock.id })}</h3>
+              <ModalCloseButton onClick={() => setSelectedBlock(null)} />
             </div>
-            <div className="modal-body" style={{ textAlign: 'left' }}>
-              <p style={{ margin: '5px 0' }}><strong>Nonce:</strong> {selectedBlock.nonce}</p>
-              <p style={{ margin: '5px 0' }}><strong>Mined On:</strong> {selectedBlock.dateMined}</p>
-              <h4 style={{ marginTop: '20px', marginBottom: '10px' }}>Transactions ({selectedBlock.transactions.length})</h4>
+            <div className="modal-body">
+              <p>
+                <strong>{tr('nonce')}:</strong> {selectedBlock.nonce}
+              </p>
+              <p>
+                <strong>{tr('minedOn')}:</strong> {selectedBlock.dateMined}
+              </p>
               {selectedBlock.transactions.length > 0 ? (
-                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                  <table className="mempool-table">
-                    <thead>
-                      <tr><th>From</th><th>To</th><th>Amount</th><th>Fee</th></tr>
-                    </thead>
-                    <tbody>
-                      {selectedBlock.transactions.map((tx, idx) => (
-                        <tr key={idx}><td>{tx.sender}</td><td>{tx.receiver}</td><td>{tx.amount}</td><td>{tx.fee}</td></tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <MempoolTable
+                  transactions={selectedBlock.transactions}
+                  showUserIcons={false}
+                  showNameValues={false}
+                />
               ) : (
-                <p style={{ opacity: 0.7 }}>Genesis Block (No transactions)</p>
+                <p>{tr('genesisBlock')}</p>
               )}
             </div>
           </div>
         </div>
       )}
-      {showHowToPlay && <HowToPlay difficulty="hard" onClose={() => setShowHowToPlay(false)} />}
+
+      {showHowToPlay && (
+        <HowToPlay
+          key={rulesGuideMode}
+          initialDifficulty={rulesGuideMode}
+          onClose={() => setShowHowToPlay(false)}
+        />
+      )}
     </div>
   );
 }

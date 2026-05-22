@@ -7,11 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "node server.js",
+    "start": "node scripts/start-dev.mjs",
+    "dev:all": "node scripts/start-dev.mjs",
+    "simulate": "node scripts/simulate-blocks.mjs",
+    "simulate:pow": "node scripts/simulate-pow-playability.mjs",
+    "test:room": "node scripts/test-room-flow.mjs"
   },
   "dependencies": {
+    "@vercel/kv": "^3.0.0",
     "cors": "^2.8.6",
-    "crypto-js": "^4.2.0",
     "express": "^5.2.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
