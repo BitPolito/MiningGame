@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import HowToPlay from '../HowToPlay';
+import ModalCloseButton from '../components/ModalCloseButton';
 import GameHud from '../components/game/GameHud';
 import WinOverlay from '../components/WinOverlay';
 import GameToast from '../components/GameToast';
@@ -56,6 +57,11 @@ export default function EasyGame({
   const [messageKey, setMessageKey] = useState(null);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [rulesGuideMode, setRulesGuideMode] = useState('easy');
+
+  const [blocks, setBlocks] = useState([
+    { id: 0, nonce: 0, dateMined: new Date().toLocaleString(), transactions: [] },
+  ]);
+  const [selectedBlock, setSelectedBlock] = useState(null);
 
   const [roomData, setRoomData] = useRoomPoll(
     roomSeed,
@@ -141,6 +147,17 @@ export default function EasyGame({
     });
     const stabilized = stabilizeBalances(newBalances);
 
+    const newBlockId = blocks.length;
+    setBlocks([
+      ...blocks,
+      {
+        id: newBlockId,
+        nonce: parsedNonce,
+        dateMined: new Date().toLocaleString(),
+        transactions: [...selectedTxs],
+      },
+    ]);
+
     const nextBlock = blockNum + 1;
     setBalanceHistory([...balanceHistory, stabilized]);
     setBlockNum(nextBlock);
@@ -197,6 +214,8 @@ export default function EasyGame({
             minedCount={blockNum}
             blocksMined={Math.max(0, blockNum - 1)}
             blockGoal={blocksToWinLive}
+            onBlockClick={(i) => blocks[i] && setSelectedBlock(blocks[i])}
+            chainClickable
             roomData={effectiveRoom}
             playerName={playerName}
             showRace={!!roomSeed}
@@ -315,6 +334,34 @@ export default function EasyGame({
         variant={toastVariant}
         onDismiss={() => setMessageKey(null)}
       />
+
+      {selectedBlock && (
+        <div className="modal-overlay" onClick={() => setSelectedBlock(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{tr('blockDetails', { n: selectedBlock.id })}</h3>
+              <ModalCloseButton onClick={() => setSelectedBlock(null)} />
+            </div>
+            <div className="modal-body">
+              <p>
+                <strong>{tr('nonce')}:</strong> {selectedBlock.nonce}
+              </p>
+              <p>
+                <strong>{tr('minedOn')}:</strong> {selectedBlock.dateMined}
+              </p>
+              {selectedBlock.transactions.length > 0 ? (
+                <MempoolTable
+                  transactions={selectedBlock.transactions}
+                  showUserIcons={false}
+                  showNameValues={false}
+                />
+              ) : (
+                <p>{tr('genesisBlock')}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showHowToPlay && (
         <HowToPlay
