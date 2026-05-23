@@ -349,13 +349,19 @@
 
 .bp-game-sticky-zone {
   position: sticky;
-  top: 108px;
+  top: 136px;
   z-index: 32;
   margin: 0 calc(-1 * var(--bp-space-3, 14px));
   padding: 0 var(--bp-space-3, 14px) var(--bp-space-2);
   background: var(--bp-canvas);
   border-bottom: 1px solid var(--bp-200);
   box-shadow: 0 6px 16px color-mix(in srgb, var(--bp-blue) 5%, transparent);
+}
+
+.bp-game-pinboard {
+  margin-top: 14px;
+  border-top: 1px solid var(--bp-200);
+  padding-top: 8px;
 }
 
 .bp-game-pinboard__head {
@@ -544,7 +550,7 @@
 
 @media (max-width: 900px) {
   .bp-game-sticky-zone {
-    top: 128px;
+    top: 200px;
   }
 
   .bp-game-workspace__body {

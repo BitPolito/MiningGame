@@ -1622,6 +1622,7 @@ a.bp-btn--link {
 .bp-chain {
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 12px 8px;
   overflow-x: auto;
   gap: 0;
@@ -1810,6 +1811,15 @@ a.bp-btn--link {
   height: 8px;
   border-radius: 50%;
   background: var(--bp-blue);
+}
+
+.bp-die--error {
+  border-color: var(--bp-red);
+  background: var(--bp-red-bg);
+}
+
+.bp-die--error .bp-die__pip {
+  background: var(--bp-red);
 }
 
 .bp-pow-toolbar__body {

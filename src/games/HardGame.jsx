@@ -14,6 +14,7 @@ import BalanceSheetTable from '../components/game/BalanceSheetTable';
 import LiveVerifierPanel from '../components/game/LiveVerifierPanel';
 import CollapsibleSection from '../components/game/CollapsibleSection';
 import GameWorkspaceLayout from '../components/game/GameWorkspaceLayout';
+import GamePinnedChain from '../components/game/GamePinnedChain';
 import PanelSection from '../components/game/PanelSection';
 import BpIcon from '../components/BpIcon';
 import { ICON } from '../assets/icons';
@@ -227,7 +228,7 @@ export default function HardGame({
       setFinalHash(hash);
       setMiningDone(valid);
       setHasAcknowledgedPow(false);
-      setMessageKey(valid ? 'powHashValid' : 'powHashInvalid');
+      if (valid) setMessageKey('powHashValid');
     } finally {
       setRollingDice(false);
     }
@@ -298,7 +299,16 @@ export default function HardGame({
                 title: targetHash,
               },
             ]}
-          />
+          >
+            <GamePinnedChain
+              columns={columns}
+              minedCount={roomSeed ? blocksMinedLive + 1 : blocks.length}
+              blocksMined={blocksMinedLive}
+              blockGoal={blocksToWinLive}
+              onBlockClick={(i) => blocks[i] && setSelectedBlock(blocks[i])}
+              clickable
+            />
+          </GameHud>
 
           <PowFoundOverlay
             open={powFound && !hasAcknowledgedPow && !gameOver}
@@ -318,12 +328,6 @@ export default function HardGame({
           />
 
           <GameWorkspaceLayout
-            columns={columns}
-            minedCount={roomSeed ? blocksMinedLive + 1 : blocks.length}
-            blocksMined={blocksMinedLive}
-            blockGoal={blocksToWinLive}
-            onBlockClick={(i) => blocks[i] && setSelectedBlock(blocks[i])}
-            chainClickable
             roomData={effectiveRoom}
             playerName={playerName}
             showRace={!!roomSeed}
@@ -432,6 +436,7 @@ export default function HardGame({
                           rolling={rollingDice}
                           disabled={!canRollDice}
                           powFound={powFound}
+                          error={!miningDone && rollCount > 0 && !rollingDice}
                           onRoll={rollDiceForPow}
                         />
                       </PanelSection>

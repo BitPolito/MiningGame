@@ -16,6 +16,7 @@ export default function GameHud({
   roomSeed,
   selectionCount = 0,
   stats = [],
+  children,
 }) {
   const { tr } = useLocale();
   const progressPct =
@@ -79,6 +80,7 @@ export default function GameHud({
           </div>
         ))}
       </div>
+      {children}
     </header>
   );
 }

@@ -11,6 +11,7 @@ import BalanceSheetTable from '../components/game/BalanceSheetTable';
 import MempoolRulesPanel from '../components/game/MempoolRulesPanel';
 import CollapsibleSection from '../components/game/CollapsibleSection';
 import GameWorkspaceLayout from '../components/game/GameWorkspaceLayout';
+import GamePinnedChain from '../components/game/GamePinnedChain';
 import PanelSection from '../components/game/PanelSection';
 import EasyFormulaPanel from '../components/game/EasyFormulaPanel';
 import BpIcon from '../components/BpIcon';
@@ -198,7 +199,16 @@ export default function EasyGame({
               { label: tr('blockTarget'), value: target },
               { label: tr('prevBlockTarget'), value: prevTarget },
             ]}
-          />
+          >
+            <GamePinnedChain
+              columns={columns}
+              minedCount={blockNum}
+              blocksMined={Math.max(0, blockNum - 1)}
+              blockGoal={blocksToWinLive}
+              onBlockClick={(i) => blocks[i] && setSelectedBlock(blocks[i])}
+              clickable
+            />
+          </GameHud>
 
           <WinOverlay
             roomData={effectiveRoom}
@@ -210,12 +220,6 @@ export default function EasyGame({
           />
 
           <GameWorkspaceLayout
-            columns={columns}
-            minedCount={blockNum}
-            blocksMined={Math.max(0, blockNum - 1)}
-            blockGoal={blocksToWinLive}
-            onBlockClick={(i) => blocks[i] && setSelectedBlock(blocks[i])}
-            chainClickable
             roomData={effectiveRoom}
             playerName={playerName}
             showRace={!!roomSeed}

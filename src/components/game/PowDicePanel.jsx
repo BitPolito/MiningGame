@@ -4,7 +4,7 @@ import { ICON } from '../../assets/icons';
 import { useLocale } from '../../i18n/LocaleContext';
 import { isDiceReady } from '../../lib/powDice';
 
-function DieFace({ value, rolling }) {
+function DieFace({ value, rolling, error }) {
   const pips =
     value == null
       ? []
@@ -45,7 +45,7 @@ function DieFace({ value, rolling }) {
 
   return (
     <span
-      className={`bp-die${rolling ? ' bp-die--rolling' : ''}${value == null ? ' bp-die--empty' : ''}`}
+      className={`bp-die${rolling ? ' bp-die--rolling' : ''}${value == null ? ' bp-die--empty' : ''}${error ? ' bp-die--error' : ''}`}
       aria-label={value == null ? '?' : String(value)}
     >
       {value == null ? (
@@ -68,6 +68,7 @@ export default function PowDicePanel({
   rolling,
   disabled,
   powFound,
+  error,
   onRoll,
 }) {
   const { tr } = useLocale();
@@ -94,8 +95,8 @@ export default function PowDicePanel({
   return (
     <div className="bp-pow-toolbar">
       <div className="bp-pow-toolbar__dice" aria-live="polite">
-        <DieFace value={displayFaces[0]} rolling={rolling} />
-        <DieFace value={displayFaces[1]} rolling={rolling} />
+        <DieFace value={displayFaces[0]} rolling={rolling} error={error} />
+        <DieFace value={displayFaces[1]} rolling={rolling} error={error} />
       </div>
 
       <div className="bp-pow-toolbar__body">

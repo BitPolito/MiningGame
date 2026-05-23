@@ -1,14 +1,8 @@
-import GamePinnedChain from './GamePinnedChain';
+
 import { GameTabBar, GameTabPanels } from './GameSectionTabs';
 import MiningRace from '../MiningRace';
 
 export default function GameWorkspaceLayout({
-  columns,
-  minedCount,
-  blocksMined,
-  blockGoal,
-  onBlockClick,
-  chainClickable = false,
   roomData,
   playerName,
   showRace = false,
@@ -22,19 +16,11 @@ export default function GameWorkspaceLayout({
 
   return (
     <div className={`bp-game-workspace${showTabs ? '' : ' bp-game-workspace--solo-tab'}`}>
-      <div className="bp-game-sticky-zone">
-        <GamePinnedChain
-          columns={columns}
-          minedCount={minedCount}
-          blocksMined={blocksMined}
-          blockGoal={blockGoal}
-          onBlockClick={onBlockClick}
-          clickable={chainClickable}
-        />
-        {showTabs ? (
+      {showTabs && (
+        <div className="bp-game-sticky-zone">
           <GameTabBar value={gameTab} onChange={onGameTabChange} tabs={tabs} />
-        ) : null}
-      </div>
+        </div>
+      )}
 
       <div className={`bp-game-workspace__body${hasRace ? '' : ' bp-game-workspace__body--solo'}`}>
         <div className="bp-game-workspace__main">
