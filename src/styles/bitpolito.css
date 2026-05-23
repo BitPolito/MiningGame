@@ -1581,6 +1581,12 @@ a.bp-btn--link {
   border-bottom: none;
 }
 
+.balance-sheet-table th:not(:first-child),
+.balance-sheet-table td:not(:first-child) {
+  text-align: center;
+  padding: 10px 4px;
+}
+
 .bp-table tr.bp-row--clickable {
   cursor: pointer;
   transition: background 0.15s;
