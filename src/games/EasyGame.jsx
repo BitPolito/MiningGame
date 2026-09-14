@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import HowToPlay from '../HowToPlay';
 import ModalCloseButton from '../components/ModalCloseButton';
 import GameHud from '../components/game/GameHud';
@@ -28,11 +28,9 @@ import {
   getBlockColumns,
   getRoomBlocksToWin,
   clampBlocksToWin,
-  pickNewerRoom,
 } from '../lib/roomConfig';
 import { reportMine } from '../lib/roomApi';
 import { useLocale } from '../i18n/LocaleContext';
-import { useRoomPoll } from '../hooks/useRoomPoll';
 
 export default function EasyGame({
   onHome,
@@ -41,6 +39,9 @@ export default function EasyGame({
   playerName = '',
   initialRoomData = null,
   blocksToWin: blocksToWinProp = 3,
+  sessionToken = '',
+  playerState = null,
+  onPlayerState,
 }) {
   const { tr } = useLocale();
   const [gameSeed] = useState(() => roomSeed || Math.random().toString(36).substring(2, 10));
@@ -63,17 +64,7 @@ export default function EasyGame({
     { id: 0, nonce: 0, dateMined: new Date().toLocaleString(), transactions: [] },
   ]);
   const [selectedBlock, setSelectedBlock] = useState(null);
-
-  const [roomData, setRoomData] = useRoomPoll(
-    roomSeed,
-    !!roomSeed,
-    'game',
-    initialRoomData,
-  );
-  const effectiveRoom = useMemo(
-    () => pickNewerRoom(roomData, initialRoomData),
-    [roomData, initialRoomData],
-  );
+  const effectiveRoom = initialRoomData;
 
   const blocksToWinLive = useMemo(
     () => clampBlocksToWin(roomSeed ? getRoomBlocksToWin(effectiveRoom) : blocksToWinProp),
@@ -116,12 +107,30 @@ export default function EasyGame({
     setMessageKey(getRejectReasonKey(id, mempool, selectedTxIds, currentBalances));
   };
 
-  const syncRoomFromServer = useCallback(
-    (room) => {
-      if (room) setRoomData((prev) => pickNewerRoom(prev, room));
-    },
-    [setRoomData],
-  );
+  const applyPlayerState = useCallback((state) => {
+    if (!state) return;
+    setBlockNum(state.blockNum);
+    setBalanceHistory(state.balanceHistory || [state.balances]);
+    setPrevTarget(state.prevTarget);
+    setTarget(state.target);
+    setMempool(state.mempool);
+    setBlocks([
+      { id: 0, nonce: 0, dateMined: "", transactions: [] },
+      ...(state.history || []).map((block) => ({
+        id: block.index,
+        nonce: block.nonce,
+        dateMined: "",
+        transactions: block.transactions,
+      })),
+    ]);
+    setSelectedTxIds([]);
+    setNonceInput('');
+    onPlayerState?.(state);
+  }, [onPlayerState]);
+
+  useEffect(() => {
+    if (roomSeed && playerState) applyPlayerState(playerState);
+  }, [roomSeed, playerState, applyPlayerState]);
 
   const handleMine = async () => {
     if (gameOver) return;
@@ -138,6 +147,21 @@ export default function EasyGame({
     }
     if (prevTarget + parsedNonce + blockValue !== target) {
       setMessageKey('errNonceWrong');
+      return;
+    }
+
+    if (roomSeed) {
+      const result = await reportMine(roomSeed, sessionToken, {
+        blockIndex: blockNum,
+        selectedTxIds,
+        nonce: parsedNonce,
+      });
+      if (result?.room && result?.playerState) {
+        applyPlayerState(result.playerState);
+        setMessageKey('blockMinedOk');
+      } else {
+        setMessageKey('errConnect');
+      }
       return;
     }
 
@@ -158,26 +182,16 @@ export default function EasyGame({
         transactions: [...selectedTxs],
       },
     ]);
-
     const nextBlock = blockNum + 1;
     setBalanceHistory([...balanceHistory, stabilized]);
     setBlockNum(nextBlock);
     setPrevTarget(target);
     setTarget(nextEasyTarget(target, nextBlock, gameSeed));
-    setMempool(
-      generateMempool({ balances: stabilized, blockNum: nextBlock, roomSeed: gameSeed }),
-    );
+    setMempool(generateMempool({ balances: stabilized, blockNum: nextBlock, roomSeed: gameSeed }));
     setSelectedTxIds([]);
     setNonceInput('');
     setMessageKey('blockMinedOk');
-
-    if (roomSeed) {
-      const result = await reportMine(roomSeed, playerName, nextBlock - 1);
-      if (result?.room) syncRoomFromServer(result.room);
-      else if (!result?.success) setMessageKey('errConnect');
-    } else if (nextBlock > blocksToWinLive) {
-      setSoloWon(true);
-    }
+    if (nextBlock > blocksToWinLive) setSoloWon(true);
   };
 
   return (

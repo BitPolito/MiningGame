@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import ModalCloseButton from './components/ModalCloseButton';
 import { useLocale } from './i18n/LocaleContext';
+import { useModalFocus } from './hooks/useModalFocus';
 import easyGuideEn from './guides/EasyGuide.md?raw';
 import easyGuideIt from './guides/EasyGuide.it.md?raw';
 import hardGuideEn from './guides/HardGuide.md?raw';
@@ -16,12 +17,14 @@ export default function HowToPlay({ initialDifficulty = 'easy', difficulty, onCl
   const { locale, tr } = useLocale();
   const startMode = difficulty ?? initialDifficulty;
   const [activeMode, setActiveMode] = useState(startMode === 'hard' ? 'hard' : 'easy');
+  const dialogRef = useModalFocus(true, onClose);
 
   const guideContent = guides[activeMode][locale] ?? guides[activeMode].en;
 
   return (
     <div className="modal-overlay bp-rules-modal-overlay" onClick={onClose} role="presentation">
       <div
+        ref={dialogRef}
         className="bp-rules-modal"
         onClick={(e) => e.stopPropagation()}
         role="dialog"

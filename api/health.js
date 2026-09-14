@@ -1,8 +1,19 @@
+import { kv } from './kv.js';
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method !== 'GET') {
+    return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
   }
-  return res.status(200).json({ ok: true, service: 'blockgame-api' });
+  try {
+    const ok = await kv.ping();
+    return res.status(ok ? 200 : 503).json({ ok, service: 'blockgame-api', storage: kv.kind });
+  } catch (error) {
+    return res.status(503).json({
+      ok: false,
+      service: 'blockgame-api',
+      storage: kv.kind,
+      error: error?.code || 'STORAGE_UNAVAILABLE',
+    });
+  }
 }

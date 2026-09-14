@@ -1,11 +1,9 @@
 import express from 'express';
-import cors from 'cors';
 import roomHandler from './api/room.js';
 import healthHandler from './api/health.js';
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '16kb' }));
 
 app.get('/api/health', async (req, res) => {
   try {

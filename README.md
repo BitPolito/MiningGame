@@ -44,12 +44,16 @@ Il progetto usa moduli ES: serve Vite (`npm run dev` o `npm start`).
 
 ## Deploy (Vercel)
 
-1. Import the repo e imposta **Root Directory** = `MiningGame`.
+1. Importa la repository lasciando **Root Directory** vuota (root della repository).
 2. Framework: **Vite** (o lascia rilevare da `vercel.json`).
-3. Aggiungi **Vercel KV** (oppure `KV_REST_API_URL` + `KV_REST_API_TOKEN`).
+3. Dal Marketplace Vercel collega **Upstash Redis** al progetto per Preview e Production.
+   Sono supportate direttamente `MINING_GAME_KV_REST_API_URL` e `MINING_GAME_KV_REST_API_TOKEN`.
+   Restano compatibili anche `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`.
 4. Deploy: build `npm run build` → cartella `dist`; le route in `/api` diventano Serverless Functions automaticamente.
 
 In produzione non serve `server.js`: solo in locale con `npm start`.
+
+In produzione il multiplayer viene disabilitato se Redis non è configurato o non risponde; il fallback su file è disponibile esclusivamente in sviluppo locale. Le stanze Redis scadono automaticamente dopo 24 ore.
 
 `vercel.json` include rewrite SPA (`/*` → `index.html` eccetto `/api/*`).
 

@@ -16,7 +16,6 @@ import CollapsibleSection from '../components/game/CollapsibleSection';
 import GameWorkspaceLayout from '../components/game/GameWorkspaceLayout';
 import GamePinnedChain from '../components/game/GamePinnedChain';
 import PanelSection from '../components/game/PanelSection';
-import BpIcon from '../components/BpIcon';
 import { ICON } from '../assets/icons';
 import { canSelectTransaction, getRejectReasonKey } from '../lib/txSelection';
 import { generateMempool, replenishMempool, stabilizeBalances } from '../lib/mempool';
@@ -27,12 +26,10 @@ import {
   getBlockColumns,
   getRoomBlocksToWin,
   clampBlocksToWin,
-  pickNewerRoom,
 } from '../lib/roomConfig';
 import { reportMine } from '../lib/roomApi';
 import { normalizePlayerName } from '../lib/playerNames';
 import { useLocale } from '../i18n/LocaleContext';
-import { useRoomPoll } from '../hooks/useRoomPoll';
 import { useSha256 } from '../hooks/useSha256';
 
 export default function HardGame({
@@ -42,6 +39,9 @@ export default function HardGame({
   playerName = '',
   initialRoomData = null,
   blocksToWin: blocksToWinProp = 3,
+  sessionToken = '',
+  playerState = null,
+  onPlayerState,
 }) {
   const { tr } = useLocale();
   const [gameSeed] = useState(() => roomSeed || Math.random().toString(36).substring(2, 10));
@@ -77,16 +77,7 @@ export default function HardGame({
     { id: 0, nonce: 0, dateMined: new Date().toLocaleString(), transactions: [] },
   ]);
   const [selectedBlock, setSelectedBlock] = useState(null);
-  const [roomData, setRoomData] = useRoomPoll(
-    roomSeed,
-    !!roomSeed,
-    'game',
-    initialRoomData,
-  );
-  const effectiveRoom = useMemo(
-    () => pickNewerRoom(roomData, initialRoomData),
-    [roomData, initialRoomData],
-  );
+  const effectiveRoom = initialRoomData;
 
   const blocksToWinLive = useMemo(
     () =>
@@ -145,15 +136,50 @@ export default function HardGame({
 
   const currentBalances = balanceHistory[balanceHistory.length - 1];
 
-  const syncRoomFromServer = useCallback(
-    (room) => {
-      if (room) setRoomData((prev) => pickNewerRoom(prev, room));
-    },
-    [setRoomData],
-  );
+  const applyPlayerState = useCallback((state) => {
+    if (!state) return;
+    setBlockNum(state.blockNum);
+    setBalanceHistory(state.balanceHistory || [state.balances]);
+    setMempool(state.mempool);
+    setTargetHash(state.targetHash);
+    setBlocks([
+      { id: 0, nonce: 0, dateMined: '', transactions: [] },
+      ...(state.history || []).map((block) => ({
+        id: block.index,
+        nonce: block.nonce,
+        dateMined: '',
+        transactions: block.transactions,
+      })),
+    ]);
+    setSelectedTxIds([]);
+    setNonce(0);
+    setFinalHash('');
+    setMiningDone(false);
+    onPlayerState?.(state);
+  }, [onPlayerState]);
+
+  useEffect(() => {
+    if (roomSeed && playerState) applyPlayerState(playerState);
+  }, [roomSeed, playerState, applyPlayerState]);
 
   const commitBlock = async (blockNonce) => {
     if (gameOver || selectedTxIds.length !== 3) return;
+
+    if (roomSeed) {
+      const result = await reportMine(roomSeed, sessionToken, {
+        blockIndex: blockNum,
+        selectedTxIds,
+        nonce: blockNonce,
+      });
+      if (result?.room && result?.playerState) {
+        applyPlayerState(result.playerState);
+        setLastMinedBlockId(blockNum);
+        setMessageKey('blockMinedHard');
+      } else {
+        setMessageKey('errConnect');
+      }
+      return;
+    }
 
     const lastBalances = { ...balanceHistory[balanceHistory.length - 1] };
     selectedTxs.forEach((tx) => {
@@ -162,28 +188,21 @@ export default function HardGame({
     });
     const stabilized = stabilizeBalances(lastBalances);
     const newBlockId = blocks.length;
-
     setBalanceHistory([...balanceHistory, stabilized]);
-    setBlocks([
-      ...blocks,
-      {
-        id: newBlockId,
-        nonce: blockNonce,
-        dateMined: new Date().toLocaleString(),
-        transactions: [...selectedTxs],
-      },
-    ]);
-
+    setBlocks([...blocks, {
+      id: newBlockId,
+      nonce: blockNonce,
+      dateMined: new Date().toLocaleString(),
+      transactions: [...selectedTxs],
+    }]);
     const nextBlock = blockNum + 1;
     setBlockNum(nextBlock);
-    setMempool(
-      replenishMempool(
-        mempool.filter((tx) => !selectedTxIds.includes(tx.id)),
-        stabilized,
-        nextBlock,
-        gameSeed,
-      ),
-    );
+    setMempool(replenishMempool(
+      mempool.filter((tx) => !selectedTxIds.includes(tx.id)),
+      stabilized,
+      nextBlock,
+      gameSeed,
+    ));
     setTargetHash(generateTargetHash(gameSeed, nextBlock));
     setSelectedTxIds([]);
     setNonce(0);
@@ -192,18 +211,7 @@ export default function HardGame({
     setHasAcknowledgedPow(false);
     setLastMinedBlockId(newBlockId);
     setMessageKey('blockMinedHard');
-
-    if (roomSeed) {
-      const blockIndex = (myRoomPlayer?.blocks ?? 0) + 1;
-      const result = await reportMine(roomSeed, playerName, blockIndex);
-      if (result?.room) {
-        syncRoomFromServer(result.room);
-      } else {
-        setMessageKey('errConnect');
-      }
-    } else if (newBlockId >= blocksToWinLive) {
-      setSoloWon(true);
-    }
+    if (newBlockId >= blocksToWinLive) setSoloWon(true);
   };
 
   const handleMineBlock = () => {

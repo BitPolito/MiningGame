@@ -27,7 +27,7 @@ export default function ApiStatusBanner({ compact = false }) {
     <div className={`bp-api-banner${compact ? ' bp-api-banner--compact' : ''}`} role="status">
       <strong>{tr('apiOfflineTitle')}</strong>
       {!compact && <p>{tr('apiOfflineBody')}</p>}
-      <code className="bp-api-banner__cmd">npm start</code>
+      {import.meta.env.DEV && <code className="bp-api-banner__cmd">npm start</code>}
     </div>
   );
 }

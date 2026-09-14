@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import BpIcon from './BpIcon';
 import { ICON } from '../assets/icons';
 import { buildJoinUrl } from '../lib/roomJoin';
@@ -9,8 +10,16 @@ export default function RoomInvite({ code, compact = false }) {
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQr, setShowQr] = useState(!compact);
+  const [qrSrc, setQrSrc] = useState('');
   const joinUrl = buildJoinUrl(code);
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(joinUrl)}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    QRCode.toDataURL(joinUrl, { width: 200, margin: 1, errorCorrectionLevel: 'M' })
+      .then((value) => { if (!cancelled) setQrSrc(value); })
+      .catch(() => { if (!cancelled) setQrSrc(''); });
+    return () => { cancelled = true; };
+  }, [joinUrl]);
 
   const copyText = async (text, which) => {
     try {
@@ -23,7 +32,7 @@ export default function RoomInvite({ code, compact = false }) {
         setTimeout(() => setCopiedLink(false), 2000);
       }
     } catch {
-      /* ignore */
+      // Clipboard access can be unavailable in non-secure local contexts.
     }
   };
 
@@ -44,14 +53,15 @@ export default function RoomInvite({ code, compact = false }) {
         <button
           type="button"
           className="bp-btn bp-btn-ghost bp-room-invite__qr-toggle"
-          onClick={() => setShowQr((v) => !v)}
+          onClick={() => setShowQr((value) => !value)}
+          aria-expanded={showQr}
         >
           {showQr ? tr('hideQr') : tr('showQr')}
         </button>
       ) : null}
-      {(!compact || showQr) && (
+      {(!compact || showQr) && qrSrc && (
         <div className="bp-room-invite__qr-wrap">
-          <img src={qrSrc} alt="" className="bp-room-invite__qr" width={200} height={200} loading="lazy" />
+          <img src={qrSrc} alt={tr('scanQrHint')} className="bp-room-invite__qr" width={200} height={200} />
           <p className="bp-room-invite__qr-hint">{tr('scanQrHint')}</p>
         </div>
       )}

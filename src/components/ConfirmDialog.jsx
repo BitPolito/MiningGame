@@ -1,4 +1,5 @@
 import { useLocale } from '../i18n/LocaleContext';
+import { useModalFocus } from '../hooks/useModalFocus';
 
 export default function ConfirmDialog({
   title,
@@ -9,10 +10,12 @@ export default function ConfirmDialog({
   onCancel,
 }) {
   const { tr } = useLocale();
+  const dialogRef = useModalFocus(true, onCancel);
 
   return (
     <div className="modal-overlay bp-confirm-overlay" onClick={onCancel} role="presentation">
       <div
+        ref={dialogRef}
         className="bp-confirm-dialog"
         onClick={(e) => e.stopPropagation()}
         role="alertdialog"
@@ -27,7 +30,7 @@ export default function ConfirmDialog({
           {message}
         </p>
         <div className="bp-confirm-dialog__actions">
-          <button type="button" className="bp-btn bp-btn-ghost" onClick={onCancel}>
+          <button type="button" className="bp-btn bp-btn-ghost" onClick={onCancel} autoFocus>
             {cancelLabel ?? tr('cancel')}
           </button>
           <button type="button" className="bp-btn bp-btn-solid" onClick={onConfirm}>

@@ -557,3 +557,29 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Keep the existing HUD controls usable on narrow phones without page overflow. */
+@media (max-width: 480px) {
+  .bp-game-hud__nav {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .bp-game-hud__nav-start {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .bp-game-hud__pill--room {
+    min-width: 0;
+    max-width: 80px;
+  }
+
+  .bp-game-hud__nav-end {
+    margin-left: auto;
+  }
+
+  .bp-game-sticky-zone {
+    top: 174px;
+  }
+}

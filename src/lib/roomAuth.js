@@ -4,25 +4,15 @@ export function getHostDisplayName(room) {
   return room?.hostDisplayName || room?.players?.[0]?.name || '';
 }
 
-export function isRoomHost(sessionId, room) {
-  if (!sessionId || !room) return false;
-  if (room.hostSessionId && sessionId === room.hostSessionId) return true;
-  return false;
-}
-
-export function findPlayerInRoom(room, { sessionId, playerName } = {}) {
+export function findPlayerInRoom(room, { playerName } = {}) {
   if (!room?.players?.length) return null;
-  if (sessionId) {
-    const bySession = room.players.find((p) => p.sessionId === sessionId);
-    if (bySession) return bySession;
-  }
   const key = normalizePlayerName(playerName);
   if (!key) return null;
-  return room.players.find((p) => normalizePlayerName(p.name) === key) ?? null;
+  return room.players.find((player) => normalizePlayerName(player.name) === key) ?? null;
 }
 
-export function isActivePlayer(sessionId, room, playerName) {
-  return !!findPlayerInRoom(room, { sessionId, playerName });
+export function isActivePlayer(room, playerName) {
+  return Boolean(findPlayerInRoom(room, { playerName }));
 }
 
 export function hostParticipatesInGame(room) {
@@ -30,11 +20,10 @@ export function hostParticipatesInGame(room) {
   if (room?.hostParticipates === true) return true;
   const hostName = getHostDisplayName(room);
   return room?.players?.some(
-    (p) => normalizePlayerName(p.name) === normalizePlayerName(hostName),
+    (player) => normalizePlayerName(player.name) === normalizePlayerName(hostName),
   );
 }
 
-/** Pick the App view after loading or updating a room. */
 export function resolveRoomView(room, { isHost, isPlayer }) {
   if (!room) return 'menu';
   if (room.status === 'playing' && isPlayer) return 'game';

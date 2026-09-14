@@ -33,7 +33,6 @@ import { isPlayerNameTaken } from './lib/playerNames';
 import { readJoinCodeFromUrl, clearJoinParamsFromUrl } from './lib/roomJoin';
 import {
   getHostDisplayName,
-  isRoomHost,
   findPlayerInRoom,
   isActivePlayer,
   hostParticipatesInGame,
@@ -60,7 +59,8 @@ function App() {
   const [roomData, setRoomData] = useState(null);
   const [joinPreview, setJoinPreview] = useState(null);
   const [isHost, setIsHost] = useState(false);
-  const [sessionId, setSessionId] = useState('');
+  const [sessionToken, setSessionToken] = useState('');
+  const [playerGameState, setPlayerGameState] = useState(null);
   const [hostParticipates, setHostParticipates] = useState(false);
   const [restoringSession, setRestoringSession] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -69,31 +69,30 @@ function App() {
   const [joiningRoom, setJoiningRoom] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const leaveActionRef = useRef(null);
-  const sessionRestoredRef = useRef(false);
 
   const hostDisplayName = getHostDisplayName(roomData) || playerName;
-  const myPlayer = findPlayerInRoom(roomData, { sessionId, playerName });
+  const myPlayer = findPlayerInRoom(roomData, { playerName });
   const minerName = myPlayer?.name ?? '';
-  const isHostUser = isRoomHost(sessionId, roomData) || isHost;
+  const isHostUser = isHost;
   const isMiner = !!myPlayer || (isHostUser && hostParticipatesInGame(roomData));
 
-  const applyRejoinResult = useCallback((data) => {
+  const applyRejoinResult = useCallback((data, token) => {
     const room = data.room;
     setRoomSeed(room.seed);
     setRoomData(room);
-    setSessionId(data.sessionId);
+    setSessionToken(token);
+    setPlayerGameState(data.playerState ?? null);
     const participates = data.hostParticipates ?? room.hostParticipates ?? false;
     setHostParticipates(!!participates);
     setIsHost(data.role === 'host');
     const name = data.playerName || data.displayName || playerName;
     setPlayerName(name);
     const player = findPlayerInRoom(room, {
-      sessionId: data.sessionId,
       playerName: name,
     });
     saveRoomSession({
       seed: room.seed,
-      sessionId: data.sessionId,
+      sessionToken: token,
       role: data.role,
       displayName: name,
       hostParticipates: participates,
@@ -118,8 +117,9 @@ function App() {
     setJoinPreview(null);
     setErrorMsg('');
     setIsHost(false);
-    setSessionId('');
+    setSessionToken('');
     setHostParticipates(false);
+    setPlayerGameState(null);
   };
 
   const shouldConfirmLeave = useCallback(() => {
@@ -168,21 +168,33 @@ function App() {
 
   const goToResults = useCallback(async () => {
     if (!roomSeed) return;
-    const result = await fetchRoomStatus(roomSeed);
+    const result = await fetchRoomStatus(roomSeed, sessionToken);
     if (result?.room) setRoomData(result.room);
+    if (result?.playerState) setPlayerGameState(result.playerState);
     setCurrentView('lobby_finished');
-  }, [roomSeed]);
+  }, [roomSeed, sessionToken]);
 
   const mapRoomError = (err) => {
-    if (err === 'connect') return tr('errConnect');
-    if (err === 'Name already taken') return tr('errNameTaken');
-    if (err === 'Room is full') return tr('errRoomFull');
-    if (err === 'Room not found') return tr('errRoomNotFound');
-    if (err === 'Game already started') return tr('errRoomNotWaiting');
-    if (err === 'Not in this room') return tr('errNotInRoom');
-    if (err === 'Only the room host can start the game') return tr('errOnlyHostStart');
-    if (err === 'At least one player must join') return tr('startNeedsOnePlayer');
-    return err;
+    const key = {
+      CONNECT_ERROR: 'errConnect',
+      STORAGE_UNAVAILABLE: 'errConnect',
+      ROOM_NOT_FOUND: 'errRoomNotFound',
+      INVALID_ROOM_CODE: 'errRoomNotFound',
+      ROOM_NOT_WAITING: 'errRoomNotWaiting',
+      GAME_NOT_PLAYING: 'errRoomNotWaiting',
+      ROOM_FULL: 'errRoomFull',
+      NAME_TAKEN: 'errNameTaken',
+      INVALID_PLAYER_NAME: 'errNameRequired',
+      INVALID_SESSION: 'errNotInRoom',
+      AUTH_REQUIRED: 'errNotInRoom',
+      HOST_ONLY: 'errOnlyHostStart',
+      PLAYER_REQUIRED: 'startNeedsOnePlayer',
+      INVALID_SELECTION: 'errTxGeneric',
+      INVALID_PROOF: 'errNonceWrong',
+      UNEXPECTED_BLOCK: 'errConnect',
+      ROOM_CONFLICT: 'errConnect',
+    }[err];
+    return key ? tr(key) : (err || tr('errConnect'));
   };
 
   const handleCreateRoom = async () => {
@@ -204,12 +216,13 @@ function App() {
     if (data.success) {
       setRoomSeed(data.seed);
       setRoomData(data.room);
-      setSessionId(data.hostSessionId || data.sessionId);
+      setSessionToken(data.sessionToken);
+      setPlayerGameState(data.playerState ?? null);
       setIsHost(true);
       setHostParticipates(participates);
       saveRoomSession({
         seed: data.seed,
-        sessionId: data.hostSessionId || data.sessionId,
+        sessionToken: data.sessionToken,
         role: 'host',
         displayName: playerName.trim(),
         hostParticipates: participates,
@@ -233,7 +246,7 @@ function App() {
     setPeekLoading(true);
     const result = await fetchRoomStatus(roomSeed);
     setPeekLoading(false);
-    if (result?.error === 'connect') {
+    if (result?.error === 'CONNECT_ERROR') {
       setErrorMsg(tr('errConnect'));
       return;
     }
@@ -269,13 +282,14 @@ function App() {
       const code = roomSeed.toUpperCase();
       setRoomSeed(code);
       setIsHost(false);
-      setSessionId(data.sessionId);
+      setSessionToken(data.sessionToken);
+      setPlayerGameState(data.playerState ?? null);
       setRoomData(data.room);
       setJoinPreview(null);
       clearJoinParamsFromUrl();
       saveRoomSession({
         seed: code,
-        sessionId: data.sessionId,
+        sessionToken: data.sessionToken,
         role: 'player',
         displayName: playerName.trim(),
         hostParticipates: false,
@@ -288,13 +302,10 @@ function App() {
 
   const handleStartGame = async () => {
     setErrorMsg('');
-    const data = await startRoom(
-      roomSeed,
-      roomData?.difficulty ?? difficulty,
-      isHostUser ? sessionId : undefined,
-    );
+    const data = await startRoom(roomSeed, sessionToken);
     if (data.success) {
       setRoomData(data.room);
+      if (data.playerState) setPlayerGameState(data.playerState);
       if (data.room.difficulty) setDifficulty(data.room.difficulty);
       if (isHostUser && !hostParticipatesInGame(data.room)) {
         setCurrentView('host_dashboard');
@@ -308,40 +319,31 @@ function App() {
 
   const handlePlayAgain = async () => {
     setErrorMsg('');
-    const data = await resetRoom(roomSeed, {
-      hostSessionId: sessionId,
-      hostName: hostDisplayName,
-    });
+    const data = await resetRoom(roomSeed, sessionToken);
     if (data.success) {
       setRoomData(data.room);
+      if (data.playerState) setPlayerGameState(data.playerState);
       setCurrentView(resolveRoomView(data.room, {
         isHost: isHostUser,
-        isPlayer: isActivePlayer(sessionId, data.room, minerName || playerName),
+        isPlayer: isActivePlayer(data.room, minerName || playerName),
       }));
     } else {
-      setErrorMsg(data.error || tr('errConnect'));
+      setErrorMsg(mapRoomError(data.error));
     }
   };
 
   useEffect(() => {
-    if (sessionRestoredRef.current) return;
     const saved = loadRoomSession();
-    if (!saved?.seed || !saved?.sessionId) return;
-    sessionRestoredRef.current = true;
+    if (!saved?.seed || !saved?.sessionToken) return;
     setRestoringSession(true);
 
     let cancelled = false;
     (async () => {
-      const data = await rejoinRoom(
-        saved.seed,
-        saved.displayName,
-        saved.sessionId,
-        saved.role,
-      );
+      const data = await rejoinRoom(saved.seed, saved.sessionToken);
       if (cancelled) return;
       setRestoringSession(false);
       if (data.success) {
-        applyRejoinResult(data);
+        applyRejoinResult(data, saved.sessionToken);
       } else {
         clearRoomSession();
       }
@@ -358,21 +360,16 @@ function App() {
     if (!codeFromUrl) return;
 
     setRoomSeed(codeFromUrl);
-    clearJoinParamsFromUrl();
 
     const saved = loadRoomSession();
-    if (saved?.seed === codeFromUrl.toUpperCase() && saved.sessionId) {
+    if (saved?.seed === codeFromUrl.toUpperCase() && saved.sessionToken) {
       setRestoringSession(true);
       (async () => {
-        const data = await rejoinRoom(
-          codeFromUrl,
-          saved.displayName,
-          saved.sessionId,
-          saved.role,
-        );
+        const data = await rejoinRoom(codeFromUrl, saved.sessionToken);
         setRestoringSession(false);
         if (data.success) {
-          applyRejoinResult(data);
+          clearJoinParamsFromUrl();
+          applyRejoinResult(data, saved.sessionToken);
           return;
         }
         setCurrentView('lobby_join');
@@ -396,7 +393,7 @@ function App() {
         if (result.room.players.length >= result.room.numPlayers) {
           setErrorMsg(tr('errRoomFull'));
         }
-      } else if (result?.error === 'connect') {
+      } else if (result?.error === 'CONNECT_ERROR') {
         setErrorMsg(tr('errConnect'));
       } else if (result?.room) {
         setErrorMsg(tr('errRoomNotWaiting'));
@@ -415,13 +412,33 @@ function App() {
     const pollViews = ['lobby_waiting', 'lobby_finished', 'game', 'host_dashboard'];
     if (!pollViews.includes(currentView) || !roomSeed) return undefined;
 
+    let cancelled = false;
+    let timer;
+    let failures = 0;
+    let polling = false;
+
     const tick = async () => {
-      const result = await fetchRoomStatus(roomSeed);
-      if (!result?.room) return;
+      if (cancelled || polling) return;
+      polling = true;
+      try {
+      const result = await fetchRoomStatus(roomSeed, sessionToken);
+      if (!result?.room) {
+        failures += 1;
+        return;
+      }
+      failures = 0;
       setRoomData(result.room);
+      if (result.playerState) {
+        setPlayerGameState((previous) =>
+          previous?.version === result.playerState.version &&
+          previous?.blockNum === result.playerState.blockNum
+            ? previous
+            : result.playerState,
+        );
+      }
       const room = result.room;
-      const player = findPlayerInRoom(room, { sessionId, playerName: minerName || playerName });
-      const host = isRoomHost(sessionId, room) || isHostUser;
+      const player = findPlayerInRoom(room, { playerName: minerName || playerName });
+      const host = isHostUser;
 
       if (currentView === 'lobby_waiting') {
         if (room.status === 'playing') {
@@ -451,15 +468,29 @@ function App() {
       if (currentView === 'game' && room.status === 'finished') {
         setCurrentView(resolveRoomView(room, { isHost: host, isPlayer: !!player }));
       }
+      } finally {
+        polling = false;
+        if (!cancelled) timer = setTimeout(tick, Math.min(8000, 1000 * (2 ** failures)));
+      }
     };
 
-    const interval = setInterval(tick, 1000);
-    tick();
-    return () => clearInterval(interval);
-  }, [currentView, roomSeed, sessionId, minerName, playerName, isHostUser]);
+    const onVisible = () => {
+      if (!document.hidden) {
+        clearTimeout(timer);
+        void tick();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    void tick();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [currentView, roomSeed, sessionToken, minerName, playerName, isHostUser]);
 
   const errorBlock = errorMsg ? (
-    <div className="bp-error">
+    <div className="bp-error" role="alert">
       {errorMsg}
       {errorMsg === tr('errConnect') && (
         <div className="bp-error__hint">{tr('errApiHint')}</div>
@@ -604,6 +635,7 @@ function App() {
             </label>
             <input
               id="host-name"
+              maxLength={32}
               className="bp-input"
               type="text"
               placeholder={tr('namePlaceholder')}
@@ -706,8 +738,9 @@ function App() {
           {errorBlock}
           {!preview && (
             <div className="bp-field">
-              <label className="bp-label">{tr('roomCode')}</label>
+              <label className="bp-label" htmlFor="room-code">{tr('roomCode')}</label>
               <input
+                id="room-code"
                 className="bp-input bp-input--code"
                 type="text"
                 placeholder={tr('roomCodePlaceholder')}
@@ -725,6 +758,7 @@ function App() {
                 </label>
                 <input
                   id="join-name"
+                  maxLength={32}
                   className={`bp-input${joinNameTaken ? ' bp-input--invalid' : ''}`}
                   type="text"
                   placeholder={tr('namePlaceholderJoin')}
@@ -829,7 +863,6 @@ function App() {
 
   if (currentView === 'host_dashboard') {
     const playersCount = roomData?.players.length ?? 0;
-    const totalPlayers = roomData?.numPlayers ?? numPlayers;
     const status = roomData?.status ?? 'waiting';
 
     return (
@@ -936,6 +969,9 @@ function App() {
       playerName: minerName || playerName,
       initialRoomData: roomData,
       blocksToWin: roomData?.blocksToWin ?? blocksToWin,
+      sessionToken: sessionToken,
+      playerState: playerGameState,
+      onPlayerState: setPlayerGameState,
     };
     return (
       <>

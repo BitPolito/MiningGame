@@ -1,441 +1,323 @@
-import { kv } from './kv.js';
-import {
-  clampBlocksToWin,
-  clampNumPlayers,
-  DEFAULT_BLOCKS_TO_WIN,
-} from './roomConfig.js';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
+import { kv, updateAtomically } from './kv.js';
+import { createInitialGameState, validateAndApplyMine } from '../src/lib/gameEngine.js';
+import { clampBlocksToWin, clampNumPlayers, DEFAULT_BLOCKS_TO_WIN } from './roomConfig.js';
 
-const SEED_WORDS = [
-  'SATOSHI', 'GENESIS', 'HALVING', 'MEMPOOL', 'LEDGER',
-  'NODE', 'HASH', 'WALLET', 'BLOCK', 'MINER',
-];
+const SEED_WORDS = ['SATOSHI', 'GENESIS', 'HALVING', 'MEMPOOL', 'LEDGER', 'NODE', 'HASH', 'WALLET', 'BLOCK', 'MINER'];
+const CODE_RE = /^[A-Z]+-[A-Z]+-\d{4}$/;
+const MAX_NAME_LENGTH = 32;
+
+class ApiError extends Error {
+  constructor(status, code) {
+    super(code);
+    this.status = status;
+    this.code = code;
+  }
+}
 
 function parseBody(req) {
-  if (typeof req.body === 'string') return JSON.parse(req.body);
-  return req.body ?? {};
+  const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body ?? {});
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ApiError(400, 'INVALID_BODY');
+  return body;
 }
 
 function normalizeSeed(seed) {
-  return String(seed ?? '')
-    .trim()
-    .toUpperCase();
+  return String(seed ?? '').trim().toUpperCase();
 }
 
-function fail(res, status, message) {
-  return res.status(status).json({ success: false, error: message });
+function normalizeName(name) {
+  return String(name ?? '').trim().replace(/\s+/g, ' ');
+}
+
+function nameKey(name) {
+  return normalizeName(name).toLocaleLowerCase('en');
+}
+
+function validateName(name) {
+  const normalized = normalizeName(name);
+  if (!normalized || normalized.length > MAX_NAME_LENGTH || [...normalized].some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) {
+    throw new ApiError(400, 'INVALID_PLAYER_NAME');
+  }
+  return normalized;
+}
+
+function validateCode(seed) {
+  const code = normalizeSeed(seed);
+  if (!CODE_RE.test(code)) throw new ApiError(400, 'INVALID_ROOM_CODE');
+  return code;
 }
 
 function roomKey(seed) {
-  return `room:${normalizeSeed(seed)}`;
+  return `room:v2:${seed}`;
 }
 
-function newSessionId() {
-  if (globalThis.crypto?.randomUUID) {
-    return globalThis.crypto.randomUUID();
+function makeToken() {
+  return randomBytes(32).toString('base64url');
+}
+
+function tokenHash(token) {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+function bearerToken(req) {
+  const match = /^Bearer\s+(.+)$/i.exec(req.headers?.authorization || '');
+  return match?.[1]?.trim() || '';
+}
+
+function authenticate(room, req, required = true) {
+  const token = bearerToken(req);
+  if (!token) {
+    if (required) throw new ApiError(401, 'AUTH_REQUIRED');
+    return null;
   }
-  return `s-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  const hash = tokenHash(token);
+  if (room.hostTokenHash === hash) {
+    const player = room.players.find((item) => item.tokenHash === hash) ?? null;
+    return { role: 'host', player };
+  }
+  const player = room.players.find((item) => item.tokenHash === hash);
+  if (player) return { role: 'player', player };
+  if (required) throw new ApiError(401, 'INVALID_SESSION');
+  return null;
 }
 
-function normalizePlayerName(name) {
-  return String(name ?? '').trim().toLowerCase();
+function publicRoom(room) {
+  return {
+    version: room.version,
+    seed: room.seed,
+    numPlayers: room.numPlayers,
+    blocksToWin: room.blocksToWin,
+    difficulty: room.difficulty,
+    status: room.status,
+    winner: room.winner,
+    gameSeed: room.gameSeed,
+    hostDisplayName: room.hostDisplayName,
+    hostParticipates: room.hostParticipates,
+    createdAt: room.createdAt,
+    updatedAt: room.updatedAt,
+    startedAt: room.startedAt,
+    players: room.players.map(({ name, blocks, lastMinedAt, connectedAt }) => ({
+      name,
+      blocks,
+      lastMinedAt,
+      connectedAt,
+    })),
+  };
 }
 
-function isPlayerNameTaken(players, name) {
-  const key = normalizePlayerName(name);
-  if (!key) return false;
-  return players.some((p) => normalizePlayerName(p.name) === key);
+function successRoom(res, room, auth = null, extra = {}) {
+  return res.status(200).json({
+    success: true,
+    room: publicRoom(room),
+    ...(auth?.player ? { playerState: auth.player.gameState } : {}),
+    ...extra,
+  });
 }
 
-function newPlayer(name, sessionId = newSessionId()) {
+function fail(res, status, code) {
+  return res.status(status).json({ success: false, error: code });
+}
+
+function newCode() {
+  const a = SEED_WORDS[randomInt(SEED_WORDS.length)];
+  const b = SEED_WORDS[randomInt(SEED_WORDS.length)];
+  return `${a}-${b}-${String(randomInt(10000)).padStart(4, '0')}`;
+}
+
+function newPlayer(name, token, difficulty, seed) {
   const now = Date.now();
   return {
-    name: String(name ?? '').trim(),
+    name,
     blocks: 0,
     lastMinedAt: null,
-    sessionId,
     connectedAt: now,
+    tokenHash: tokenHash(token),
+    gameState: createInitialGameState(difficulty, seed),
   };
 }
 
-/** Backfill fields for rooms created before host/session support. */
-function shapeRoom(room) {
-  if (!room) return room;
-  const hostDisplayName = room.hostDisplayName || room.players?.[0]?.name || 'Host';
-  const hostParticipates = room.hostParticipates ?? (
-    !!room.players?.length
-    && normalizePlayerName(room.players[0]?.name) === normalizePlayerName(hostDisplayName)
-  );
-  return {
-    ...room,
-    hostDisplayName,
-    hostParticipates,
-  };
-}
-
-function assertIsHost(room, { hostSessionId, hostName }) {
-  if (hostSessionId && room.hostSessionId === hostSessionId) return true;
-  const legacyHost = room.players?.[0];
-  if (legacyHost && hostName?.trim() === legacyHost.name) return true;
-  if (hostName?.trim() === room.hostDisplayName) return true;
-  return false;
-}
-
-function findPlayer(room, { sessionId, playerName }) {
-  if (sessionId) {
-    const bySession = room.players.find((p) => p.sessionId === sessionId);
-    if (bySession) return bySession;
-  }
-  const key = normalizePlayerName(playerName);
-  if (!key) return null;
-  return room.players.find((p) => normalizePlayerName(p.name) === key) ?? null;
-}
-
-function createRoomDocument({
-  seed,
-  hostName,
-  numPlayers,
-  blocksToWin,
-  difficulty,
-  hostParticipates = false,
-}) {
-  const now = Date.now();
-  const hostSessionId = newSessionId();
-  const hostDisplayName = String(hostName ?? '').trim();
-  const participates = !!hostParticipates;
-  const players = participates
-    ? [newPlayer(hostDisplayName, hostSessionId)]
-    : [];
-
-  return {
-    seed,
-    numPlayers,
-    blocksToWin,
-    difficulty,
-    players,
-    status: 'waiting',
-    winner: null,
-    gameSeed: seed,
-    hostDisplayName,
-    hostSessionId,
-    hostParticipates: participates,
-    createdAt: now,
-    updatedAt: now,
-    startedAt: null,
-  };
-}
-
-async function persistRoom(code, room) {
-  room.updatedAt = Date.now();
-  await kv.set(roomKey(code), room);
-  return shapeRoom(room);
+function assertMethod(req, expected) {
+  if (req.method !== expected) throw new ApiError(405, 'METHOD_NOT_ALLOWED');
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version',
-  );
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  const { action } = req.query;
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   try {
+    const contentLength = Number(req.headers?.['content-length'] || 0);
+    if (contentLength > 16 * 1024) throw new ApiError(413, 'BODY_TOO_LARGE');
+    const action = String(req.query?.action || '');
+
     if (action === 'create') {
-      const {
-        hostName,
-        numPlayers,
-        blocksToWin,
-        difficulty,
-        hostParticipates,
-      } = parseBody(req);
-      if (!hostName?.trim()) {
-        return fail(res, 400, 'Host name is required');
+      assertMethod(req, 'POST');
+      const body = parseBody(req);
+      const hostName = validateName(body.hostName);
+      const difficulty = body.difficulty === 'hard' ? 'hard' : 'easy';
+      const hostParticipates = Boolean(body.hostParticipates);
+      const sessionToken = makeToken();
+
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const seed = newCode();
+        const now = Date.now();
+        const room = {
+          version: 2,
+          seed,
+          gameSeed: seed,
+          numPlayers: clampNumPlayers(body.numPlayers),
+          blocksToWin: clampBlocksToWin(body.blocksToWin ?? DEFAULT_BLOCKS_TO_WIN),
+          difficulty,
+          status: 'waiting',
+          winner: null,
+          hostDisplayName: hostName,
+          hostParticipates,
+          hostTokenHash: tokenHash(sessionToken),
+          players: hostParticipates ? [newPlayer(hostName, sessionToken, difficulty, seed)] : [],
+          createdAt: now,
+          updatedAt: now,
+          startedAt: null,
+        };
+        if (await kv.setIfAbsent(roomKey(seed), room)) {
+          return successRoom(res, room, hostParticipates ? { player: room.players[0] } : null, {
+            seed,
+            sessionToken,
+            role: 'host',
+          });
+        }
       }
-
-      const seed =
-        SEED_WORDS[Math.floor(Math.random() * SEED_WORDS.length)] +
-        Math.floor(Math.random() * 1000);
-
-      const roomData = createRoomDocument({
-        seed,
-        hostName: hostName.trim(),
-        numPlayers: clampNumPlayers(numPlayers),
-        blocksToWin: clampBlocksToWin(blocksToWin ?? DEFAULT_BLOCKS_TO_WIN),
-        difficulty: difficulty === 'hard' ? 'hard' : 'easy',
-        hostParticipates: !!hostParticipates,
-      });
-
-      await kv.set(roomKey(seed), roomData);
-      return res.status(200).json({
-        success: true,
-        seed,
-        room: shapeRoom(roomData),
-        hostSessionId: roomData.hostSessionId,
-        sessionId: roomData.hostSessionId,
-        role: 'host',
-      });
+      throw new ApiError(503, 'ROOM_CODE_UNAVAILABLE');
     }
 
     if (action === 'join') {
-      const { seed, playerName, sessionId: clientSessionId } = parseBody(req);
-      const code = normalizeSeed(seed);
-      if (!code) return fail(res, 400, 'Room code is required');
-
-      const room = await kv.get(roomKey(code));
-
-      if (!room) return fail(res, 404, 'Room not found');
-      if (room.status !== 'waiting') {
-        return fail(res, 400, 'Game already started');
-      }
-      if (isPlayerNameTaken(room.players, playerName)) {
-        return fail(res, 400, 'Name already taken');
-      }
-      if (room.players.length >= room.numPlayers) {
-        return fail(res, 400, 'Room is full');
-      }
-
-      const player = newPlayer(playerName, clientSessionId || newSessionId());
-      room.players.push(player);
-      const shaped = await persistRoom(code, room);
-
-      return res.status(200).json({
-        success: true,
-        room: shaped,
-        sessionId: player.sessionId,
-        role: 'player',
-        playerName: player.name,
+      assertMethod(req, 'POST');
+      const body = parseBody(req);
+      const code = validateCode(body.seed);
+      const playerName = validateName(body.playerName);
+      const sessionToken = makeToken();
+      const hash = tokenHash(sessionToken);
+      const result = await updateAtomically(roomKey(code), (room) => {
+        if (room.status !== 'waiting') throw new ApiError(409, 'ROOM_NOT_WAITING');
+        if (room.players.some((p) => nameKey(p.name) === nameKey(playerName))) throw new ApiError(409, 'NAME_TAKEN');
+        if (room.players.length >= room.numPlayers) throw new ApiError(409, 'ROOM_FULL');
+        room.players.push(newPlayer(playerName, sessionToken, room.difficulty, room.seed));
+        room.updatedAt = Date.now();
+        return room;
       });
-    }
-
-    if (action === 'rejoin') {
-      const { seed, playerName, sessionId, role } = parseBody(req);
-      const code = normalizeSeed(seed);
-      if (!code) return fail(res, 400, 'Room code is required');
-
-      let room = await kv.get(roomKey(code));
-      if (!room) return fail(res, 404, 'Room not found');
-      room = shapeRoom(room);
-
-      const sid = sessionId?.trim() || null;
-      const name = playerName?.trim() || '';
-
-      if (sid && room.hostSessionId === sid) {
-        await persistRoom(code, room);
-        return res.status(200).json({
-          success: true,
-          room,
-          role: 'host',
-          sessionId: room.hostSessionId,
-          hostSessionId: room.hostSessionId,
-          displayName: room.hostDisplayName,
-          hostParticipates: room.hostParticipates,
-        });
-      }
-
-      let player = findPlayer(room, { sessionId: sid, playerName: name });
-
-      if (player) {
-        if (sid && player.sessionId !== sid) {
-          player.sessionId = sid;
-        } else if (!player.sessionId) {
-          player.sessionId = newSessionId();
-        }
-        player.connectedAt = Date.now();
-        const shaped = await persistRoom(code, room);
-        return res.status(200).json({
-          success: true,
-          room: shaped,
-          role: 'player',
-          sessionId: player.sessionId,
-          playerName: player.name,
-          hostParticipates: room.hostParticipates,
-        });
-      }
-
-      if (room.status === 'waiting') {
-        if (role === 'host' && name && normalizePlayerName(name) === normalizePlayerName(room.hostDisplayName)) {
-          await persistRoom(code, room);
-          return res.status(200).json({
-            success: true,
-            room,
-            role: 'host',
-            sessionId: room.hostSessionId,
-            hostSessionId: room.hostSessionId,
-            displayName: room.hostDisplayName,
-            hostParticipates: room.hostParticipates,
-          });
-        }
-
-        if (!name) return fail(res, 400, 'Player name is required');
-        if (isPlayerNameTaken(room.players, name)) {
-          return fail(res, 400, 'Name already taken');
-        }
-        if (room.players.length >= room.numPlayers) {
-          return fail(res, 400, 'Room is full');
-        }
-
-        const joined = newPlayer(name, sid || newSessionId());
-        room.players.push(joined);
-        const shaped = await persistRoom(code, room);
-        return res.status(200).json({
-          success: true,
-          room: shaped,
-          role: 'player',
-          sessionId: joined.sessionId,
-          playerName: joined.name,
-          hostParticipates: room.hostParticipates,
-        });
-      }
-
-      if (name) {
-        player = findPlayer(room, { playerName: name });
-        if (player) {
-          player.sessionId = sid || player.sessionId || newSessionId();
-          player.connectedAt = Date.now();
-          const shaped = await persistRoom(code, room);
-          return res.status(200).json({
-            success: true,
-            room: shaped,
-            role: 'player',
-            sessionId: player.sessionId,
-            playerName: player.name,
-            hostParticipates: room.hostParticipates,
-          });
-        }
-      }
-
-      return fail(res, 403, 'Not in this room');
+      if (!result) throw new ApiError(404, 'ROOM_NOT_FOUND');
+      const player = result.value.players.find((p) => p.tokenHash === hash);
+      return successRoom(res, result.value, { player }, { sessionToken, role: 'player', playerName });
     }
 
     if (action === 'status') {
-      const code = normalizeSeed(req.query.seed);
-      if (!code) return fail(res, 400, 'Room code is required');
-
+      assertMethod(req, 'GET');
+      const code = validateCode(req.query?.seed);
       const room = await kv.get(roomKey(code));
-      if (!room) return fail(res, 404, 'Room not found');
-      return res.status(200).json({ success: true, room: shapeRoom(room) });
+      if (!room) throw new ApiError(404, 'ROOM_NOT_FOUND');
+      const auth = authenticate(room, req, false);
+      return successRoom(res, room, auth, auth ? { role: auth.role } : {});
+    }
+
+    if (action === 'rejoin') {
+      assertMethod(req, 'POST');
+      const code = validateCode(parseBody(req).seed);
+      const result = await updateAtomically(roomKey(code), (room) => {
+        const auth = authenticate(room, req);
+        if (auth.player) auth.player.connectedAt = Date.now();
+        room.updatedAt = Date.now();
+        return room;
+      });
+      if (!result) throw new ApiError(404, 'ROOM_NOT_FOUND');
+      const auth = authenticate(result.value, req);
+      return successRoom(res, result.value, auth, {
+        role: auth.role,
+        playerName: auth.player?.name,
+        displayName: auth.role === 'host' ? result.value.hostDisplayName : auth.player?.name,
+        hostParticipates: result.value.hostParticipates,
+      });
     }
 
     if (action === 'start') {
-      const { seed, difficulty, hostSessionId } = parseBody(req);
-      const code = normalizeSeed(seed);
-      const room = await kv.get(roomKey(code));
-      if (!room) return fail(res, 404, 'Room not found');
-      if (!assertIsHost(room, { hostSessionId, hostName: parseBody(req).hostName })) {
-        return fail(res, 403, 'Only the room host can start the game');
-      }
-      if (room.status !== 'waiting') {
-        return fail(res, 400, 'Game already started');
-      }
-      if (room.players.length < 1) {
-        return fail(res, 400, 'At least one player must join');
-      }
-
-      room.status = 'playing';
-      if (difficulty === 'hard' || difficulty === 'easy') {
-        room.difficulty = difficulty;
-      }
-      room.startedAt = Date.now();
-      room.updatedAt = Date.now();
-      await kv.set(roomKey(code), room);
-      return res.status(200).json({ success: true, room: shapeRoom(room) });
+      assertMethod(req, 'POST');
+      const code = validateCode(parseBody(req).seed);
+      const result = await updateAtomically(roomKey(code), (room) => {
+        const auth = authenticate(room, req);
+        if (auth.role !== 'host') throw new ApiError(403, 'HOST_ONLY');
+        if (room.status !== 'waiting') throw new ApiError(409, 'ROOM_NOT_WAITING');
+        if (room.players.length < 1) throw new ApiError(409, 'PLAYER_REQUIRED');
+        room.status = 'playing';
+        room.startedAt = Date.now();
+        room.updatedAt = Date.now();
+        return room;
+      });
+      if (!result) throw new ApiError(404, 'ROOM_NOT_FOUND');
+      return successRoom(res, result.value, authenticate(result.value, req));
     }
 
     if (action === 'reset') {
-      const { seed, hostName, hostSessionId } = parseBody(req);
-      const code = normalizeSeed(seed);
-      const room = await kv.get(roomKey(code));
-      if (!room) return fail(res, 404, 'Room not found');
-
-      if (!assertIsHost(room, { hostSessionId, hostName })) {
-        return fail(res, 403, 'Only the room host can reset the game');
-      }
-      if (room.status !== 'finished') {
-        return fail(res, 400, 'Game is not finished yet');
-      }
-
-      room.status = 'waiting';
-      room.winner = null;
-      room.startedAt = null;
-      room.players.forEach((p) => {
-        p.blocks = 0;
-        p.lastMinedAt = null;
+      assertMethod(req, 'POST');
+      const code = validateCode(parseBody(req).seed);
+      const result = await updateAtomically(roomKey(code), (room) => {
+        const auth = authenticate(room, req);
+        if (auth.role !== 'host') throw new ApiError(403, 'HOST_ONLY');
+        if (room.status !== 'finished') throw new ApiError(409, 'GAME_NOT_FINISHED');
+        room.status = 'waiting';
+        room.winner = null;
+        room.startedAt = null;
+        room.players.forEach((player) => {
+          player.blocks = 0;
+          player.lastMinedAt = null;
+          player.gameState = createInitialGameState(room.difficulty, room.seed);
+        });
+        room.updatedAt = Date.now();
+        return room;
       });
-      room.updatedAt = Date.now();
-      await kv.set(roomKey(code), room);
-      return res.status(200).json({ success: true, room: shapeRoom(room) });
+      if (!result) throw new ApiError(404, 'ROOM_NOT_FOUND');
+      return successRoom(res, result.value, authenticate(result.value, req));
     }
 
     if (action === 'mine') {
-      const { seed, playerName, blockIndex } = parseBody(req);
-      const code = normalizeSeed(seed);
-      if (!playerName?.trim()) {
-        return fail(res, 400, 'Player name is required');
-      }
-
-      const before = await kv.get(roomKey(code));
-      if (!before) return fail(res, 404, 'Room not found');
-      if (before.status !== 'playing') {
-        return fail(res, 400, 'Game is not in progress');
-      }
-
-      const prevPlayer = findPlayer(before, { playerName });
-      if (!prevPlayer) return res.status(400).json({ error: 'Player not in room' });
-
-      const goal = clampBlocksToWin(before.blocksToWin);
-      if (prevPlayer.blocks >= goal) {
-        return res.status(400).json({ error: 'Player already reached block goal' });
-      }
-
-      const expectedBlock = prevPlayer.blocks + 1;
-      if (blockIndex != null && parseInt(blockIndex, 10) !== expectedBlock) {
-        return res.status(400).json({ error: 'Unexpected block index' });
-      }
-
-      const updatedRoom = await kv.update(roomKey(code), (room) => {
-        if (!room || room.status !== 'playing') return room;
-
-        const player = findPlayer(room, { playerName });
-        if (!player || player.blocks >= goal) return room;
-
-        player.blocks += 1;
-        player.lastMinedAt = Date.now();
-        player.connectedAt = Date.now();
-        room.updatedAt = Date.now();
-
-        if (player.blocks >= goal) {
+      assertMethod(req, 'POST');
+      const body = parseBody(req);
+      const code = validateCode(body.seed);
+      let minedPlayerHash = '';
+      const result = await updateAtomically(roomKey(code), async (room) => {
+        const auth = authenticate(room, req);
+        if (!auth.player) throw new ApiError(403, 'PLAYER_REQUIRED');
+        if (room.status !== 'playing') throw new ApiError(409, 'GAME_NOT_PLAYING');
+        const applied = await validateAndApplyMine({
+          difficulty: room.difficulty,
+          roomSeed: room.seed,
+          state: auth.player.gameState,
+          proof: body,
+        });
+        if (!applied.ok) throw new ApiError(422, applied.error);
+        auth.player.gameState = applied.state;
+        auth.player.blocks += 1;
+        auth.player.lastMinedAt = Date.now();
+        auth.player.connectedAt = Date.now();
+        minedPlayerHash = auth.player.tokenHash;
+        if (auth.player.blocks >= room.blocksToWin) {
           room.status = 'finished';
-          room.winner = player.name;
+          room.winner = auth.player.name;
         }
-
+        room.updatedAt = Date.now();
         return room;
       });
-
-      if (!updatedRoom) return fail(res, 404, 'Room not found');
-
-      const p = findPlayer(updatedRoom, { playerName });
-      if (!p || p.blocks === prevPlayer.blocks) {
-        return fail(res, 409, 'Mine not recorded');
-      }
-
-      return res.status(200).json({
-        success: true,
-        room: shapeRoom(updatedRoom),
-        playerBlocks: p.blocks,
-        won: updatedRoom.status === 'finished',
+      if (!result) throw new ApiError(404, 'ROOM_NOT_FOUND');
+      const player = result.value.players.find((p) => p.tokenHash === minedPlayerHash);
+      return successRoom(res, result.value, { player }, {
+        playerBlocks: player.blocks,
+        won: result.value.status === 'finished',
       });
     }
 
-    return fail(res, 400, 'Invalid action');
+    throw new ApiError(400, 'INVALID_ACTION');
   } catch (error) {
-    console.error(error);
-    return fail(res, 500, 'Server error');
+    if (error instanceof SyntaxError) return fail(res, 400, 'INVALID_BODY');
+    if (error instanceof ApiError) return fail(res, error.status, error.code);
+    if (error?.code === 'STORAGE_UNAVAILABLE') return fail(res, 503, 'STORAGE_UNAVAILABLE');
+    if (error?.code === 'ROOM_CONFLICT') return fail(res, 409, 'ROOM_CONFLICT');
+    console.error('room api error', { name: error?.name, message: error?.message });
+    return fail(res, 500, 'SERVER_ERROR');
   }
 }
