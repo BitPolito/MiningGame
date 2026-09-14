@@ -16,6 +16,7 @@ import CollapsibleSection from '../components/game/CollapsibleSection';
 import GameWorkspaceLayout from '../components/game/GameWorkspaceLayout';
 import GamePinnedChain from '../components/game/GamePinnedChain';
 import PanelSection from '../components/game/PanelSection';
+import BpIcon from '../components/BpIcon';
 import { ICON } from '../assets/icons';
 import { canSelectTransaction, getRejectReasonKey } from '../lib/txSelection';
 import { generateMempool, replenishMempool, stabilizeBalances } from '../lib/mempool';

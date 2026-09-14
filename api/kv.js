@@ -5,10 +5,14 @@ import { Redis } from '@upstash/redis';
 
 export const ROOM_TTL_SECONDS = 24 * 60 * 60;
 const isHosted = Boolean(process.env.VERCEL || process.env.NODE_ENV === 'production');
-const redisUrl = process.env.MINING_GAME_KV_REST_API_URL
-  || process.env.UPSTASH_REDIS_REST_URL;
-const redisToken = process.env.MINING_GAME_KV_REST_API_TOKEN
-  || process.env.UPSTASH_REDIS_REST_TOKEN;
+export function getRedisConfig(env = process.env) {
+  return {
+    url: env.MINING_GAME_KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL,
+    token: env.MINING_GAME_KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN,
+  };
+}
+
+const { url: redisUrl, token: redisToken } = getRedisConfig();
 const hasRedis = Boolean(redisUrl && redisToken);
 
 const redis = hasRedis
