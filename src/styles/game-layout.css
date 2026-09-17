@@ -1558,3 +1558,110 @@ button.bp-candidate-slot--filled:focus-visible {
   .bp-game-pinboard .bp-chain__label { display: block; font-size: 0.55rem; }
   .bp-game-pinboard .bp-chain__link { width: 12px; }
 }
+/* Final responsive hierarchy for lobby dashboard and in-game mining flow. */
+.bp-host-dash__hero {
+  align-items: center;
+}
+.bp-host-dash__insights {
+  padding: 10px 12px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-50);
+}
+.bp-host-race-list__row {
+  align-items: center;
+}
+.bp-panel--mining-action .bp-mining-phases {
+  margin: 0 0 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bp-200);
+}
+.bp-panel--mining-action .bp-pow-toolbar__btn,
+.bp-panel--mining-action .bp-mining-toolbar__btn {
+  font-weight: 800;
+}
+@media (max-width: 900px) {
+  .bp-host-dash {
+    gap: 12px;
+  }
+  .bp-host-dash__hero {
+    padding: 12px;
+  }
+  .bp-host-dash__host-name {
+    font-size: 1.1rem;
+  }
+  .bp-host-dash__status {
+    font-size: 0.78rem;
+  }
+  .bp-host-dash__insights {
+    gap: 6px;
+    padding: 9px 10px;
+  }
+  .bp-host-dash__insight {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+  .bp-host-race-list {
+    gap: 10px;
+    max-height: min(58dvh, 520px);
+  }
+  .bp-host-race-list__row {
+    grid-template-columns: 1.25rem 1.75rem minmax(0, 1fr);
+    gap: 7px;
+  }
+  .bp-host-race-list__name {
+    font-size: 0.82rem;
+  }
+  .bp-host-race-list__meta {
+    font-size: 0.68rem;
+  }
+  .bp-game-play-stack .bp-panel--mempool-full .bp-panel__body {
+    padding: 10px 0 0;
+  }
+  .bp-game-play-stack .bp-panel--mempool-full .bp-panel__body > .bp-hint,
+  .bp-game-play-stack .bp-panel--mempool-full .bp-panel__body > .bp-collapse {
+    margin-inline: 12px;
+  }
+  .bp-game-play-stack .bp-panel--mempool-full .bp-table-wrap {
+    margin-top: 4px;
+  }
+  .mempool-table tbody tr {
+    min-height: 60px;
+  }
+  .mempool-route-mobile {
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .mempool-table td.mempool-col-amount {
+    font-size: 0.72rem;
+  }
+  .bp-panel--mining-action .bp-mining-phases {
+    padding-inline: 8px;
+  }
+  .bp-panel--mining-action .bp-mining-phases__item {
+    gap: 4px;
+    font-size: 0.68rem;
+  }
+  .bp-panel--mining-action .bp-pow-toolbar__btn,
+  .bp-panel--mining-action .bp-mining-toolbar__btn {
+    min-height: 48px;
+  }
+  .bp-mobile-mining-dock__handle {
+    color: var(--bp-blue);
+  }
+}
+@media (max-width: 420px) {
+  .bp-host-dash__hero {
+    gap: 10px;
+  }
+  .bp-host-dash__hero .bp-icon-wrap {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+  .bp-host-race-list__row {
+    grid-template-columns: 1.1rem 1.55rem minmax(0, 1fr);
+  }
+  .bp-mining-phases__item {
+    font-size: 0.64rem;
+  }
+}

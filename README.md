@@ -1,73 +1,85 @@
 # Bitcoin Block Mining Simulator
 
-Educational game by **BitPolito** that simulates mempool selection, fee markets, and proof-of-work mining. Play in an accessible **Easy** mode or a **Hard** mode with real SHA-256.
+An interactive educational game by **BitPolito** that introduces the mechanics of Bitcoin mining through a simple, hands-on experience.
 
-## Features
+Players choose transactions from a mempool, build a block, and compete to find a valid proof of work. The game is designed for classrooms, workshops, events, and anyone who wants to understand the basic ideas behind Bitcoin by playing.
 
-- **Easy mode:** manual arithmetic nonce puzzle with maximum-fee block selection
-- **Hard mode:** double SHA-256 hashing with a classroom-paced numeric target
-- **Solo play** or **multiplayer rooms** (race to mine N blocks, default 3)
-- **Join via room code, link, or QR** in the waiting lobby
-- **Italian / English** UI (toggle on menu and lobby screens)
-- **Deterministic, persistent mempools** with no hidden balance redistribution
-- In-progress block recovery after a browser refresh
+## Game modes
 
-## Quick start
+- **Easy** — select the best transactions and solve a manual nonce challenge.
+- **Hard** — build a Bitcoin-style block header and find a valid nonce using double SHA-256.
 
-```bash
-cd MiningGame
-npm install
-npm start        # API (:3001) + frontend (:5173)
-```
+Both modes follow the same core rules:
 
-Dalla root del monorepo (`bitpolito/`) puoi anche usare `npm start` (delega a `MiningGame/`).
+- select exactly three affordable transactions;
+- maximise the total transaction fees;
+- confirm blocks in sequence;
+- build your own blockchain and race to the target number of blocks.
 
-Poi apri **http://localhost:5173** nel browser.
+You can play solo or create a multiplayer room. Each player mines an independent chain, and the first player to reach the goal wins. Rooms support up to **30 players, including the host**.
 
-### Due terminali (alternativa)
+> This is an educational simulator. It does not connect to the Bitcoin network or perform real bitcoin mining.
 
-```bash
-npm run server   # terminale 1: API
-npm run dev      # terminale 2: frontend
-```
+## Run locally
 
-### Solo giocare senza multiplayer
+### Requirements
 
-Basta `npm run dev` e clicca **Play Solo** / **Gioca in solitaria**. Le stanze richiedono l’API: usa **`npm start`** (consigliato) oppure `npm run server` in un secondo terminale. Se il server non è attivo, nel menu compare un avviso rosso.
+- Node.js 22.x
+- npm
+- A modern web browser
 
-### Unirsi con QR / link
+Install dependencies and start the game from the repository root:
 
-Dopo aver creato una stanza, nella lobby vedi il **codice**, il **link** e un **QR**: aprendo il link su un altro telefono si arriva direttamente alla schermata di join (`?join=CODICE`).
+    npm install
+    npm start
 
-### Non aprire `dist/index.html` direttamente
+Then open http://localhost:5173.
 
-Il progetto usa moduli ES: serve Vite (`npm run dev` o `npm start`).
+The start command launches both the game and its local multiplayer server. For solo play, you can also run only the frontend:
 
-## Deploy (Vercel)
+    npm run dev
 
-1. Importa la repository lasciando **Root Directory** vuota (root della repository).
-2. Framework: **Vite** (o lascia rilevare da `vercel.json`).
-3. Dal Marketplace Vercel collega **Upstash Redis** al progetto per Preview e Production.
-   Sono supportate direttamente `MINING_GAME_KV_REST_API_URL` e `MINING_GAME_KV_REST_API_TOKEN`.
-   Restano compatibili anche `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`.
-4. Deploy: build `npm run build` → cartella `dist`; le route in `/api` diventano Serverless Functions automaticamente.
+For development with two terminals:
 
-In produzione non serve `server.js`: solo in locale con `npm start`.
+    npm run server
+    npm run dev
 
-In produzione il multiplayer viene disabilitato se Redis non è configurato o non risponde; il fallback su file è disponibile esclusivamente in sviluppo locale. Le stanze Redis scadono automaticamente dopo 24 ore.
+Do not open dist/index.html directly; the project must be served through Vite.
 
-`vercel.json` include rewrite SPA (`/*` → `index.html` eccetto `/api/*`).
+## Development commands
 
-## Project layout
+| Command | Purpose |
+| --- | --- |
+| npm run dev | Start the Vite development server. |
+| npm start | Start the frontend and local API together. |
+| npm run build | Create a production build. |
+| npm run lint | Run ESLint. |
+| npm test | Run unit tests. |
+| npm run test:e2e | Run browser tests with Playwright. |
+| npm run check | Run the complete verification suite. |
 
-| Path | Role |
-|------|------|
-| `src/games/` | Easy & Hard game screens |
-| `src/lib/` | Mempool generator, SHA-256, tx validation |
-| `src/i18n/` | EN/IT strings + locale context |
-| `api/room.js` | Multiplayer room API (Vercel serverless) |
-| `server.js` | Local Express proxy for `/api` during dev |
+## Project structure
 
-## How to play (summary)
+- src/games/ — Easy and Hard game screens.
+- src/components/ — Reusable game interface components.
+- src/lib/ — Shared game rules, transactions, hashing, and persistence.
+- src/guides/ — In-app English and Italian guides.
+- api/ — Multiplayer server functions.
+- tests/ — Unit, API, and browser tests.
 
-See in-app **How to play** or `src/guides/` for full rules in English and Italian.
+## Contributing
+
+Contributions are welcome.
+
+1. Create a feature branch.
+2. Install dependencies with npm install.
+3. Keep game rules in the shared game engine.
+4. Update the in-app guides when gameplay changes.
+5. Test both desktop and mobile layouts.
+6. Run npm run check before opening a pull request.
+
+Please preserve the existing BitPolito visual identity, colours, typography, and accessible mobile-first experience.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file.
