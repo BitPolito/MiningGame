@@ -11,9 +11,19 @@ export function clampNumPlayers(value) {
   return Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, n));
 }
 
-/** Everyone connected to the room counts, including a non-mining host. */
+/** Active player slots in use. A spectator host never occupies one. */
 export function getRoomOccupancy(room) {
-  return (room?.players?.length ?? 0) + (room?.hostParticipates === false ? 1 : 0);
+  return room?.players?.length ?? 0;
+}
+
+/** Number of people who actively mine, including the host only when participating. */
+export function getMinerCount(room) {
+  return room?.players?.length ?? 0;
+}
+
+/** Maximum active miners. A participating host is already present in players. */
+export function getMinerCapacity(room) {
+  return clampNumPlayers(room?.numPlayers);
 }
 
 /** Clamp blocks-to-win to allowed range. */

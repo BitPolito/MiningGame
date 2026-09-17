@@ -11,6 +11,7 @@ import RoomInvite from './components/RoomInvite';
 import ApiStatusBanner from './components/ApiStatusBanner';
 import GameSetupPanel from './components/GameSetupPanel';
 import RoomSettingsCard from './components/RoomSettingsCard';
+import RoomCapacitySummary from './components/RoomCapacitySummary';
 import LobbyShell from './components/LobbyShell';
 import ConfirmDialog from './components/ConfirmDialog';
 import LobbyPlayerList from './components/LobbyPlayerList';
@@ -18,7 +19,7 @@ import GameResultsPanel from './components/GameResultsPanel';
 import HostDashboard from './components/HostDashboard';
 import BpIcon from './components/BpIcon';
 import { ICON } from './assets/icons';
-import { DEFAULT_BLOCKS_TO_WIN, FIXED_POW_LEVEL, clampNumPlayers, getRoomOccupancy } from './lib/roomConfig';
+import { DEFAULT_BLOCKS_TO_WIN, FIXED_POW_LEVEL, clampNumPlayers, getMinerCapacity, getMinerCount, getRoomOccupancy } from './lib/roomConfig';
 import NumPlayersControl from './components/NumPlayersControl';
 import {
   createRoom,
@@ -29,7 +30,7 @@ import {
   rejoinRoom,
 } from './lib/roomApi';
 import { BITPOLITO_WEBSITE_URL } from './lib/siteConfig';
-import { isPlayerNameTaken } from './lib/playerNames';
+import { getRandomHostName, isPlayerNameTaken } from './lib/playerNames';
 import { readJoinCodeFromUrl, clearJoinParamsFromUrl } from './lib/roomJoin';
 import {
   getHostDisplayName,
@@ -56,6 +57,7 @@ function App() {
   const [rulesDifficulty, setRulesDifficulty] = useState('easy');
 
   const [playerName, setPlayerName] = useState('');
+  const [suggestedHostName, setSuggestedHostName] = useState(() => getRandomHostName());
   const [numPlayers, setNumPlayers] = useState(3);
   const [roomSeed, setRoomSeed] = useState('');
   const [roomData, setRoomData] = useState(null);
@@ -223,14 +225,12 @@ function App() {
     clearSoloSessionMeta();
     setSoloSession(null);
     setErrorMsg('');
-    if (!playerName.trim()) {
-      setErrorMsg(tr('errNameRequired'));
-      return;
-    }
+    const hostName = playerName.trim() || suggestedHostName;
+    setPlayerName(hostName);
     setCreatingRoom(true);
     const participates = hostParticipates;
     const data = await createRoom({
-      hostName: playerName.trim(),
+      hostName,
       numPlayers,
       blocksToWin,
       difficulty,
@@ -249,7 +249,7 @@ function App() {
         seed: data.seed,
         sessionToken: data.sessionToken,
         role: 'host',
-        displayName: playerName.trim(),
+        displayName: hostName,
         hostParticipates: participates,
       });
       setCurrentView(resolveRoomView(data.room, {
@@ -565,6 +565,8 @@ function App() {
                 iconSrc={ICON.party}
                 onClick={() => {
                   setErrorMsg('');
+                  setPlayerName('');
+                  setSuggestedHostName(getRandomHostName());
                   setCurrentView('lobby_create');
                 }}
               />
@@ -587,9 +589,9 @@ function App() {
               aboutAriaLabel={tr('aboutUsAria')}
               className="bp-nav-actions--menu"
             />
+            <AppFooter variant="menu" />
           </div>
         </main>
-        <AppFooter variant="menu" />
         {showHowToPlay && (
           <HowToPlay
             key={rulesDifficulty}
@@ -677,7 +679,7 @@ function App() {
               maxLength={32}
               className="bp-input"
               type="text"
-              placeholder={tr('namePlaceholder')}
+              placeholder={suggestedHostName}
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
             />
@@ -701,6 +703,10 @@ function App() {
               compact
               value={numPlayers}
               onChange={(n) => setNumPlayers(clampNumPlayers(n))}
+            />
+            <RoomCapacitySummary
+              room={{ numPlayers, hostParticipates }}
+              compact
             />
             <GameSetupPanel
               embedded
@@ -821,9 +827,9 @@ function App() {
                 )}
               </div>
               <p className="bp-join-status">
-                {tr('playersJoined', {
-                  current: getRoomOccupancy(preview),
-                  total: preview.numPlayers,
+                {tr('minersJoined', {
+                  current: getMinerCount(preview),
+                  total: getMinerCapacity(preview),
                 })}
               </p>
               <RoomSettingsCard room={preview} onShowRules={openRulesGuide} showCapacity={false} />
@@ -846,6 +852,8 @@ function App() {
     const playersCount = roomData?.players.length ?? 0;
     const totalPlayers = roomData?.numPlayers ?? numPlayers;
     const occupancy = getRoomOccupancy(roomData);
+    const miners = getMinerCount(roomData);
+    const minerCapacity = getMinerCapacity(roomData);
 
     return (
       <>
@@ -875,7 +883,7 @@ function App() {
         <div className="bp-lobby-grid">
           <div className="bp-lobby-side">
             <p className="bp-join-status">
-              {tr('playersJoined', { current: occupancy, total: totalPlayers })}
+              {tr('minersJoined', { current: miners, total: minerCapacity })}
             </p>
             <LobbyPlayerList
               players={roomData?.players}

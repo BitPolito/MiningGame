@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { RANDOM_HOST_NAMES } from '../../src/lib/playerNames.js';
 
 async function startSolo(page, difficulty = 'easy') {
   await page.goto('/');
@@ -38,8 +39,12 @@ test('menu remains usable without horizontal overflow', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle(/Block Mining Game/);
   await expect(page.getByRole('button', { name: /Play Solo/ })).toBeVisible();
+  await expect(page.locator('.main-menu .menu-footer')).toBeVisible();
   const sizes = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
   expect(sizes.scroll).toBeLessThanOrEqual(sizes.width + 1);
+  const rulesBox = await page.getByRole('button', { name: 'How to play' }).boundingBox();
+  const aboutBox = await page.locator('.bp-nav-actions--menu a').boundingBox();
+  expect(Math.abs(rulesBox.y - aboutBox.y)).toBeLessThanOrEqual(2);
   await page.getByRole('button', { name: 'How to play' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -55,6 +60,12 @@ test('mining workspace adapts and block details work by keyboard', async ({ page
   const dock = page.locator('.bp-mobile-mining-dock');
   const summary = page.locator('.bp-panel--selected-summary');
   const compactRoute = page.locator('.mempool-route-mobile').first();
+  const mempoolOverflow = await page.locator('.bp-panel--mempool-full .mempool-table-wrap').evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { maxHeight: style.maxHeight, overflowY: style.overflowY };
+  });
+  expect(mempoolOverflow.maxHeight).toBe('none');
+  expect(mempoolOverflow.overflowY).toBe('visible');
   await expect(dock)[mobile ? 'toBeVisible' : 'toBeHidden']();
   await expect(summary)[mobile ? 'toBeHidden' : 'toBeVisible']();
   await expect(compactRoute)[mobile ? 'toBeVisible' : 'toBeHidden']();
@@ -132,6 +143,19 @@ test('Hard uses one fixed balanced target without a target selector', async ({ p
   expect(values.powLevel).toBe('2');
   expect(values.targetByte).toBe(0x05);
   await expect(page.getByRole('slider', { name: /PoW difficulty/ })).toHaveCount(0);
+
+  if (!(await page.locator('.bp-mobile-mining-dock').isVisible())) {
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const miningRect = await page.locator('.bp-panel--mining-action').evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    });
+    const verifierRect = await page.getByRole('button', { name: /HASH256 verifier/ }).locator('..').evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    });
+    expect(miningRect.bottom).toBeLessThanOrEqual(verifierRect.top + 1);
+  }
 });
 
 test('Hard validates fees before PoW and restores dice progress', async ({ page }) => {
@@ -165,7 +189,35 @@ test('Hard validates fees before PoW and restores dice progress', async ({ page 
   }
 });
 
-test('a spectator host occupies one room participant slot', async ({ page, browser }) => {
+test('the create-room form assigns its suggested host name only on creation', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Create Room/ }).click();
+  const nameField = page.getByLabel('Host name (organizer)');
+  await expect(nameField).toHaveValue('');
+  const suggestedName = await nameField.getAttribute('placeholder');
+  expect(RANDOM_HOST_NAMES).toContain(suggestedName);
+
+  await expect(page.locator('.bp-flow__main > .bp-flow__bottom-nav')).toBeVisible();
+
+  const capacity = page.locator('.bp-capacity-summary');
+  await expect(capacity).toContainText('Player limit3');
+  await expect(capacity).toContainText('Host roleSpectator');
+  await expect(capacity).toContainText('Mining slots3');
+
+  const hostPlays = page.getByLabel('I also play as a miner');
+  await hostPlays.check();
+  await expect(capacity).toContainText('Host roleMiner');
+  await expect(capacity).toContainText('Mining slots3');
+  await hostPlays.uncheck();
+
+  await page.getByRole('button', { name: 'Create Room', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Host dashboard' })).toBeVisible();
+  await expect(page.locator('.bp-host-dash__host-name')).toHaveText(suggestedName);
+  await expect(page.locator('.bp-host-dash .bp-capacity-summary')).toContainText('Host roleSpectator');
+  await expect(page.locator('.bp-host-dash .bp-capacity-summary')).toContainText('Mining slots3');
+});
+
+test('a spectator host does not occupy a player slot', async ({ page, browser }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Create Room/ }).click();
   await page.getByLabel('Host name (organizer)').fill('Spectator');
@@ -173,22 +225,34 @@ test('a spectator host occupies one room participant slot', async ({ page, brows
 
   const qrButton = page.getByRole('button', { name: 'Open a larger QR code' });
   await expect(qrButton).toBeVisible();
+  await expect(page.locator('.bp-room-invite--featured')).toBeVisible();
+  const codeBox = await page.locator('.bp-room-invite--featured .bp-room-invite__code-block').boundingBox();
+  const qrBox = await qrButton.boundingBox();
+  expect(qrBox.y).toBeGreaterThan(codeBox.y + codeBox.height);
   await qrButton.click();
   await expect(page.getByRole('dialog').locator('.bp-qr-dialog__image')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toBeHidden();
 
-  await expect(page.getByText('1 of 3 participants in the room')).toBeVisible();
+  await expect(page.getByText('0 of 3 miners joined')).toBeVisible();
   const code = (await page.locator('.bp-room-invite__code').first().textContent()).trim();
   const guestContext = await browser.newContext();
   const guest = await guestContext.newPage();
   await guest.goto(`/?join=${encodeURIComponent(code)}`);
-  await expect(guest.getByText('1 of 3 participants in the room')).toBeVisible();
+  await expect(guest.getByText('0 of 3 miners joined')).toBeVisible();
   await guest.getByLabel('Your name').fill('Student');
   await guest.getByRole('button', { name: 'Join Room', exact: true }).click();
-  await expect(guest.getByText('2 of 3 participants in the room')).toBeVisible();
+  await expect(guest.getByText('1 of 3 miners joined')).toBeVisible();
   const hostRow = guest.locator('.bp-player-list__item').filter({ hasText: 'Spectator' });
-  await expect(hostRow).toContainText('Host');
+  await expect(hostRow).toContainText('Host · spectator');
+  await expect(page.getByText('Student', { exact: true })).toBeVisible();
+
+  if ((page.viewportSize()?.width ?? 0) >= 900) {
+    const dashboardBox = await page.locator('.bp-host-dash').boundingBox();
+    const overviewBox = await page.locator('.bp-host-dash__overview').boundingBox();
+    expect(overviewBox.width).toBeGreaterThanOrEqual(dashboardBox.width * 0.95);
+  }
+
   await guestContext.close();
 });
 
@@ -205,6 +269,9 @@ for (const difficulty of ['Easy', 'Hard']) {
     await host.getByLabel('I also play as a miner').check();
     if (difficulty === 'Hard') await host.getByRole('radio', { name: /Hard/ }).click();
     await host.getByRole('button', { name: 'Create Room', exact: true }).click();
+    await expect(host.getByRole('heading', { name: 'Host dashboard' })).toBeVisible();
+    await expect(host.locator('.bp-room-invite--featured')).toBeVisible();
+    await expect(host.locator('.bp-host-dash .bp-capacity-summary')).toContainText('Host roleMiner');
     const code = (await host.locator('.bp-room-invite__code').first().textContent()).trim();
 
     await guest.goto(`/?join=${encodeURIComponent(code)}`);

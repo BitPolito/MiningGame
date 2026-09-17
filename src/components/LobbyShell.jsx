@@ -29,12 +29,12 @@ export default function LobbyShell({
           <div className="bp-flow-body">{children}</div>
           {footer && <div className="bp-flow-footer">{footer}</div>}
         </div>
+        {(onHome || onRules) && (
+          <div className="bp-flow__bottom-nav">
+            <AppNavActions onHome={onHome} onRules={onRules} className="bp-nav-actions--flow" />
+          </div>
+        )}
       </main>
-      {(onHome || onRules) && (
-        <div className="bp-flow__bottom-nav">
-          <AppNavActions onHome={onHome} onRules={onRules} className="bp-nav-actions--flow" />
-        </div>
-      )}
     </div>
   );
 }

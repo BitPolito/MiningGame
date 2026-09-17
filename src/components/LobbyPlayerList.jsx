@@ -14,7 +14,7 @@ export default function LobbyPlayerList({ players = [], hostName, hostParticipat
           <span className="bp-player-list__name">{hostName}</span>
           <span className="bp-player-list__badge">
             <BpIcon src={ICON.crown} className="bp-icon--sm" />
-            {tr('hostBadge')}
+            {tr('hostSpectatorBadge')}
           </span>
         </li>
       )}

@@ -16,7 +16,7 @@ Both modes follow the same core rules:
 - confirm blocks in sequence;
 - build your own blockchain and race to the target number of blocks.
 
-You can play solo or create a multiplayer room. Each player mines an independent chain, and the first player to reach the goal wins. Rooms support up to **30 players, including the host**.
+You can play solo or create a multiplayer room. Each player mines an independent chain, and the first player to reach the goal wins. Rooms support up to **30 active players**. The host occupies a player slot only when participating in the race.
 
 > This is an educational simulator. It does not connect to the Bitcoin network or perform real bitcoin mining.
 

@@ -43,22 +43,22 @@ async function main() {
     throw new Error(`capacity was clamped to ${capacityRoom.room.numPlayers}`);
   }
 
-  for (let index = 1; index < MAX_PLAYERS; index += 1) {
+  for (let index = 1; index <= MAX_PLAYERS; index += 1) {
     expectOk(await call('join', {
       body: { seed: capacityRoom.seed, playerName: `Miner ${index}` },
     }), `join player ${index}`);
   }
   const overflow = await call('join', {
-    body: { seed: capacityRoom.seed, playerName: 'Miner 30' },
+    body: { seed: capacityRoom.seed, playerName: 'Miner 31' },
   });
   if (overflow.response.status !== 409 || overflow.data.error !== 'ROOM_FULL') {
-    throw new Error(`the 31st participant returned ${overflow.response.status}/${overflow.data.error || 'NO_ERROR'}`);
+    throw new Error(`the 31st active player returned ${overflow.response.status}/${overflow.data.error || 'NO_ERROR'}`);
   }
   const fullStatus = expectOk(await call('status', {
     method: 'GET', seed: capacityRoom.seed,
   }), 'full room status');
-  if (fullStatus.room.players.length !== MAX_PLAYERS - 1) {
-    throw new Error(`spectator-host room contains ${fullStatus.room.players.length + 1} participants`);
+  if (fullStatus.room.players.length !== MAX_PLAYERS) {
+    throw new Error(`spectator-host room contains ${fullStatus.room.players.length} active players`);
   }
   const reservedHostName = await call('join', {
     body: { seed: capacityRoom.seed, playerName: 'Host Capacity' },
@@ -135,7 +135,7 @@ async function main() {
     throw new Error('an untouched room received players from another room');
   }
 
-  console.log('30-participant capacity (host included), repeated creation, parallel creation and room isolation passed.');
+  console.log('30-active-player capacity, spectator host exclusion, repeated creation, parallel creation and room isolation passed.');
 }
 
 main().catch((error) => {

@@ -18,8 +18,9 @@ export default function GameHud({
   const { tr } = useLocale();
   return (
     <header className="bp-game-hud" aria-label={tr('gameHudAria')}>
-      <div className="bp-game-hud__nav">
-        <div className="bp-game-hud__nav-start">
+      <div className="bp-game-hud__topline">
+        <div className="bp-game-hud__nav">
+          <div className="bp-game-hud__nav-start">
           <AppNavActions onHome={onHome} onRules={onHelp} compact />
           <span
             className={`bp-game-hud__pill bp-game-hud__pill--difficulty${difficulty === 'hard' ? ' bp-game-hud__pill--hard' : ''}`}
@@ -41,12 +42,12 @@ export default function GameHud({
             </>
           )}
         </div>
-        <div className="bp-game-hud__nav-end">
-          <LangToggle />
+          <div className="bp-game-hud__nav-end">
+            <LangToggle />
+          </div>
         </div>
-      </div>
 
-      <div className="bp-game-hud__metrics">
+        <div className="bp-game-hud__metrics">
         {stats.map((stat, index) => (
           <div
             className={[
@@ -74,6 +75,7 @@ export default function GameHud({
             )}
           </div>
         ))}
+        </div>
       </div>
       {children}
     </header>

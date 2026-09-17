@@ -48,7 +48,7 @@ function validateCode(seed) {
 }
 
 function roomKey(seed) {
-  return `room:v6:${seed}`;
+  return `room:v7:${seed}`;
 }
 
 function makeToken() {
@@ -165,7 +165,7 @@ export default async function handler(req, res) {
         const seed = newCode();
         const now = Date.now();
         const room = {
-          version: 5,
+          version: 6,
           seed,
           gameSeed: seed,
           numPlayers: clampNumPlayers(body.numPlayers),

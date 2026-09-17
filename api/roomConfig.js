@@ -17,9 +17,9 @@ export function clampNumPlayers(value) {
   return Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, n));
 }
 
-/** Everyone connected to the room counts, including a non-mining host. */
+/** Active player slots in use. A spectator host never occupies one. */
 export function getRoomOccupancy(room) {
-  return (room?.players?.length ?? 0) + (room?.hostParticipates === false ? 1 : 0);
+  return room?.players?.length ?? 0;
 }
 
 export function normalizePowLevel(value) {

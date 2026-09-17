@@ -1706,36 +1706,6 @@ button.bp-candidate-slot--filled:focus-visible {
   white-space: nowrap;
 }
 
-@media (min-width: 760px) {
-  .bp-flow-card--dashboard .bp-host-dash:has(> .bp-panel) {
-    display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(250px, 0.75fr);
-    gap: var(--bp-space-3);
-    align-items: start;
-  }
-
-  .bp-flow-card--dashboard .bp-host-dash > .bp-room-invite {
-    grid-column: 1 / -1;
-  }
-
-  .bp-flow-card--dashboard .bp-host-dash > .bp-panel {
-    grid-column: 1;
-    grid-row: 2 / span 5;
-  }
-
-  .bp-flow-card--dashboard .bp-host-dash > .bp-host-dash__hero,
-  .bp-flow-card--dashboard .bp-host-dash > .bp-host-dash__insights,
-  .bp-flow-card--dashboard .bp-host-dash > .bp-host-dash__winner,
-  .bp-flow-card--dashboard .bp-host-dash > .bp-room-settings,
-  .bp-flow-card--dashboard .bp-host-dash > .bp-host-dash__actions {
-    grid-column: 2;
-  }
-
-  .bp-flow-card--dashboard .bp-host-race-list {
-    max-height: min(60dvh, 620px);
-  }
-}
-
 @media (min-width: 901px) {
   .bp-game-play-stack .bp-panel--mempool-full .bp-table-wrap {
     max-height: min(68vh, 720px);
@@ -1745,8 +1715,7 @@ button.bp-candidate-slot--filled:focus-visible {
   }
 
   .bp-game-play-stack > .bp-panel--mining-action {
-    position: sticky;
-    top: 12px;
+    position: static;
   }
 }
 
@@ -2008,6 +1977,10 @@ button.bp-candidate-slot--filled:focus-visible {
     border-radius: var(--bp-radius-sm);
     background: var(--bp-50);
   }
+
+  .bp-host-dash > .bp-panel .bp-host-race-list__row:only-child {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (min-width: 1100px) {
@@ -2063,5 +2036,548 @@ button.bp-candidate-slot--filled:focus-visible {
 
   .bp-host-dash > .bp-panel .bp-host-race-list {
     display: flex;
+  }
+}
+
+
+/* Final sizing: narrow lobby cards stack the invitation; host dashboard can use two columns. */
+.bp-room-invite--compact {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.bp-room-invite--compact .bp-room-invite__qr-button {
+  width: min(100%, 220px);
+  min-width: 0;
+  justify-self: center;
+}
+
+@media (min-width: 760px) {
+  .bp-host-dash__overview > .bp-room-invite--compact {
+    grid-template-columns: minmax(0, 1fr) 190px;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--compact .bp-room-invite__qr-button {
+    width: 190px;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--compact .bp-room-invite__qr {
+    width: 168px;
+    height: 168px;
+  }
+}
+
+/* Desktop HUD: navigation and live information form one compact toolbar. */
+.bp-game-hud__topline {
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 901px) {
+  .bp-game-hud__topline {
+    grid-template-columns: auto minmax(520px, 1fr);
+    align-items: stretch;
+  }
+
+  .bp-game-hud__nav {
+    align-self: stretch;
+    min-width: max-content;
+    margin: 0;
+    padding: 6px 8px;
+    border: 1px solid var(--bp-200);
+    border-radius: var(--bp-radius-sm);
+    background: var(--bp-white);
+  }
+
+  .bp-game-hud__metrics {
+    grid-template-columns: minmax(220px, 1.35fr) repeat(2, minmax(120px, 0.65fr));
+    gap: 8px;
+  }
+
+  .bp-hud-stat {
+    min-height: 46px;
+    padding: 6px 10px;
+  }
+
+  .bp-hud-stat:not(.bp-hud-stat--selection) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: center;
+    align-items: center;
+    column-gap: 10px;
+  }
+
+  .bp-hud-stat:not(.bp-hud-stat--selection) .bp-hud-stat__value {
+    font-size: 0.95rem;
+    text-align: right;
+  }
+
+  .bp-hud-stat--selection {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: center;
+    align-items: center;
+    column-gap: 12px;
+  }
+
+  .bp-hud-stat--selection .bp-hud-stat__selection-row {
+    justify-content: flex-end;
+  }
+
+  .bp-game-pinboard {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 900px) {
+  .bp-game-hud__topline {
+    display: block;
+  }
+}
+
+
+/* QR preview remains scannable before opening the enlarged dialog. */
+.bp-room-invite--compact .bp-room-invite__qr-button .bp-room-invite__qr {
+  width: 180px;
+  height: 180px;
+}
+
+@media (min-width: 760px) {
+  .bp-host-dash__overview > .bp-room-invite--compact .bp-room-invite__qr-button .bp-room-invite__qr {
+    width: 168px;
+    height: 168px;
+  }
+}
+
+@media (max-width: 759px) {
+  .bp-room-invite--compact .bp-room-invite__qr-button .bp-room-invite__qr {
+    width: 164px;
+    height: 164px;
+  }
+}
+
+
+/* The complete mempool belongs to the page flow on every viewport. */
+.bp-game-play-stack .bp-panel--mempool-full .bp-table-wrap,
+.bp-game-play-stack .bp-panel--mempool-full .mempool-table-wrap {
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
+  scrollbar-gutter: auto;
+}
+
+
+/* Capacity is shown as three distinct concepts to avoid counting spectators as miners. */
+.bp-capacity-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.bp-capacity-summary > div {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-50);
+  text-align: center;
+}
+
+.bp-capacity-summary dt {
+  color: var(--bp-text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.bp-capacity-summary dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--bp-blue);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.bp-capacity-summary--compact > div {
+  padding: 7px 8px;
+}
+
+.bp-flow-card--dashboard {
+  max-width: 1080px;
+}
+
+.bp-main--dashboard {
+  max-width: 1120px;
+}
+
+@media (min-width: 900px) {
+  .bp-host-dash__overview {
+    grid-template-columns: minmax(0, 1.1fr) minmax(390px, 0.9fr);
+    align-items: stretch;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite {
+    height: 100%;
+  }
+
+  .bp-host-dash__control {
+    height: 100%;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--compact {
+    padding: var(--bp-space-4);
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--compact .bp-room-invite__qr-button {
+    width: 212px;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--compact .bp-room-invite__qr-button .bp-room-invite__qr {
+    width: 190px;
+    height: 190px;
+  }
+}
+
+@media (max-width: 899px) {
+  .bp-host-dash__overview {
+    grid-template-columns: 1fr;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite {
+    height: auto;
+  }
+
+  .bp-host-dash__control {
+    height: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .bp-capacity-summary {
+    gap: 5px;
+  }
+
+  .bp-capacity-summary > div {
+    padding: 7px 5px;
+  }
+
+  .bp-capacity-summary dt {
+    font-size: 0.52rem;
+  }
+
+  .bp-capacity-summary dd {
+    font-size: 0.72rem;
+  }
+}
+
+
+/* Home composition: keep the original artwork, actions and BitPolito signature together. */
+.menu-wrapper {
+  min-height: 100dvh;
+  justify-content: center;
+  gap: 12px;
+  padding-block: clamp(12px, 3vh, 32px);
+}
+
+.menu-wrapper .menu-top-bar {
+  margin-bottom: 0;
+}
+
+.menu-wrapper .bp-main {
+  flex: 0 1 auto;
+  max-width: 560px;
+  padding: 0;
+}
+
+.menu-wrapper .main-menu {
+  max-width: 520px;
+  gap: 0;
+  padding: clamp(28px, 3vw, 34px) clamp(24px, 3vw, 32px);
+}
+
+.menu-wrapper .title-container {
+  width: clamp(240px, 68vw, 320px);
+  max-width: 100%;
+  margin-bottom: 14px;
+}
+
+.menu-wrapper .menu-tagline {
+  margin-bottom: 28px;
+}
+
+.menu-wrapper .bp-menu-actions {
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.menu-wrapper .bp-nav-actions--menu {
+  margin-top: 22px;
+}
+
+.menu-wrapper .menu-footer {
+  margin-top: 28px;
+  gap: 8px;
+}
+
+.menu-wrapper .menu-cows {
+  width: 168px;
+}
+
+@media (max-width: 768px) {
+  .menu-wrapper {
+    min-height: calc(100dvh - 30px);
+    padding-block: 0 18px;
+  }
+
+  .menu-wrapper .main-menu {
+    padding: 26px 20px 26px;
+  }
+
+  .menu-wrapper .title-container {
+    width: min(100%, 272px);
+    margin-bottom: 10px;
+  }
+
+  .menu-wrapper .menu-tagline {
+    margin-bottom: 22px;
+  }
+
+  .menu-wrapper .bp-nav-actions--menu {
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .menu-wrapper .bp-nav-actions--menu .bp-nav-actions__link {
+    gap: 6px;
+    padding: 6px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .menu-wrapper .menu-footer {
+    margin-top: 22px;
+  }
+
+  .menu-wrapper .menu-cows {
+    width: 150px;
+  }
+}
+
+
+/* Shared page rhythm: language, content card and secondary navigation stay together. */
+.bp-flow {
+  min-height: 100dvh;
+  justify-content: flex-start;
+  gap: 12px;
+  padding-block: clamp(12px, 2.5vh, 26px);
+}
+
+.bp-flow .bp-flow__top {
+  margin-bottom: 0;
+}
+
+.bp-flow .bp-flow__main {
+  flex: 0 1 auto;
+  padding-bottom: 0;
+}
+
+.bp-flow .bp-flow-card {
+  gap: 16px;
+  padding: 24px 22px 22px;
+}
+
+.bp-flow .bp-flow-body {
+  gap: 16px;
+}
+
+.bp-flow .bp-lobby-form {
+  gap: 18px;
+}
+
+.bp-flow .bp-flow__bottom-nav {
+  margin-top: 16px;
+  padding: 0;
+}
+
+.bp-flow .bp-flow-footer {
+  padding-top: 16px;
+}
+
+/* Host invitation: room code first, actions second, scannable QR third. */
+.bp-host-dash__overview > .bp-room-invite--featured {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  justify-items: center;
+  gap: 20px;
+  padding: 30px;
+}
+
+.bp-room-invite--featured .bp-room-invite__details {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bp-room-invite--featured .bp-room-invite__code-block {
+  width: 100%;
+  text-align: center;
+}
+
+.bp-room-invite--featured .bp-room-invite__code {
+  margin-bottom: 14px;
+  font-size: clamp(1.4rem, 2.3vw, 1.8rem);
+  letter-spacing: 0.16em;
+}
+
+.bp-room-invite--featured .bp-room-invite__actions {
+  justify-content: center;
+}
+
+.bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__qr-button {
+  width: 232px;
+}
+
+.bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__qr-button .bp-room-invite__qr {
+  width: 210px;
+  height: 210px;
+}
+
+@media (max-width: 768px) {
+  .bp-flow {
+    min-height: calc(100dvh - 30px);
+    padding-block: 0 18px;
+  }
+
+  .bp-flow .bp-flow-card {
+    padding: 22px 18px 20px;
+  }
+
+  .bp-flow .bp-flow__bottom-nav {
+    margin-top: 14px;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured {
+    gap: 16px;
+    padding: 22px 18px;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__qr-button {
+    width: 202px;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__qr-button .bp-room-invite__qr {
+    width: 180px;
+    height: 180px;
+  }
+}
+
+
+/* Readability pass: restore labels that were over-compressed during responsive work. */
+.bp-action-card__title {
+  font-size: 1rem;
+}
+
+.bp-action-card__desc,
+.bp-hint,
+.bp-setup-panel__hint--compact {
+  font-size: 0.82rem;
+}
+
+.bp-setup-panel__title,
+.bp-label--inline,
+.bp-room-settings__title,
+.bp-room-settings__rules-label {
+  font-size: 0.76rem;
+}
+
+.bp-room-invite__eyebrow {
+  font-size: 0.7rem;
+}
+
+.bp-room-invite--compact .bp-room-invite__qr-button .bp-room-invite__qr-hint {
+  font-size: 0.74rem;
+}
+
+.bp-capacity-summary dt,
+.bp-mining-live-facts dt {
+  font-size: 0.65rem;
+}
+
+.bp-capacity-summary dd {
+  font-size: 0.9rem;
+}
+
+.bp-mining-live-facts dd {
+  font-size: 0.8rem;
+}
+
+.bp-hud-stat__label {
+  font-size: 0.62rem;
+}
+
+.bp-game-pinboard__progress {
+  font-size: 0.72rem;
+}
+
+@media (max-width: 900px) {
+  .bp-host-dash__host-name {
+    font-size: 1.15rem;
+  }
+
+  .bp-host-dash__status {
+    font-size: 0.85rem;
+  }
+
+  .bp-host-dash__insight {
+    font-size: 0.85rem;
+  }
+
+  .bp-host-race-list__name {
+    font-size: 0.87rem;
+  }
+
+  .bp-host-race-list__meta {
+    font-size: 0.74rem;
+  }
+
+  .bp-panel--mining-action .bp-mining-phases__item,
+  .bp-mining-phases__item {
+    font-size: 0.72rem;
+  }
+
+  .bp-game-pinboard__title {
+    font-size: 0.68rem;
+  }
+
+  .bp-game-pinboard__progress {
+    font-size: 0.66rem;
+  }
+
+  .bp-game-pinboard .bp-chain__label {
+    font-size: 0.62rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .bp-capacity-summary dt {
+    font-size: 0.6rem;
+  }
+
+  .bp-capacity-summary dd {
+    font-size: 0.82rem;
+  }
+
+  .bp-hud-stat__label {
+    font-size: 0.58rem;
+  }
+
+  .bp-panel--mining-action .bp-mining-phases__item,
+  .bp-mining-phases__item {
+    font-size: 0.7rem;
   }
 }

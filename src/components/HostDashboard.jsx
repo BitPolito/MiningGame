@@ -2,11 +2,12 @@ import BpIcon from './BpIcon';
 import PanelCard from './PanelCard';
 import PlayerAvatar from './PlayerAvatar';
 import RoomInvite from './RoomInvite';
+import RoomCapacitySummary from './RoomCapacitySummary';
 import RoomSettingsCard from './RoomSettingsCard';
 import { ICON } from '../assets/icons';
 import { analyzeRace } from '../lib/raceProjection';
 import { getHostDisplayName } from '../lib/roomAuth';
-import { getRoomOccupancy } from '../lib/roomConfig';
+import { getMinerCapacity, getMinerCount } from '../lib/roomConfig';
 import { useLocale } from '../i18n/LocaleContext';
 
 function formatLastActive(ts, tr) {
@@ -33,7 +34,8 @@ export default function HostDashboard({
   const { leader, likelyWinner, goal, sorted } = analyzeRace(room);
   const hostLabel = getHostDisplayName(room);
   const status = room?.status ?? 'waiting';
-  const occupancy = getRoomOccupancy(room);
+  const miners = getMinerCount(room);
+  const minerCapacity = getMinerCapacity(room);
 
   const actions = (showStart || showPlayAgain) ? (
     <div className="bp-host-dash__actions">
@@ -67,7 +69,7 @@ export default function HostDashboard({
   return (
     <div className="bp-host-dash">
       <div className="bp-host-dash__overview">
-        <RoomInvite code={roomSeed} compact />
+        <RoomInvite code={roomSeed} compact featured />
 
         <aside className="bp-host-dash__control">
           <div className="bp-host-dash__hero">
@@ -76,10 +78,12 @@ export default function HostDashboard({
               <p className="bp-host-dash__label">{tr('hostBadge')}</p>
               <p className="bp-host-dash__host-name">{hostLabel}</p>
               <p className="bp-host-dash__status">
-                {tr('playersJoined', { current: occupancy, total: room?.numPlayers ?? 0 })}
+                {tr('minersJoined', { current: miners, total: minerCapacity })}
               </p>
             </div>
           </div>
+
+          <RoomCapacitySummary room={room} compact />
 
           {status === 'playing' && sorted.length > 0 && (
             <div className="bp-host-dash__insights">

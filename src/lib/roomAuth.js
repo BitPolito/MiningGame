@@ -26,8 +26,10 @@ export function hostParticipatesInGame(room) {
 
 export function resolveRoomView(room, { isHost, isPlayer }) {
   if (!room) return 'menu';
-  if (room.status === 'playing' && isPlayer) return 'game';
-  if (isHost && !hostParticipatesInGame(room)) return 'host_dashboard';
+  if (isHost) {
+    if (room.status === 'playing' && isPlayer) return 'game';
+    return 'host_dashboard';
+  }
   if (room.status === 'waiting') return 'lobby_waiting';
   if (room.status === 'playing') return isPlayer ? 'game' : 'host_dashboard';
   if (room.status === 'finished') return 'lobby_finished';

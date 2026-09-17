@@ -4,6 +4,8 @@ import {
   MIN_PLAYERS as CLIENT_MIN_PLAYERS,
   clampNumPlayers as clampClientPlayers,
   getRoomOccupancy as getClientRoomOccupancy,
+  getMinerCapacity,
+  getMinerCount,
 } from '../src/lib/roomConfig.js';
 import {
   MAX_PLAYERS as API_MAX_PLAYERS,
@@ -30,10 +32,18 @@ describe('room player capacity', () => {
     }
   });
 
-  it('counts a spectator host in the total but not twice when the host mines', () => {
+  it('counts the host only when they actively play and always caps miners at 30', () => {
+    const spectatorRoom = { numPlayers: 30, hostParticipates: false, players: Array(30) };
+    const miningHostRoom = { numPlayers: 30, hostParticipates: true, players: Array(30) };
+
     for (const occupancy of [getClientRoomOccupancy, getApiRoomOccupancy]) {
-      expect(occupancy({ hostParticipates: false, players: Array(29) })).toBe(30);
-      expect(occupancy({ hostParticipates: true, players: Array(30) })).toBe(30);
+      expect(occupancy(spectatorRoom)).toBe(30);
+      expect(occupancy(miningHostRoom)).toBe(30);
     }
+
+    expect(getMinerCount(spectatorRoom)).toBe(30);
+    expect(getMinerCapacity(spectatorRoom)).toBe(30);
+    expect(getMinerCount(miningHostRoom)).toBe(30);
+    expect(getMinerCapacity(miningHostRoom)).toBe(30);
   });
 });

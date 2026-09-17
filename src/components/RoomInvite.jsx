@@ -7,7 +7,7 @@ import { useModalFocus } from '../hooks/useModalFocus';
 import { buildJoinUrl } from '../lib/roomJoin';
 import { useLocale } from '../i18n/LocaleContext';
 
-export default function RoomInvite({ code, compact = false }) {
+export default function RoomInvite({ code, compact = false, featured = false }) {
   const { tr } = useLocale();
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -45,10 +45,16 @@ export default function RoomInvite({ code, compact = false }) {
 
   return (
     <>
-      <div className={`bp-room-invite${compact ? ' bp-room-invite--compact' : ''}`}>
+      <div className={[
+        'bp-room-invite',
+        compact ? 'bp-room-invite--compact' : '',
+        featured ? 'bp-room-invite--featured' : '',
+      ].filter(Boolean).join(' ')}>
         <div className="bp-room-invite__details">
-          <p className="bp-room-invite__eyebrow">{tr('roomCode')}</p>
-          <div className="bp-room-invite__code">{code}</div>
+          <div className="bp-room-invite__code-block">
+            <p className="bp-room-invite__eyebrow">{tr('roomCode')}</p>
+            <div className="bp-room-invite__code">{code}</div>
+          </div>
           <div className="bp-room-invite__actions">
             <button type="button" className="bp-btn bp-btn-outline" onClick={() => copyText(code, 'code')}>
               <BpIcon src={ICON.save} className="bp-icon" tone="primary" />

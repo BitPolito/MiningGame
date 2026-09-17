@@ -100,9 +100,9 @@ async function main() {
   const joins = await Promise.all(
     ['A', 'B', 'C', 'D', 'E'].map((playerName) => call('join', { body: { seed: raceRoom.seed, playerName } })),
   );
-  if (joins.filter((entry) => entry.data.success).length !== 2) throw new Error('concurrent joins exceeded room capacity');
+  if (joins.filter((entry) => entry.data.success).length !== 3) throw new Error('concurrent joins exceeded room capacity');
   const raceStatus = expectOk(await call('status', { method: 'GET', seed: raceRoom.seed }), 'concurrency status');
-  if (raceStatus.room.players.length !== 2) throw new Error('concurrent room state is inconsistent');
+  if (raceStatus.room.players.length !== 3) throw new Error('concurrent room state is inconsistent');
 
   console.log('Room API flow, authorization, proof validation, concurrency and restore passed.');
 }
