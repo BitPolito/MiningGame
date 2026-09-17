@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import BpIcon from '../BpIcon';
 import { ICON } from '../../assets/icons';
 import { useLocale } from '../../i18n/LocaleContext';
-import { isDiceReady } from '../../lib/powDice';
+import { formatPowNonce, isDiceReady } from '../../lib/powDice';
 
 function DieFace({ value, rolling, error }) {
   const pips =
@@ -103,15 +103,10 @@ export default function PowDicePanel({
         <p className="bp-pow-toolbar__hint">
           {rollCount > 0 ? tr('powRollCount', { count: rollCount }) : tr('powRollHint')}
         </p>
-        {ready ? (
+        {ready && (
           <div className="bp-pow-toolbar__nonce" aria-live="polite">
             <span className="bp-pow-toolbar__nonce-label">{tr('nonce')}</span>
-            <span className="bp-pow-toolbar__nonce-value">{nonce.toLocaleString()}</span>
-          </div>
-        ) : (
-          <div className="bp-pow-toolbar__nonce bp-pow-toolbar__nonce--empty">
-            <span className="bp-pow-toolbar__nonce-label">{tr('nonce')}</span>
-            <span className="bp-pow-toolbar__nonce-value">{tr('nonceNotRolledYet')}</span>
+            <span className="bp-pow-toolbar__nonce-value">{formatPowNonce(nonce)}</span>
           </div>
         )}
       </div>

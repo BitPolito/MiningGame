@@ -11,6 +11,7 @@ export default function RoomInvite({ code, compact = false }) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQr, setShowQr] = useState(!compact);
   const [qrSrc, setQrSrc] = useState('');
+  const [copyFallback, setCopyFallback] = useState('');
   const joinUrl = buildJoinUrl(code);
 
   useEffect(() => {
@@ -23,7 +24,9 @@ export default function RoomInvite({ code, compact = false }) {
 
   const copyText = async (text, which) => {
     try {
+      if (!navigator.clipboard?.writeText) throw new Error('CLIPBOARD_UNAVAILABLE');
       await navigator.clipboard.writeText(text);
+      setCopyFallback('');
       if (which === 'code') {
         setCopiedCode(true);
         setTimeout(() => setCopiedCode(false), 2000);
@@ -32,7 +35,7 @@ export default function RoomInvite({ code, compact = false }) {
         setTimeout(() => setCopiedLink(false), 2000);
       }
     } catch {
-      // Clipboard access can be unavailable in non-secure local contexts.
+      setCopyFallback(text);
     }
   };
 
@@ -49,6 +52,20 @@ export default function RoomInvite({ code, compact = false }) {
           <span className="bp-btn__label">{copiedLink ? tr('copied') : tr('copyJoinLink')}</span>
         </button>
       </div>
+      <span className="bp-sr-only" role="status" aria-live="polite">
+        {copiedCode || copiedLink ? tr('copied') : ''}
+      </span>
+      {copyFallback && (
+        <label className="bp-room-invite__copy-fallback">
+          <span className="bp-hint">{tr('copyFailed')}</span>
+          <input
+            className="bp-input"
+            readOnly
+            value={copyFallback}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
       {compact ? (
         <button
           type="button"

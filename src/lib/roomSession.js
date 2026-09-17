@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'bp-room-session-v2';
+const STORAGE_KEY = 'bp-room-session-v5';
 
 export function saveRoomSession(session) {
   if (typeof localStorage === 'undefined' || !session?.seed || !session?.sessionToken) return;
@@ -18,5 +18,8 @@ export function loadRoomSession() {
 export function clearRoomSession() {
   if (typeof localStorage === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem('bp-room-session-v4');
+  localStorage.removeItem('bp-room-session-v3');
+  localStorage.removeItem('bp-room-session-v2');
   localStorage.removeItem('bp-room-session');
 }

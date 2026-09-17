@@ -6,6 +6,7 @@ export function normalizePlayerName(name) {
 /** True if `name` matches an existing player in the room (waiting lobby). */
 export function isPlayerNameTaken(room, name) {
   const key = normalizePlayerName(name);
-  if (!key || !room?.players?.length) return false;
-  return room.players.some((p) => normalizePlayerName(p.name) === key);
+  if (!key || !room) return false;
+  return normalizePlayerName(room.hostDisplayName) === key
+    || (room.players ?? []).some((p) => normalizePlayerName(p.name) === key);
 }

@@ -1,60 +1,90 @@
 /**
- * Transaction selection rules (fee-priority + balance), shared by Easy and Hard mode.
+ * Transaction selection rules shared by Easy, Hard, solo and multiplayer.
+ * A valid block contains exactly three affordable transactions and maximizes
+ * the sum of their absolute fees. Selection order is preserved separately
+ * because it is part of the Hard-mode candidate payload.
  */
+
+export function getTransactionsInSelectionOrder(mempool, selectedTxIds) {
+  if (!Array.isArray(selectedTxIds)) return [];
+  const byId = new Map(mempool.map((tx) => [tx.id, tx]));
+  return selectedTxIds.map((id) => byId.get(id)).filter(Boolean);
+}
+
+export function isSelectionAffordable(transactions, balances) {
+  const costs = {};
+  for (const tx of transactions) {
+    costs[tx.sender] = (costs[tx.sender] || 0) + tx.amount + tx.fee;
+    if (costs[tx.sender] > (balances[tx.sender] ?? 0)) return false;
+  }
+  return true;
+}
 
 export function canAffordTx(tx, mempool, selectedTxIds, balances) {
-  const senderSelectedCost = mempool
-    .filter((sel) => selectedTxIds.includes(sel.id) && sel.sender === tx.sender)
-    .reduce((sum, sel) => sum + sel.amount + sel.fee, 0);
-  return senderSelectedCost + tx.amount + tx.fee <= balances[tx.sender];
+  const selected = getTransactionsInSelectionOrder(mempool, selectedTxIds);
+  return isSelectionAffordable([...selected, tx], balances);
 }
 
-/** IDs the player may pick next under fee-priority rules. */
-export function getAllowedNextTxIds(mempool, selectedTxIds, balances) {
-  if (selectedTxIds.length >= 3) return [];
-
-  const validUnselectedTxs = mempool.filter((t) => {
-    if (selectedTxIds.includes(t.id)) return false;
-    return canAffordTx(t, mempool, selectedTxIds, balances);
-  });
-
-  const needed = 3 - selectedTxIds.length;
-  if (needed <= 0 || validUnselectedTxs.length === 0) return [];
-
-  const sorted = [...validUnselectedTxs].sort((a, b) => {
-    if (b.fee !== a.fee) return b.fee - a.fee;
-    return a.id - b.id;
-  });
-
-  return sorted.slice(0, needed).map((t) => t.id);
+export function getValidBlockSelections(mempool, balances) {
+  const selections = [];
+  for (let a = 0; a < mempool.length - 2; a += 1) {
+    for (let b = a + 1; b < mempool.length - 1; b += 1) {
+      for (let c = b + 1; c < mempool.length; c += 1) {
+        const transactions = [mempool[a], mempool[b], mempool[c]];
+        if (!isSelectionAffordable(transactions, balances)) continue;
+        selections.push({
+          ids: transactions.map((tx) => tx.id),
+          transactions,
+          totalFees: transactions.reduce((sum, tx) => sum + tx.fee, 0),
+        });
+      }
+    }
+  }
+  return selections;
 }
 
-/**
- * Row visual state for mempool UI.
- * @returns {'selected'|'eligible'|'locked'|'invalid'|'full'}
- */
+export function getMaximumFeeTotal(mempool, balances) {
+  const valid = getValidBlockSelections(mempool, balances);
+  return valid.length ? Math.max(...valid.map((selection) => selection.totalFees)) : null;
+}
+
+export function evaluateBlockSelection(mempool, selectedTxIds, balances) {
+  if (!Array.isArray(selectedTxIds) || selectedTxIds.length !== 3) {
+    return { ok: false, error: 'INVALID_SELECTION' };
+  }
+  const ids = selectedTxIds.map(Number);
+  if (ids.some((id) => !Number.isSafeInteger(id)) || new Set(ids).size !== 3) {
+    return { ok: false, error: 'INVALID_SELECTION' };
+  }
+  const transactions = getTransactionsInSelectionOrder(mempool, ids);
+  if (transactions.length !== 3) return { ok: false, error: 'INVALID_SELECTION' };
+  if (!isSelectionAffordable(transactions, balances)) {
+    return { ok: false, error: 'INSUFFICIENT_BALANCE' };
+  }
+  const totalFees = transactions.reduce((sum, tx) => sum + tx.fee, 0);
+  const maximumFees = getMaximumFeeTotal(mempool, balances);
+  if (maximumFees == null) return { ok: false, error: 'NO_PLAYABLE_SELECTION' };
+  if (totalFees !== maximumFees) {
+    return { ok: false, error: 'FEES_NOT_MAXIMIZED', totalFees };
+  }
+  return { ok: true, ids, transactions, totalFees };
+}
+
+/** Row visual state. Fee optimality is deliberately not revealed in advance. */
 export function getTxRowState(txId, mempool, selectedTxIds, balances) {
   if (selectedTxIds.includes(txId)) return 'selected';
   if (selectedTxIds.length >= 3) return 'full';
-
-  const tx = mempool.find((t) => t.id === txId);
+  const tx = mempool.find((item) => item.id === txId);
   if (!tx || !canAffordTx(tx, mempool, selectedTxIds, balances)) return 'invalid';
-
-  const allowed = getAllowedNextTxIds(mempool, selectedTxIds, balances);
-  return allowed.includes(txId) ? 'eligible' : 'locked';
+  return 'eligible';
 }
 
 export function getRejectReasonKey(txId, mempool, selectedTxIds, balances) {
-  const state = getTxRowState(txId, mempool, selectedTxIds, balances);
-  if (state === 'invalid') return 'errTxBalance';
-  if (state === 'locked') return 'errTxFeeOrder';
-  return 'errTxGeneric';
+  return getTxRowState(txId, mempool, selectedTxIds, balances) === 'invalid'
+    ? 'errTxBalance'
+    : 'errTxGeneric';
 }
 
-/**
- * Returns true if `txId` may be added to the current selection under fee-priority
- * and cumulative balance rules (same logic as Easy mode).
- */
 export function canSelectTransaction(txId, mempool, selectedTxIds, balances) {
   return getTxRowState(txId, mempool, selectedTxIds, balances) === 'eligible';
 }

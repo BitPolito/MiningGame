@@ -21,7 +21,11 @@ const redis = hasRedis
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '..', '.data');
-const dbPath = path.join(dataDir, 'rooms.json');
+const dbPath = process.env.MINING_GAME_LOCAL_DB_PATH || path.join(dataDir, 'rooms.json');
+
+function ensureLocalDataDir() {
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+}
 
 function requireStorage() {
   if (isHosted && !redis) {
@@ -32,7 +36,7 @@ function requireStorage() {
 }
 
 function readLocal() {
-  fs.mkdirSync(dataDir, { recursive: true });
+  ensureLocalDataDir();
   try {
     return fs.existsSync(dbPath) ? JSON.parse(fs.readFileSync(dbPath, 'utf8')) : {};
   } catch {
@@ -41,7 +45,7 @@ function readLocal() {
 }
 
 function writeLocal(data) {
-  fs.mkdirSync(dataDir, { recursive: true });
+  ensureLocalDataDir();
   fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
 }
 

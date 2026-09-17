@@ -1,15 +1,20 @@
 import BpIcon from './BpIcon';
 import { ICON } from '../assets/icons';
 import { useLocale } from '../i18n/LocaleContext';
+import { formatPowNonce } from '../lib/powDice';
+import { useModalFocus } from '../hooks/useModalFocus';
 
 export default function PowFoundOverlay({ open, nonce, diceFaces, finalHash, onClose }) {
   const { tr } = useLocale();
+  const formattedNonce = formatPowNonce(nonce);
+  const dialogRef = useModalFocus(open, onClose);
 
   if (!open) return null;
 
   return (
     <div className="bp-pow-overlay" role="presentation">
       <div
+        ref={dialogRef}
         className="bp-pow-found-card"
         role="dialog"
         aria-modal="true"
@@ -20,7 +25,7 @@ export default function PowFoundOverlay({ open, nonce, diceFaces, finalHash, onC
         <h2 id="bp-pow-found-title" className="bp-pow-found-card__title">
           {tr('powFoundTitle')}
         </h2>
-        <p className="bp-pow-found-card__message">{tr('powFoundMessage', { nonce })}</p>
+        <p className="bp-pow-found-card__message">{tr('powFoundMessage', { nonce: formattedNonce })}</p>
         {diceFaces?.[0] != null && diceFaces?.[1] != null && (
           <p className="bp-pow-found-card__dice" aria-label={tr('powLuckyRoll')}>
             <span className="bp-pow-found-card__die">{diceFaces[0]}</span>
@@ -30,7 +35,7 @@ export default function PowFoundOverlay({ open, nonce, diceFaces, finalHash, onC
         <dl className="bp-pow-found-card__details">
           <div className="bp-pow-found-card__row">
             <dt>{tr('nonce')}</dt>
-            <dd>{nonce.toLocaleString()}</dd>
+            <dd>{formattedNonce}</dd>
           </div>
           {finalHash && (
             <div className="bp-pow-found-card__row bp-pow-found-card__row--hash">

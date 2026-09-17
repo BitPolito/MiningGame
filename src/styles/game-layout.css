@@ -212,6 +212,33 @@
   width: 100%;
 }
 
+/* Long room lists remain usable at the 30-participant limit. */
+.bp-player-list,
+.bp-host-race-list,
+.bp-results-board__list,
+.bp-race-list {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.bp-player-list { max-height: min(48dvh, 420px); padding-right: 4px; }
+.bp-host-race-list, .bp-results-board__list { max-height: min(56dvh, 560px); padding-right: 4px; }
+.bp-race-list { max-height: min(52dvh, 480px); padding-right: 3px; }
+
+.bp-player-list__name,
+.bp-host-race-list__name,
+.bp-results-board__name,
+.bp-race-row__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bp-race-row__name { font-size: 0.85rem; font-weight: 700; }
+
 /* --- Host dashboard --- */
 .bp-host-dash {
   display: flex;
@@ -347,6 +374,81 @@
   min-width: 0;
 }
 
+/* One-line live stats: useful at a glance without turning the HUD into a card grid. */
+.bp-game-hud__metrics {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.bp-game-hud__metrics::-webkit-scrollbar {
+  display: none;
+}
+
+.bp-game-hud__metrics .bp-hud-tile--block {
+  flex: 1 0 132px;
+  justify-content: center;
+  padding: 6px 9px;
+  scroll-snap-align: start;
+}
+
+.bp-hud-stat {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 70px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 9px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-surface);
+  scroll-snap-align: start;
+}
+
+.bp-hud-stat__label {
+  max-width: 112px;
+  overflow: hidden;
+  color: var(--bp-text-muted);
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bp-hud-stat__value {
+  max-width: 120px;
+  overflow: hidden;
+  color: var(--bp-text);
+  font-size: 0.88rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bp-hud-stat__value--mono {
+  font-family: var(--bp-mono);
+  font-size: 0.7rem;
+}
+
+@media (max-width: 480px) {
+  .bp-game-hud__metrics .bp-hud-tile--block {
+    flex-basis: 118px;
+  }
+
+  .bp-hud-stat {
+    padding-inline: 8px;
+  }
+}
+
 .bp-game-sticky-zone {
   position: sticky;
   top: 136px;
@@ -392,6 +494,92 @@
 .bp-game-pinboard .bp-chain__cube {
   width: 34px;
   height: 34px;
+}
+
+.bp-game-pinboard .bp-chain {
+  justify-content: flex-start;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-width: none;
+}
+
+.bp-game-pinboard .bp-chain::-webkit-scrollbar {
+  display: none;
+}
+
+.bp-game-pinboard .bp-chain__block:first-child {
+  margin-left: auto;
+}
+
+.bp-game-pinboard .bp-chain__block:last-child {
+  margin-right: auto;
+}
+
+.bp-game-pinboard .bp-chain__node {
+  min-width: 44px;
+  scroll-snap-align: center;
+}
+
+.bp-chain__state {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: var(--bp-on-blue);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.bp-chain__node--next {
+  opacity: 1;
+}
+
+.bp-chain__node--next .bp-chain__cube {
+  border: 2px dashed var(--bp-blue);
+  background: var(--bp-50);
+  box-shadow: var(--bp-ring-blue);
+}
+
+.bp-chain__node--next .bp-chain__state,
+.bp-chain__node--next .bp-chain__label {
+  color: var(--bp-blue);
+}
+
+.bp-chain__node--clickable:active .bp-chain__cube {
+  transform: scale(0.94);
+}
+
+.bp-chain__node--latest .bp-chain__cube {
+  animation: bp-chain-arrive 0.55s ease-out;
+}
+
+@keyframes bp-chain-arrive {
+  0% { opacity: 0.25; transform: translateX(18px) scale(0.72); }
+  65% { transform: translateX(-2px) scale(1.06); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@media (max-width: 480px) {
+  .bp-game-pinboard .bp-chain__link {
+    width: 14px;
+  }
+
+  .bp-game-pinboard .bp-chain__node {
+    min-width: 42px;
+  }
+
+  .bp-game-pinboard .bp-chain__cube {
+    width: 32px;
+    height: 32px;
+  }
+
+  .bp-game-pinboard .bp-chain__label {
+    max-width: 48px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .bp-game-sticky-zone .bp-game-tabs__bar {
@@ -582,4 +770,791 @@
   .bp-game-sticky-zone {
     top: 174px;
   }
+}
+
+
+/* Compact mempool rows on narrow screens; keeps the existing visual language. */
+.mempool-route-mobile,
+.mempool-fee-mobile {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .mempool-table-wrap {
+    padding-inline: 0;
+    overflow: visible;
+  }
+
+  .mempool-table {
+    display: block;
+    table-layout: auto;
+  }
+
+  .mempool-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .mempool-table tbody {
+    display: block;
+  }
+
+  .mempool-table tbody tr {
+    scroll-margin-block: 190px 92px;
+    display: grid;
+    grid-template-columns: 30px 34px minmax(0, 1fr);
+    grid-template-areas:
+      "check id route"
+      "check id metrics";
+    align-items: center;
+    min-height: 66px;
+    border-bottom: 1px solid var(--bp-100);
+  }
+
+  .mempool-table tbody tr:not(:has(.mempool-col-check)) {
+    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-areas:
+      "id route"
+      "id metrics";
+  }
+
+  .mempool-table tbody tr.bp-row--picked {
+    box-shadow: inset 4px 0 0 var(--bp-blue);
+  }
+
+  .mempool-table td {
+    padding: 7px 4px;
+    border-bottom: 0;
+    text-align: left;
+  }
+
+  .mempool-table td.mempool-col-check {
+    grid-area: check;
+    width: auto;
+    padding: 0 2px 0 6px;
+  }
+
+  .mempool-table td.mempool-col-id {
+    grid-area: id;
+    width: auto;
+    padding: 0 4px;
+    text-align: center;
+  }
+
+  .mempool-table td.mempool-col-from {
+    grid-area: route;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: auto;
+    min-width: 0;
+    padding-bottom: 2px;
+  }
+
+  .mempool-table td.mempool-col-to,
+  .mempool-table td.mempool-col-fee {
+    display: none;
+  }
+
+  .mempool-route-mobile {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .mempool-table .player-cell {
+    gap: 5px;
+    margin-inline: 0;
+  }
+
+  .mempool-table td.mempool-col-amount {
+    grid-area: metrics;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: auto;
+    padding-top: 2px;
+    color: var(--bp-text-muted);
+    font-size: 0.75rem;
+  }
+
+  .mempool-amount-value::before {
+    content: "BTC ";
+    font-weight: 600;
+  }
+
+  .mempool-fee-mobile {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mempool-check {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+
+/* Mining workflow: stable summary, contextual feedback and reachable actions. */
+.bp-selected-summary__value {
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--bp-200);
+  color: var(--bp-text-muted);
+  font-size: 0.8rem;
+}
+
+.bp-selected-summary__value strong {
+  color: var(--bp-blue);
+  font-size: 1rem;
+}
+
+.bp-candidate-tray {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.bp-candidate-tray__slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(48px, 1fr));
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+
+.bp-candidate-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 1px dashed var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-50);
+  color: var(--bp-text-muted);
+  font: 700 0.75rem var(--bp-font);
+}
+
+button.bp-candidate-slot--filled {
+  border-style: solid;
+  border-color: var(--bp-blue);
+  background: var(--bp-tint-blue-15);
+  color: var(--bp-blue);
+  cursor: pointer;
+  animation: bp-candidate-fill 0.22s ease-out;
+}
+
+@keyframes bp-candidate-fill {
+  from { opacity: 0.35; transform: translateY(5px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+button.bp-candidate-slot--filled:focus-visible {
+  outline: 2px solid var(--bp-blue);
+  outline-offset: 2px;
+}
+
+.bp-candidate-slot__id,
+.bp-candidate-slot__fee {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bp-candidate-slot__fee {
+  font-size: 0.68rem;
+}
+
+.bp-candidate-tray__fees {
+  flex: 0 0 auto;
+  color: var(--bp-text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mempool-inline-error {
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--bp-200);
+  color: var(--bp-red);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.bp-mobile-mining-dock {
+  display: none;
+}
+@media (min-width: 1280px) {
+  .bp-game-play-stack {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    align-items: start;
+  }
+
+  .bp-game-play-stack > .bp-panel--mempool-full {
+    grid-column: 1;
+    grid-row: 1 / span 20;
+  }
+
+  .bp-game-play-stack > .bp-panel--selected-summary,
+  .bp-game-play-stack > .bp-panel--mining-action,
+  .bp-game-play-stack > .bp-collapse {
+    grid-column: 2;
+  }
+
+  .bp-game-play-stack > .bp-panel--mining-action {
+    position: static;
+    z-index: auto;
+  }
+}
+@media (max-width: 900px) {
+  html {
+    scroll-padding-top: 190px;
+    scroll-padding-bottom: 122px;
+  }
+
+  .bp-game {
+    padding-bottom: 112px;
+  }
+
+  .bp-panel--selected-summary {
+    display: none;
+  }
+
+  .bp-mobile-mining-dock {
+    position: fixed;
+    left: 50%;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: min(calc(100% - 20px), 520px);
+    padding: 8px;
+    border: 1px solid var(--bp-200);
+    border-radius: var(--bp-radius);
+    background: var(--bp-white);
+    box-shadow: var(--bp-shadow-elev);
+    transform: translateX(-50%);
+  }
+
+  .bp-mobile-mining-dock__handle {
+    display: flex;
+    width: 100%;
+    min-height: 24px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--bp-text-muted);
+    font: 800 0.62rem var(--bp-font);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .bp-mobile-mining-dock__handle:focus-visible {
+    outline: 2px solid var(--bp-blue);
+    outline-offset: 1px;
+  }
+
+  .bp-mobile-mining-dock__chevron {
+    color: var(--bp-blue);
+    font-size: 0.9rem;
+    transition: transform 0.18s ease;
+  }
+
+  .bp-mobile-mining-dock--expanded .bp-mobile-mining-dock__chevron {
+    transform: rotate(180deg);
+  }
+
+  .bp-mobile-mining-dock__body {
+    display: grid;
+    grid-template-columns: auto minmax(48px, 72px) minmax(92px, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bp-mobile-mining-dock__details {
+    padding: 7px 4px;
+    border-block: 1px solid var(--bp-200);
+  }
+
+  .bp-mobile-mining-dock__facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin: 0;
+  }
+
+  .bp-mobile-mining-dock__facts div {
+    min-width: 0;
+  }
+
+  .bp-mobile-mining-dock__facts dt {
+    overflow: hidden;
+    color: var(--bp-text-muted);
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .bp-mobile-mining-dock__facts dd {
+    margin: 2px 0 0;
+    overflow: hidden;
+    color: var(--bp-text);
+    font-family: var(--bp-mono);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bp-shake-toggle {
+    width: 100%;
+    min-height: 34px;
+    margin-top: 7px;
+    padding: 6px 10px;
+    border: 1px solid var(--bp-200);
+    border-radius: var(--bp-radius-sm);
+    background: var(--bp-50);
+    color: var(--bp-text-muted);
+    font: 700 0.68rem var(--bp-font);
+  }
+
+  .bp-shake-toggle--active {
+    border-color: var(--bp-blue);
+    background: var(--bp-tint-blue-15);
+    color: var(--bp-blue);
+  }
+
+  .bp-mobile-mining-dock__status {
+    min-width: 0;
+  }
+
+  .bp-mobile-mining-dock .bp-candidate-tray {
+    display: grid;
+    gap: 3px;
+    padding: 0;
+  }
+
+  .bp-mobile-mining-dock .bp-candidate-tray__slots {
+    grid-template-columns: repeat(3, 40px);
+    gap: 3px;
+  }
+
+  .bp-mobile-mining-dock .bp-candidate-slot {
+    min-height: 40px;
+    width: 40px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0.62rem;
+  }
+
+  .bp-mobile-mining-dock .bp-candidate-slot__fee {
+    display: none;
+  }
+
+  .bp-mobile-mining-dock .bp-candidate-tray__fees {
+    font-size: 0.62rem;
+    text-align: center;
+  }
+
+  .bp-mobile-mining-dock__input {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 7px 8px;
+    border: var(--bp-border-width) solid var(--bp-200);
+    border-radius: var(--bp-radius-sm);
+    background: var(--bp-white);
+    color: var(--bp-blue);
+    font: 700 1rem var(--bp-mono, var(--bp-font));
+    text-align: center;
+  }
+
+  .bp-mobile-mining-dock__input:focus {
+    outline: 2px solid var(--bp-blue);
+    outline-offset: 1px;
+  }
+
+  .bp-mobile-mining-dock__button {
+    min-width: 0;
+    min-height: 42px;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  .bp-mobile-mining-dock__button--wide {
+    grid-column: 2 / 4;
+  }
+
+  .game-toast {
+    bottom: 108px;
+  }
+
+  .bp-mobile-mining-dock--expanded + .game-toast {
+    bottom: 156px;
+  }
+}
+
+.bp-race-row--advanced {
+  animation: bp-race-advance 0.75s ease-out;
+}
+
+@keyframes bp-race-advance {
+  0%, 100% { background: transparent; }
+  45% { background: var(--bp-tint-blue-15); transform: translateX(3px); }
+}
+
+.bp-block-swipe-hint {
+  display: none;
+  margin: 0 0 var(--bp-space-2);
+  color: var(--bp-text-muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.bp-block-sheet-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--bp-space-2);
+  margin-top: var(--bp-space-3);
+}
+
+.bp-block-sheet-nav .bp-btn {
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .modal-overlay:has(.bp-block-details-sheet) {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .bp-block-details-sheet.modal-content {
+    width: 100%;
+    max-width: none;
+    max-height: min(86dvh, 720px);
+    margin: 0;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    border-width: 2px 0 0;
+    border-radius: var(--bp-radius-lg) var(--bp-radius-lg) 0 0;
+    animation: bp-sheet-up 0.24s ease-out;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  .bp-block-details-sheet .modal-header {
+    position: sticky;
+    top: -18px;
+    z-index: 1;
+    margin-inline: -16px;
+    padding: 12px 16px 10px;
+    background: var(--bp-white);
+    border-bottom: 1px solid var(--bp-200);
+  }
+
+  .bp-block-details-sheet .bp-block-sheet-nav {
+    position: sticky;
+    bottom: calc(-18px - env(safe-area-inset-bottom));
+    z-index: 1;
+    margin: var(--bp-space-3) -16px calc(-18px - env(safe-area-inset-bottom));
+    padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--bp-200);
+    background: var(--bp-white);
+  }
+
+  .bp-block-swipe-hint {
+    display: block;
+  }
+}
+
+@keyframes bp-sheet-up {
+  from { opacity: 0; transform: translateY(32px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* Structural accessibility and status feedback. */
+.bp-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.bp-room-invite__copy-fallback {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 12px;
+  text-align: left;
+}
+
+.bp-game-hud__pill--sync {
+  gap: 6px;
+}
+
+.bp-game-hud__pill--sync::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bp-green);
+  content: "";
+}
+
+.bp-game-hud__pill--sync-reconnecting::before {
+  background: var(--bp-blue);
+}
+
+.bp-game-hud__pill--sync-offline::before {
+  background: var(--bp-red);
+}
+
+.bp-chain__node--clickable:focus-visible,
+.mempool-table tr.bp-row--clickable:focus-visible {
+  outline: 2px solid var(--bp-blue);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mining workflow and informational reward stats. */
+.bp-mining-phases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin: 0; padding: 0.75rem 1rem 0; list-style: none; }
+.bp-mining-phases__item { display: flex; align-items: center; justify-content: center; gap: 0.4rem; min-width: 0; color: var(--text-dim); font-size: 0.78rem; font-weight: 700; }
+.bp-mining-phases__number { display: grid; place-items: center; width: 1.35rem; height: 1.35rem; flex: 0 0 auto; border: 1px solid currentColor; border-radius: 50%; font-size: 0.7rem; }
+.bp-mining-phases__item--active { color: var(--bp-blue); }
+.bp-mining-phases__item--done { color: var(--bp-green); }
+.bp-race-row__score, .bp-results-board__score { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 0.1rem; font-variant-numeric: tabular-nums; }
+.bp-race-row__score small, .bp-results-board__score small { font-size: 0.66rem; font-weight: 600; opacity: 0.72; white-space: nowrap; }
+@media (max-width: 420px) { .bp-mining-phases { padding-inline: 0.7rem; gap: 0.25rem; } .bp-mining-phases__item { font-size: 0.7rem; gap: 0.25rem; } }
+
+
+/* Bitcoin header and HASH256 learning flow. */
+.bp-header-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin: 0; }
+.bp-header-fields div { min-width: 0; padding: 0.55rem 0.65rem; border: 1px solid var(--bp-200); border-radius: 8px; background: var(--bp-50); }
+.bp-header-fields dt { color: var(--bp-text-muted); font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.bp-header-fields dd { margin: 0.2rem 0 0; overflow-wrap: anywhere; color: var(--bp-text); font-family: var(--bp-mono); font-size: 0.76rem; font-weight: 700; }
+.bp-hash-pipeline { display: grid; gap: 0.65rem; }
+.bp-hash-pipeline__step { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); align-items: start; gap: 0.55rem; }
+.bp-hash-pipeline__number { display: grid; width: 1.5rem; height: 1.5rem; place-items: center; border: 1px solid var(--bp-blue); border-radius: 50%; color: var(--bp-blue); font-size: 0.68rem; font-weight: 800; }
+.bp-hash-pipeline__content { display: grid; gap: 0.3rem; min-width: 0; }
+.bp-hash-pipeline__content strong { color: var(--bp-text); font-size: 0.74rem; }
+.bp-status--valid { color: var(--bp-green); }
+@media (max-width: 420px) { .bp-header-fields { grid-template-columns: 1fr; } }
+
+/* Final responsive pass: keep the current visual language while reducing UI obstruction. */
+.bp-game-hud { position: relative; top: auto; }
+.bp-mempool-quick-tools { padding: 0 var(--bp-space-3) var(--bp-space-2); }
+.bp-mobile-mining-dock__details-stack { display: grid; gap: var(--bp-space-2); }
+.bp-mining-phases__item { flex-wrap: wrap; text-align: center; line-height: 1.2; }
+@media (max-width: 900px) {
+  html { scroll-padding-top: 16px; scroll-padding-bottom: 132px; }
+  .bp-game { padding-bottom: 126px; }
+  .bp-panel--mining-action { display: none; }
+  .bp-game-play-stack .bp-panel--mempool-full .bp-table-wrap { max-height: min(54vh, 520px); overflow-y: auto; overscroll-behavior-y: contain; }
+  .bp-mobile-mining-dock__details { max-height: min(42vh, 320px); overflow-y: auto; }
+  .bp-mobile-mining-dock__handle { min-height: 34px; }
+  .bp-mobile-mining-dock__body { grid-template-columns: auto minmax(48px, 72px) minmax(0, 1fr); }
+  .bp-mobile-mining-dock__button { white-space: normal; line-height: 1.15; }
+  .bp-mobile-mining-dock__button--wide { grid-column: 2 / 4; }
+  .game-toast { bottom: 132px; width: min(calc(100% - 24px), 440px); }
+  .bp-mobile-mining-dock--expanded + .game-toast { bottom: min(48vh, 350px); }
+}
+@media (max-width: 480px) {
+  .bp-main--wide { padding-inline: 8px; }
+  .bp-game { padding-inline: 4px; }
+  .bp-game-hud { padding: 8px; }
+  .bp-game-hud__nav { flex-wrap: nowrap; gap: 5px; padding-bottom: 7px; }
+  .bp-game-hud__nav-start { width: auto; min-width: 0; flex: 1; gap: 5px; }
+  .bp-game-hud__pill--difficulty { display: none; }
+  .bp-game-hud__pill--room { max-width: 58px; padding-inline: 7px; }
+  .bp-game-hud__pill--sync { width: 30px; min-height: 30px; justify-content: center; padding: 0; font-size: 0; }
+  .bp-game-hud__pill--sync::before { width: 8px; height: 8px; }
+  .bp-game-hud__nav-end { margin-left: 0; }
+  .bp-game-hud__metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 4px; overflow: visible; }
+  .bp-hud-stat--secondary { display: none; }
+  .bp-game-hud__metrics .bp-hud-tile--block { min-width: 0; padding: 5px 7px; }
+  .bp-hud-stat { min-width: 0; padding: 5px 6px; }
+  .bp-hud-stat__label { max-width: 100%; letter-spacing: 0.03em; }
+  .bp-game-pinboard { margin-top: 8px; padding-top: 5px; }
+  .bp-game-pinboard__head { padding-top: 0; }
+  .bp-game-pinboard .bp-chain { padding: 3px 2px 4px; }
+  .bp-game-pinboard .bp-chain__cube { width: 30px; height: 30px; }
+  .bp-game-pinboard .bp-chain__node { min-width: 38px; }
+  .bp-game-pinboard .bp-chain__label { display: none; }
+  .mempool-table tbody tr { min-height: 58px; scroll-margin-block: 12px 132px; }
+  .bp-mobile-mining-dock .bp-candidate-tray__slots { grid-template-columns: repeat(3, 44px); }
+  .bp-mobile-mining-dock .bp-candidate-slot { width: 44px; min-height: 44px; }
+  .bp-mobile-mining-dock__body { grid-template-columns: auto minmax(46px, 62px) minmax(0, 1fr); gap: 6px; }
+}
+@media (max-width: 420px) {
+  .bp-stepper-field--compact { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+  .bp-stepper-field--compact .bp-stepper { gap: 4px; }
+  .bp-stepper-field--compact .bp-stepper__btn { width: 40px; height: 40px; }
+  .bp-stepper-field--compact .bp-stepper__display { min-width: 2rem; }
+  .bp-difficulty--compact { display: grid; grid-template-columns: 1fr; }
+  .bp-difficulty--compact .bp-difficulty__btn { min-width: 0; }
+  .bp-flow-card { padding-inline: 14px; }
+  .bp-room-invite--compact .bp-room-invite__code { font-size: 1.2rem; letter-spacing: 0.14em; }
+  .bp-room-invite--compact .bp-room-invite__actions { display: grid; grid-template-columns: 1fr 1fr; }
+}
+
+
+
+/* Compact game board: the candidate is primary, live counters stay secondary. */
+.bp-game-hud__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  overflow: visible;
+}
+
+.bp-hud-stat {
+  min-width: 0;
+  min-height: 52px;
+  padding: 7px 10px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-surface);
+}
+
+.bp-hud-stat--ready {
+  border-color: var(--bp-blue);
+  background: var(--bp-50);
+}
+
+.bp-hud-stat--selection {
+  justify-content: center;
+}
+
+.bp-hud-stat__selection-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.bp-hud-stat__selection-row .bp-selection {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+}
+
+.bp-hud-stat__meta {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bp-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bp-hud-stat__label-short { display: none; }
+.bp-hud-stat__label, .bp-hud-stat__value { max-width: 100%; }
+
+.bp-game-pinboard {
+  display: grid;
+  grid-template-columns: minmax(108px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 9px;
+  padding: 9px 10px 7px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-white);
+}
+
+.bp-game-pinboard__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+}
+
+.bp-game-pinboard__progress {
+  margin: 0;
+  padding: 4px 7px;
+  border: 1px solid var(--bp-200);
+  border-radius: 999px;
+  background: var(--bp-surface);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.bp-game-pinboard--complete .bp-game-pinboard__progress {
+  border-color: var(--bp-tint-green-45);
+  background: var(--bp-green-bg);
+  color: var(--bp-green);
+}
+
+.bp-game-pinboard .bp-chain { min-width: 0; padding: 2px; }
+.bp-game-pinboard .bp-chain__cube { width: 36px; height: 36px; }
+.bp-game-pinboard .bp-chain__node { min-width: 44px; }
+.bp-game-pinboard .bp-chain__label { font-size: 0.62rem; }
+
+@media (max-width: 480px) {
+  .bp-game-hud__metrics {
+    grid-template-columns: minmax(105px, 1.25fr) repeat(2, minmax(68px, 0.8fr));
+    gap: 5px;
+  }
+  .bp-hud-stat__label-short { display: inline; }
+  .bp-hud-stat__label:has(.bp-hud-stat__label-short) .bp-hud-stat__label-full { display: none; }
+  .bp-hud-stat { min-height: 44px; padding: 5px 8px; }
+  .bp-hud-stat__label { font-size: 0.5rem; letter-spacing: 0.025em; }
+  .bp-hud-stat__value { font-size: 0.82rem; }
+  .bp-hud-stat__selection-row .bp-selection { padding-block: 4px; }
+  .bp-hud-stat__meta { display: none; }
+  .bp-game-pinboard {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    margin-top: 7px;
+    padding: 7px 8px 6px;
+  }
+  .bp-game-pinboard__head { display: flex; }
+  .bp-game-pinboard__head .bp-icon-wrap { display: none; }
+  .bp-game-pinboard__title { font-size: 0.62rem; }
+  .bp-game-pinboard__progress { grid-column: 2; grid-row: 1; justify-self: end; font-size: 0.6rem; padding: 3px 6px; }
+  .bp-game-pinboard .bp-chain { grid-column: 1 / -1; padding: 2px 0 0; }
+  .bp-game-pinboard .bp-chain__cube { width: 34px; height: 34px; }
+  .bp-game-pinboard .bp-chain__node { min-width: 40px; }
+  .bp-game-pinboard .bp-chain__label { display: block; font-size: 0.55rem; }
+  .bp-game-pinboard .bp-chain__link { width: 12px; }
 }

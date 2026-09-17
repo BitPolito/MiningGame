@@ -1,45 +1,54 @@
-# Bitcoin Block Mining Simulator (Easy Mode)
+## Goal
 
-A simplified simulator that teaches mempool selection and numeric proof-of-work.
+In **Easy mode**, you build a valid block, calculate its value and manually find the nonce that completes the equation.
 
-## Overview
+> **At a glance:** choose 3 affordable transactions with the highest total fees → calculate the block value → find the nonce → confirm the block.
 
-You play as a miner: you select transactions from the mempool, then find a nonce that satisfies the block equation. The game enforces the protocol rules but never selects transactions on your behalf.
+In solo play, complete the chosen number of blocks. In multiplayer, every miner advances their own chain; the first to reach the goal wins.
 
-## Transaction selection rules
+## 1. Choose the transactions
 
-These rules apply to every block. Select rows by clicking the mempool table.
+Every block must contain **exactly three transactions**. A group is valid when it meets both conditions:
 
-1. **Exactly three transactions.** Each block must contain precisely three transactions. You decide which ones to include.
+- every sender can cover **amount + fee**;
+- its total fees are the highest among all affordable groups.
 
-2. **Sufficient balance.** For each transaction, the sender must be able to pay `amount + fee`. If you select **more than one** transaction from the same sender, the costs **accumulate** (each additional transaction from that sender counts against their balance).
+If you choose multiple transactions from the same sender, add their costs together. The three highest individual fees therefore do not necessarily make the best block. If several groups share the maximum total, all of them are valid.
 
-3. **Fee priority (one selection at a time).** Miners prefer higher fees. After each of your selections, consider what remains unselected and affordable:
-   - Count how many slots you still need (3 minus those already selected).
-   - Among affordable transactions, you may select only those with the **highest fees** for that step: as many as you still have slots available.
-   - Example: you still need 2 transactions and the affordable fees are 5, 4, and 2. You may select only those with fees of 5 and 4. The transaction with fee 2 stays unavailable until a higher-fee option is taken or becomes unaffordable.
+### What the game checks
 
-Transactions with insufficient balance cannot be selected. Transactions that are affordable but have a fee too low for the current step are rejected until the fee-priority rule allows them.
+- An unaffordable transaction is rejected as soon as you try to select it.
+- The group is checked for optimality only when you press **Mine block**.
+- The best solution is not highlighted: compare the mempool with the available balances.
 
-## How to play
+## 2. Calculate the block value
 
-1. **Review the mempool.** The game does not mark valid rows. An alert appears if your selection violates the balance or fee rules.
+Assign letters the values A=1, B=2, …, Z=26. For each transaction calculate:
 
-2. **Select three transactions.** Click only permitted rows. Click a selected row again to deselect it.
+```text
+Transaction value =
+sender letter value + receiver letter value + amount + fee
+```
 
-3. **Calculate the block value manually.** For each selected transaction, add:
-   - Letter value of the sender's name (A=1 … Z=26)
-   - Letter value of the receiver's name
-   - Amount
-   - Fee  
-   Sum across all three transactions. The game does not display this total.
+The **block value** is the sum of the three selected transaction values. The game does not display this total; you calculate it yourself.
 
-4. **Find the nonce.** Choose a positive nonce such that:
+## 3. Find the nonce
 
-   ```
-   Previous block target + Nonce + Block value = Current block target
-   ```
+Find a positive integer satisfying:
 
-   For the genesis block, the previous target is 0 (no prior block).
+```text
+Previous target + Nonce + Block value = Current target
+```
 
-5. **Mine the block.** Submit your nonce. If the equation is correct, balances update and the next block receives a new target. Otherwise, try another nonce.
+For the first block you mine, the previous target is 0. If the nonce is wrong, the game does not reveal whether it is too high or too low.
+
+## 4. Confirm the block
+
+When both the selection and nonce are correct:
+
+- payments update the balances;
+- the three confirmed transactions leave the mempool;
+- unconfirmed transactions remain and three new ones arrive;
+- the block fees are added to your miner earnings.
+
+Earned fees are a statistic. Only the number of mined blocks determines the winner.

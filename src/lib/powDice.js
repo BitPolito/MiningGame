@@ -1,32 +1,32 @@
-/**
- * Hard-mode mining: each attempt is a dice roll → random nonce (not sequential +1).
- */
-
-/** @typedef {{ d1: number, d2: number, sum: number }} DiceRoll */
-
+/** Hard-mode mining: dice are visual; every attempt uses a uint32 nonce. */
 const DICE_MIN = 1;
 const DICE_MAX = 6;
+const UINT32_RANGE = 0x100000000;
+export function formatPowNonce(value) {
+  if (!Number.isSafeInteger(value) || value < 0 || value >= UINT32_RANGE) return '—';
+  return `0x${value.toString(16).padStart(8, '0').toUpperCase()}`;
+}
 
-/**
- * @param {() => number} [rng] unit interval [0, 1)
- * @returns {DiceRoll}
- */
 export function rollDicePair(rng = Math.random) {
   const d1 = DICE_MIN + Math.floor(rng() * DICE_MAX);
   const d2 = DICE_MIN + Math.floor(rng() * DICE_MAX);
   return { d1, d2, sum: d1 + d2 };
 }
 
-/**
- * Random nonce for this attempt (dice are the visual metaphor; nonce is not d1+d2 only).
- * @param {number} attemptIndex 1-based roll count
- * @param {() => number} [rng]
- */
-export function nonceFromDiceRoll(attemptIndex, rng = Math.random) {
-  const { d1, d2 } = rollDicePair(rng);
-  const spread = Math.floor(rng() * 997) + 1;
-  const nonce = d1 * 10000 + d2 * 1000 + attemptIndex * 37 + spread;
-  return { dice: [d1, d2], nonce: Math.max(1, nonce) };
+function secureUint32() {
+  if (!globalThis.crypto?.getRandomValues) return null;
+  const value = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(value);
+  return value[0];
+}
+
+/** The optional RNG keeps simulations deterministic; normal play uses Web Crypto. */
+export function nonceFromDiceRoll(attemptIndex, rng = null) {
+  void attemptIndex;
+  const visualRng = rng ?? Math.random;
+  const { d1, d2 } = rollDicePair(visualRng);
+  const nonce = rng ? Math.floor(rng() * UINT32_RANGE) >>> 0 : (secureUint32() ?? Math.floor(Math.random() * UINT32_RANGE));
+  return { dice: [d1, d2], nonce };
 }
 
 export function emptyDiceFaces() {
@@ -34,5 +34,5 @@ export function emptyDiceFaces() {
 }
 
 export function isDiceReady(faces) {
-  return faces.every((v) => typeof v === 'number' && v >= DICE_MIN && v <= DICE_MAX);
+  return faces.every((value) => typeof value === 'number' && value >= DICE_MIN && value <= DICE_MAX);
 }

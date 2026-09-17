@@ -14,16 +14,13 @@ export default function GamePinnedChain({
   const { tr } = useLocale();
 
   return (
-    <div className="bp-game-pinboard" aria-label={tr('blockchain')}>
+    <div
+      className={`bp-game-pinboard${blocksMined >= blockGoal ? ' bp-game-pinboard--complete' : ''}`}
+      aria-label={tr('blockchain')}
+    >
       <div className="bp-game-pinboard__head">
         <BpIcon src={ICON.bitlogo} className="bp-icon--sm" tone="primary" />
         <span className="bp-game-pinboard__title">{tr('blockchain')}</span>
-        <span className="bp-game-pinboard__progress">
-          {tr('blockProgress', {
-            current: Math.min(blocksMined, blockGoal),
-            goal: blockGoal,
-          })}
-        </span>
       </div>
       <BlockchainStrip
         columns={columns}
@@ -31,6 +28,11 @@ export default function GamePinnedChain({
         onBlockClick={onBlockClick}
         clickable={clickable}
       />
+      <span className="bp-game-pinboard__progress">
+        {blocksMined >= blockGoal
+          ? tr('chainComplete')
+          : tr('nextBlockShort', { n: Math.min(blocksMined + 1, blockGoal) })}
+      </span>
     </div>
   );
 }

@@ -18,7 +18,7 @@ import GameResultsPanel from './components/GameResultsPanel';
 import HostDashboard from './components/HostDashboard';
 import BpIcon from './components/BpIcon';
 import { ICON } from './assets/icons';
-import { DEFAULT_BLOCKS_TO_WIN, clampNumPlayers } from './lib/roomConfig';
+import { DEFAULT_BLOCKS_TO_WIN, FIXED_POW_LEVEL, clampNumPlayers, getRoomOccupancy } from './lib/roomConfig';
 import NumPlayersControl from './components/NumPlayersControl';
 import {
   createRoom,
@@ -44,12 +44,14 @@ import {
   clearRoomSession,
 } from './lib/roomSession';
 import { useLocale } from './i18n/LocaleContext';
+import { clearSoloSessionMeta, loadSoloSessionMeta, saveSoloSessionMeta } from './lib/gameDraft';
 
 function App() {
   const { tr } = useLocale();
-  const [currentView, setCurrentView] = useState('menu');
-  const [difficulty, setDifficulty] = useState('easy');
-  const [blocksToWin, setBlocksToWin] = useState(DEFAULT_BLOCKS_TO_WIN);
+  const [soloSession, setSoloSession] = useState(() => loadSoloSessionMeta());
+  const [currentView, setCurrentView] = useState(() => soloSession ? 'game' : 'menu');
+  const [difficulty, setDifficulty] = useState(() => soloSession?.difficulty ?? 'easy');
+  const [blocksToWin, setBlocksToWin] = useState(() => soloSession?.blocksToWin ?? DEFAULT_BLOCKS_TO_WIN);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [rulesDifficulty, setRulesDifficulty] = useState('easy');
 
@@ -63,10 +65,12 @@ function App() {
   const [playerGameState, setPlayerGameState] = useState(null);
   const [hostParticipates, setHostParticipates] = useState(false);
   const [restoringSession, setRestoringSession] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('online');
   const [errorMsg, setErrorMsg] = useState('');
   const [peekLoading, setPeekLoading] = useState(false);
   const [creatingRoom, setCreatingRoom] = useState(false);
   const [joiningRoom, setJoiningRoom] = useState(false);
+  const [startingRoom, setStartingRoom] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const leaveActionRef = useRef(null);
 
@@ -111,6 +115,8 @@ function App() {
 
   const goHome = () => {
     clearRoomSession();
+    clearSoloSessionMeta();
+    setSoloSession(null);
     setCurrentView('menu');
     setRoomSeed('');
     setRoomData(null);
@@ -190,14 +196,32 @@ function App() {
       HOST_ONLY: 'errOnlyHostStart',
       PLAYER_REQUIRED: 'startNeedsOnePlayer',
       INVALID_SELECTION: 'errTxGeneric',
+      INSUFFICIENT_BALANCE: 'errTxBalance',
+      FEES_NOT_MAXIMIZED: 'errFeesNotMaximized',
+      NO_PLAYABLE_SELECTION: 'errConnect',
+      GAME_STATE_INVALID: 'errStateRefreshed',
       INVALID_PROOF: 'errNonceWrong',
-      UNEXPECTED_BLOCK: 'errConnect',
+      UNEXPECTED_BLOCK: 'errStateRefreshed',
       ROOM_CONFLICT: 'errConnect',
     }[err];
     return key ? tr(key) : (err || tr('errConnect'));
   };
 
+  const handleStartSolo = () => {
+    const session = {
+      id: globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
+      difficulty,
+      powLevel: FIXED_POW_LEVEL,
+      blocksToWin,
+    };
+    clearRoomSession();
+    saveSoloSessionMeta(session);
+    setSoloSession(session);
+    setCurrentView('game');
+  };
   const handleCreateRoom = async () => {
+    clearSoloSessionMeta();
+    setSoloSession(null);
     setErrorMsg('');
     if (!playerName.trim()) {
       setErrorMsg(tr('errNameRequired'));
@@ -210,6 +234,7 @@ function App() {
       numPlayers,
       blocksToWin,
       difficulty,
+      powLevel: FIXED_POW_LEVEL,
       hostParticipates: participates,
     });
     setCreatingRoom(false);
@@ -260,12 +285,14 @@ function App() {
     }
     setJoinPreview(result.room);
     setRulesDifficulty(result.room.difficulty || 'easy');
-    if (result.room.players.length >= result.room.numPlayers) {
+    if (getRoomOccupancy(result.room) >= result.room.numPlayers) {
       setErrorMsg(tr('errRoomFull'));
     }
   };
 
   const handleJoinRoom = async () => {
+    clearSoloSessionMeta();
+    setSoloSession(null);
     setErrorMsg('');
     if (!playerName.trim() || !roomSeed.trim()) {
       setErrorMsg(tr('errNameAndRoom'));
@@ -302,7 +329,9 @@ function App() {
 
   const handleStartGame = async () => {
     setErrorMsg('');
+    setStartingRoom(true);
     const data = await startRoom(roomSeed, sessionToken);
+    setStartingRoom(false);
     if (data.success) {
       setRoomData(data.room);
       if (data.playerState) setPlayerGameState(data.playerState);
@@ -390,7 +419,7 @@ function App() {
       if (result?.room?.status === 'waiting') {
         setJoinPreview(result.room);
         setRulesDifficulty(result.room.difficulty || 'easy');
-        if (result.room.players.length >= result.room.numPlayers) {
+        if (getRoomOccupancy(result.room) >= result.room.numPlayers) {
           setErrorMsg(tr('errRoomFull'));
         }
       } else if (result?.error === 'CONNECT_ERROR') {
@@ -419,14 +448,21 @@ function App() {
 
     const tick = async () => {
       if (cancelled || polling) return;
+      if (document.hidden) {
+        timer = setTimeout(tick, 4000);
+        return;
+      }
       polling = true;
+      if (failures > 0) setSyncStatus('reconnecting');
       try {
       const result = await fetchRoomStatus(roomSeed, sessionToken);
       if (!result?.room) {
         failures += 1;
+        setSyncStatus(failures >= 2 ? 'offline' : 'reconnecting');
         return;
       }
       failures = 0;
+      setSyncStatus('online');
       setRoomData(result.room);
       if (result.playerState) {
         setPlayerGameState((previous) =>
@@ -490,7 +526,7 @@ function App() {
   }, [currentView, roomSeed, sessionToken, minerName, playerName, isHostUser]);
 
   const errorBlock = errorMsg ? (
-    <div className="bp-error" role="alert">
+    <div id="flow-error" className="bp-error" role="alert">
       {errorMsg}
       {errorMsg === tr('errConnect') && (
         <div className="bp-error__hint">{tr('errApiHint')}</div>
@@ -578,7 +614,7 @@ function App() {
             <button
               type="button"
               className="bp-btn bp-btn-solid bp-btn--block"
-              onClick={() => setCurrentView('game')}
+              onClick={handleStartSolo}
             >
               <BpIcon src={ICON.pickaxe} className="bp-icon" />
               {tr('startSolo')}
@@ -621,6 +657,7 @@ function App() {
             className="bp-btn bp-btn-solid bp-btn--block"
             onClick={handleCreateRoom}
             disabled={creatingRoom}
+              aria-busy={creatingRoom}
           >
             <BpIcon src={ICON.party} className="bp-icon" tone="on-solid" />
             {creatingRoom ? tr('creatingRoom') : tr('createRoom')}
@@ -635,6 +672,8 @@ function App() {
             </label>
             <input
               id="host-name"
+              autoFocus
+              aria-describedby={errorMsg ? 'flow-error' : undefined}
               maxLength={32}
               className="bp-input"
               type="text"
@@ -692,7 +731,7 @@ function App() {
       preview && playerName.trim() && isPlayerNameTaken(preview, playerName);
     const canJoin =
       preview &&
-      preview.players.length < preview.numPlayers &&
+      getRoomOccupancy(preview) < preview.numPlayers &&
       preview.status === 'waiting' &&
       playerName.trim() &&
       !joinNameTaken;
@@ -719,6 +758,7 @@ function App() {
                 className="bp-btn bp-btn-solid bp-btn--block"
                 onClick={handleJoinRoom}
                 disabled={!canJoin || joiningRoom}
+                aria-busy={joiningRoom}
               >
                 <BpIcon src={ICON.wallet} className="bp-icon" tone="on-solid" />
                 {joiningRoom ? tr('joiningRoom') : tr('joinRoom')}
@@ -729,6 +769,7 @@ function App() {
                 className="bp-btn bp-btn-solid bp-btn--block"
                 onClick={handlePeekRoom}
                 disabled={peekLoading || !roomSeed.trim()}
+                aria-busy={peekLoading}
               >
                 {peekLoading ? tr('loadingRoom') : tr('findRoom')}
               </button>
@@ -741,6 +782,8 @@ function App() {
               <label className="bp-label" htmlFor="room-code">{tr('roomCode')}</label>
               <input
                 id="room-code"
+                autoFocus
+                aria-describedby={errorMsg ? 'flow-error' : undefined}
                 className="bp-input bp-input--code"
                 type="text"
                 placeholder={tr('roomCodePlaceholder')}
@@ -758,6 +801,7 @@ function App() {
                 </label>
                 <input
                   id="join-name"
+                  autoFocus
                   maxLength={32}
                   className={`bp-input${joinNameTaken ? ' bp-input--invalid' : ''}`}
                   type="text"
@@ -778,11 +822,11 @@ function App() {
               </div>
               <p className="bp-join-status">
                 {tr('playersJoined', {
-                  current: preview.players.length,
+                  current: getRoomOccupancy(preview),
                   total: preview.numPlayers,
                 })}
               </p>
-              <RoomSettingsCard room={preview} onShowRules={openRulesGuide} />
+              <RoomSettingsCard room={preview} onShowRules={openRulesGuide} showCapacity={false} />
             </div>
           )}
         </LobbyShell>
@@ -801,6 +845,7 @@ function App() {
   if (currentView === 'lobby_waiting') {
     const playersCount = roomData?.players.length ?? 0;
     const totalPlayers = roomData?.numPlayers ?? numPlayers;
+    const occupancy = getRoomOccupancy(roomData);
 
     return (
       <>
@@ -816,9 +861,10 @@ function App() {
               type="button"
               className="bp-btn bp-btn-solid bp-btn--block"
               onClick={handleStartGame}
-              disabled={playersCount < 1}
+              disabled={playersCount < 1 || startingRoom}
+              aria-busy={startingRoom}
             >
-              {tr('startGame')}
+              {startingRoom ? tr('startingGame') : tr('startGame')}
             </button>
           ) : (
             <p className="bp-waiting-note">{tr('waitingHost')}</p>
@@ -827,26 +873,28 @@ function App() {
       >
         <RoomInvite code={roomSeed} compact />
         <div className="bp-lobby-grid">
-          <RoomSettingsCard
-            room={roomData}
-            onShowRules={openRulesGuide}
-          />
           <div className="bp-lobby-side">
             <p className="bp-join-status">
-              {tr('playersJoined', { current: playersCount, total: totalPlayers })}
+              {tr('playersJoined', { current: occupancy, total: totalPlayers })}
             </p>
             <LobbyPlayerList
               players={roomData?.players}
               hostName={hostDisplayName}
+              hostParticipates={roomData?.hostParticipates}
               currentName={minerName || playerName}
             />
-            {isHostUser && playersCount < totalPlayers && (
+            {isHostUser && occupancy < totalPlayers && (
               <p className="bp-hint bp-hint--center">{tr('shareCodeHintOptional')}</p>
             )}
             {isHostUser && playersCount < 1 && (
               <p className="bp-hint bp-hint--center">{tr('startNeedsOnePlayer')}</p>
             )}
           </div>
+          <RoomSettingsCard
+            room={roomData}
+            onShowRules={openRulesGuide}
+            showCapacity={false}
+          />
         </div>
       </LobbyShell>
       {showHowToPlay && (
@@ -908,9 +956,11 @@ function App() {
             onStartGame={handleStartGame}
             onPlayAgain={handlePlayAgain}
             onShowRules={openRulesGuide}
-            startDisabled={playersCount < 1}
+            startDisabled={playersCount < 1 || startingRoom}
+            startLoading={startingRoom}
             showStart={status === 'waiting'}
             showPlayAgain={false}
+            startDisabledReason={tr('startNeedsOnePlayer')}
           />
           {status === 'finished' && (
             <GameResultsPanel room={roomData} playerName={hostDisplayName} isHost />
@@ -972,6 +1022,9 @@ function App() {
       sessionToken: sessionToken,
       playerState: playerGameState,
       onPlayerState: setPlayerGameState,
+      syncStatus,
+      soloSessionId: soloSession?.id ?? '',
+      powLevel: FIXED_POW_LEVEL,
     };
     return (
       <>

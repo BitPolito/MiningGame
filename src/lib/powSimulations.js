@@ -1,42 +1,27 @@
-import {
-  generateTargetHash,
-  HARD_POW_CHECK_TARGET,
-  isProofOfWorkValid,
-  LEADING_ZEROS,
-} from './targetHash.js';
-import { sha256Hex } from './sha256.js';
+import { generateTargetHash, isProofOfWorkValid } from './targetHash.js';
+import { hash256Trace } from './sha256.js';
 import { nonceFromDiceRoll } from './powDice.js';
 
-/**
- * Monte Carlo: dice-style random nonce attempts until valid PoW.
- * @param {object} opts
- * @param {string} [opts.txHash]
- * @param {string} [opts.roomSeed]
- * @param {number} [opts.blockNum]
- * @param {number} [opts.trials]
- * @param {number} [opts.maxAttemptsPerTrial]
- * @param {number} [opts.leadingZeros]
- * @param {boolean} [opts.checkTarget]
- */
+/** Monte Carlo for the probability represented by a deterministic block target. */
 export async function simulateDicePow({
-  txHash = 'demo-tx-hash-seed',
+  txHash = 'demo-block-header-seed',
   roomSeed = 'solo',
   blockNum = 1,
+  powLevel = '2',
   trials = 2000,
-  maxAttemptsPerTrial = 200,
-  leadingZeros = LEADING_ZEROS,
-  checkTarget = HARD_POW_CHECK_TARGET,
+  maxAttemptsPerTrial = 500,
+  rng = Math.random,
 } = {}) {
-  const targetHash = generateTargetHash(roomSeed, blockNum);
+  const targetHash = generateTargetHash(roomSeed, blockNum, powLevel);
   const attemptsList = [];
   let timeouts = 0;
 
-  for (let t = 0; t < trials; t++) {
+  for (let trial = 0; trial < trials; trial += 1) {
     let found = false;
-    for (let attempt = 1; attempt <= maxAttemptsPerTrial; attempt++) {
-      const { nonce } = nonceFromDiceRoll(attempt);
-      const hash = await sha256Hex(txHash + nonce);
-      if (isProofOfWorkValid(hash, targetHash, leadingZeros, checkTarget)) {
+    for (let attempt = 1; attempt <= maxAttemptsPerTrial; attempt += 1) {
+      const { nonce } = nonceFromDiceRoll(attempt, rng);
+      const hash = (await hash256Trace(`${txHash}:${trial}:${nonce}`)).displayHash;
+      if (isProofOfWorkValid(hash, targetHash)) {
         attemptsList.push(attempt);
         found = true;
         break;
@@ -46,56 +31,56 @@ export async function simulateDicePow({
   }
 
   attemptsList.sort((a, b) => a - b);
-  const n = attemptsList.length;
-  const sum = attemptsList.reduce((a, b) => a + b, 0);
-  const pct = (p) => (n ? attemptsList[Math.min(n - 1, Math.floor(n * p))] : null);
+  const count = attemptsList.length;
+  const sum = attemptsList.reduce((total, value) => total + value, 0);
+  const percentile = (fraction) => count
+    ? attemptsList[Math.min(count - 1, Math.floor(count * fraction))]
+    : null;
 
   return {
+    targetHash,
+    powLevel,
     trials,
-    successes: n,
+    successes: count,
     timeouts,
-    leadingZeros,
-    checkTarget,
-    mean: n ? sum / n : null,
-    median: pct(0.5),
-    p90: pct(0.9),
-    p99: pct(0.99),
-    min: n ? attemptsList[0] : null,
-    max: n ? attemptsList[n - 1] : null,
-    successRate: n / trials,
+    mean: count ? sum / count : null,
+    median: percentile(0.5),
+    p90: percentile(0.9),
+    p99: percentile(0.99),
+    min: count ? attemptsList[0] : null,
+    max: count ? attemptsList[count - 1] : null,
+    successRate: count / trials,
   };
 }
 
-/** Compare sequential nonce (+1) vs dice random — expect similar success rate per attempt. */
+/** Compare random dice nonces and sequential nonces under the same target. */
 export async function compareNonceStrategies({
-  txHash = 'demo-tx-hash-seed',
+  txHash = 'demo-block-header-seed',
   roomSeed = 'solo',
+  powLevel = '2',
   trials = 500,
-  maxAttempts = 120,
-  leadingZeros = LEADING_ZEROS,
-  checkTarget = HARD_POW_CHECK_TARGET,
+  maxAttempts = 250,
+  rng = Math.random,
 } = {}) {
-  const targetHash = generateTargetHash(roomSeed, 1);
+  const targetHash = generateTargetHash(roomSeed, 1, powLevel);
   let diceWins = 0;
-  let seqWins = 0;
+  let sequentialWins = 0;
   let diceAttempts = 0;
-  let seqAttempts = 0;
+  let sequentialAttempts = 0;
 
-  for (let t = 0; t < trials; t++) {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const { nonce: diceNonce } = nonceFromDiceRoll(attempt);
-      const diceHash = await sha256Hex(txHash + diceNonce);
+  for (let trial = 0; trial < trials; trial += 1) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const { nonce } = nonceFromDiceRoll(attempt, rng);
       diceAttempts += 1;
-      if (isProofOfWorkValid(diceHash, targetHash, leadingZeros, checkTarget)) {
+      if (isProofOfWorkValid((await hash256Trace(`${txHash}:dice:${trial}:${nonce}`)).displayHash, targetHash)) {
         diceWins += 1;
         break;
       }
     }
-    for (let nonce = 1; nonce <= maxAttempts; nonce++) {
-      const seqHash = await sha256Hex(txHash + nonce);
-      seqAttempts += 1;
-      if (isProofOfWorkValid(seqHash, targetHash, leadingZeros, checkTarget)) {
-        seqWins += 1;
+    for (let nonce = 1; nonce <= maxAttempts; nonce += 1) {
+      sequentialAttempts += 1;
+      if (isProofOfWorkValid((await hash256Trace(`${txHash}:sequential:${trial}:${nonce}`)).displayHash, targetHash)) {
+        sequentialWins += 1;
         break;
       }
     }
@@ -104,8 +89,8 @@ export async function compareNonceStrategies({
   return {
     trials,
     diceWinRate: diceWins / trials,
-    seqWinRate: seqWins / trials,
+    seqWinRate: sequentialWins / trials,
     diceAttemptsPerTrial: diceAttempts / trials,
-    seqAttemptsPerTrial: seqAttempts / trials,
+    seqAttemptsPerTrial: sequentialAttempts / trials,
   };
 }

@@ -3,11 +3,21 @@ import BpIcon from './BpIcon';
 import { ICON } from '../assets/icons';
 import { useLocale } from '../i18n/LocaleContext';
 
-export default function LobbyPlayerList({ players = [], hostName, currentName }) {
+export default function LobbyPlayerList({ players = [], hostName, hostParticipates = true, currentName }) {
   const { tr } = useLocale();
 
   return (
     <ul className="bp-player-list">
+      {!hostParticipates && hostName && (
+        <li className="bp-player-list__item">
+          <PlayerAvatar name={hostName} size="sm" />
+          <span className="bp-player-list__name">{hostName}</span>
+          <span className="bp-player-list__badge">
+            <BpIcon src={ICON.crown} className="bp-icon--sm" />
+            {tr('hostBadge')}
+          </span>
+        </li>
+      )}
       {players.map((p) => (
         <li key={p.name} className="bp-player-list__item">
           <PlayerAvatar name={p.name} size="sm" />

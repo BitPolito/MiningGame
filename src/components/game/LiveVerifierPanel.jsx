@@ -1,40 +1,37 @@
-import { useState } from 'react';
 import { useLocale } from '../../i18n/LocaleContext';
-import { useSha256 } from '../../hooks/useSha256';
 
-/** Optional SHA-256 checker for Hard mode (tx string + nonce). */
-export default function LiveVerifierPanel() {
+export default function LiveVerifierPanel({
+  headerHex = '',
+  firstHash = '',
+  secondHash = '',
+  displayHash = '',
+  targetHash = '',
+  valid = false,
+}) {
   const { tr } = useLocale();
-  const [verifyRaw, setVerifyRaw] = useState('');
-  const [verifyNonce, setVerifyNonce] = useState('');
-  const verifyTxHash = useSha256(verifyRaw);
-  const verifyFinalHash = useSha256(
-    verifyRaw && verifyNonce !== '' ? verifyTxHash + verifyNonce : '',
-  );
+  if (!headerHex) return <p className="bp-hint">{tr('verifierAwaitingCandidate')}</p>;
+
+  const steps = [
+    { label: tr('header80Bytes'), value: headerHex },
+    { label: tr('shaRoundOne'), value: firstHash },
+    { label: tr('shaRoundTwo'), value: secondHash },
+    { label: tr('displayedBlockHash'), value: displayHash },
+    { label: tr('blockTarget'), value: targetHash },
+  ];
 
   return (
-    <div className="live-verifier-panel">
-      <textarea
-        className="bp-input bp-input--mono"
-        rows={4}
-        value={verifyRaw}
-        onChange={(e) => setVerifyRaw(e.target.value)}
-        placeholder={tr('verifierPlaceholder')}
-      />
-      <div className="bp-hash bp-hash--compact">
-        {verifyRaw ? verifyTxHash || tr('computing') : tr('verifierAwaiting')}
-      </div>
-      <input
-        className="bp-input bp-input--mono"
-        type="text"
-        value={verifyNonce}
-        onChange={(e) => setVerifyNonce(e.target.value)}
-        placeholder={tr('nonce')}
-      />
-      <div className="bp-hash bp-hash--compact">
-        {verifyRaw && verifyNonce !== ''
-          ? verifyFinalHash || tr('computing')
-          : tr('verifierFinal')}
+    <div className="live-verifier-panel bp-hash-pipeline">
+      {steps.map((step, index) => (
+        <div className="bp-hash-pipeline__step" key={step.label}>
+          <span className="bp-hash-pipeline__number" aria-hidden>{index + 1}</span>
+          <div className="bp-hash-pipeline__content">
+            <strong>{step.label}</strong>
+            <div className="bp-hash bp-hash--compact">{step.value}</div>
+          </div>
+        </div>
+      ))}
+      <div className={`bp-status ${valid ? 'bp-status--valid' : ''}`} role="status">
+        {valid ? tr('hashBelowTarget') : tr('hashAboveTarget')}
       </div>
     </div>
   );

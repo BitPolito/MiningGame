@@ -4,12 +4,13 @@ Educational game by **BitPolito** that simulates mempool selection, fee markets,
 
 ## Features
 
-- **Easy mode:** arithmetic nonce puzzle (great for classrooms)
-- **Hard mode:** double SHA-256 hashing with live hash checker
+- **Easy mode:** manual arithmetic nonce puzzle with maximum-fee block selection
+- **Hard mode:** double SHA-256 hashing with a classroom-paced numeric target
 - **Solo play** or **multiplayer rooms** (race to mine N blocks, default 3)
 - **Join via room code, link, or QR** in the waiting lobby
 - **Italian / English** UI (toggle on menu and lobby screens)
-- **Deterministic mempools** in multiplayer: same room code gives the same transactions per block
+- **Deterministic, persistent mempools** with no hidden balance redistribution
+- In-progress block recovery after a browser refresh
 
 ## Quick start
 

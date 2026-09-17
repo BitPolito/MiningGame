@@ -9,7 +9,15 @@ import path from 'path';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDir, '..');
-const API_HEALTH = 'http://127.0.0.1:3001/api/health';
+const apiPort = Number.parseInt(process.env.API_PORT || '3001', 10);
+const vitePort = Number.parseInt(process.env.VITE_PORT || '5173', 10);
+const apiOrigin = `http://127.0.0.1:${apiPort}`;
+const API_HEALTH = `${apiOrigin}/api/health`;
+const childEnv = {
+  ...process.env,
+  PORT: String(apiPort),
+  VITE_API_TARGET: apiOrigin,
+};
 
 const children = [];
 
@@ -17,7 +25,7 @@ function run(cmd, args, label) {
   const child = spawn(cmd, args, {
     cwd: root,
     stdio: 'inherit',
-    env: process.env,
+    env: childEnv,
   });
   child.on('exit', (code) => {
     if (code !== 0 && code !== null) {
@@ -57,7 +65,7 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 console.log(`Root progetto: ${root}`);
-console.log('Avvio server API su http://localhost:3001 …');
+console.log(`Avvio server API su http://localhost:${apiPort} …`);
 run('node', ['server.js'], 'api');
 
 const ready = await waitForApi();
@@ -67,6 +75,6 @@ if (!ready) {
   console.log('[api] Pronta.');
 }
 
-console.log('Avvio frontend Vite su http://localhost:5173 …');
-console.log('Apri http://localhost:5173 — multiplayer: crea/unisciti a una stanza.\n');
-run('npx', ['vite'], 'vite');
+console.log(`Avvio frontend Vite su http://localhost:${vitePort} …`);
+console.log(`Apri http://localhost:${vitePort} — multiplayer: crea/unisciti a una stanza.\n`);
+run('npx', ['vite', '--host', '127.0.0.1', '--port', String(vitePort), '--strictPort'], 'vite');

@@ -2,12 +2,18 @@ export const DEFAULT_BLOCKS_TO_WIN = 3;
 export const MIN_BLOCKS_TO_WIN = 1;
 export const MAX_BLOCKS_TO_WIN = 12;
 export const MIN_PLAYERS = 2;
-export const MAX_PLAYERS = 21;
+export const MAX_PLAYERS = 30;
+export const FIXED_POW_LEVEL = '2';
 
 export function clampNumPlayers(value) {
   const n = parseInt(value, 10);
   if (Number.isNaN(n)) return 3;
   return Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, n));
+}
+
+/** Everyone connected to the room counts, including a non-mining host. */
+export function getRoomOccupancy(room) {
+  return (room?.players?.length ?? 0) + (room?.hostParticipates === false ? 1 : 0);
 }
 
 /** Clamp blocks-to-win to allowed range. */
@@ -35,4 +41,9 @@ export function pickNewerRoom(a, b) {
   const ta = a.updatedAt ?? 0;
   const tb = b.updatedAt ?? 0;
   return tb >= ta ? b : a;
+}
+
+export function normalizePowLevel(value) {
+  void value;
+  return FIXED_POW_LEVEL;
 }

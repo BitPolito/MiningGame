@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { kv, updateAtomically } from './kv.js';
 import { createInitialGameState, validateAndApplyMine } from '../src/lib/gameEngine.js';
-import { clampBlocksToWin, clampNumPlayers, DEFAULT_BLOCKS_TO_WIN } from './roomConfig.js';
+import { clampBlocksToWin, clampNumPlayers, DEFAULT_BLOCKS_TO_WIN, getRoomOccupancy, normalizePowLevel } from './roomConfig.js';
 
 const SEED_WORDS = ['SATOSHI', 'GENESIS', 'HALVING', 'MEMPOOL', 'LEDGER', 'NODE', 'HASH', 'WALLET', 'BLOCK', 'MINER'];
 const CODE_RE = /^[A-Z]+-[A-Z]+-\d{4}$/;
@@ -48,7 +48,7 @@ function validateCode(seed) {
 }
 
 function roomKey(seed) {
-  return `room:v2:${seed}`;
+  return `room:v6:${seed}`;
 }
 
 function makeToken() {
@@ -88,6 +88,7 @@ function publicRoom(room) {
     numPlayers: room.numPlayers,
     blocksToWin: room.blocksToWin,
     difficulty: room.difficulty,
+    powLevel: room.powLevel ?? '2',
     status: room.status,
     winner: room.winner,
     gameSeed: room.gameSeed,
@@ -96,9 +97,10 @@ function publicRoom(room) {
     createdAt: room.createdAt,
     updatedAt: room.updatedAt,
     startedAt: room.startedAt,
-    players: room.players.map(({ name, blocks, lastMinedAt, connectedAt }) => ({
+    players: room.players.map(({ name, blocks, feesEarned, lastMinedAt, connectedAt }) => ({
       name,
       blocks,
+      feesEarned: feesEarned ?? 0,
       lastMinedAt,
       connectedAt,
     })),
@@ -124,15 +126,16 @@ function newCode() {
   return `${a}-${b}-${String(randomInt(10000)).padStart(4, '0')}`;
 }
 
-function newPlayer(name, token, difficulty, seed) {
+function newPlayer(name, token, difficulty, seed, powLevel = '2') {
   const now = Date.now();
   return {
     name,
     blocks: 0,
+    feesEarned: 0,
     lastMinedAt: null,
     connectedAt: now,
     tokenHash: tokenHash(token),
-    gameState: createInitialGameState(difficulty, seed),
+    gameState: createInitialGameState(difficulty, seed, powLevel),
   };
 }
 
@@ -154,6 +157,7 @@ export default async function handler(req, res) {
       const body = parseBody(req);
       const hostName = validateName(body.hostName);
       const difficulty = body.difficulty === 'hard' ? 'hard' : 'easy';
+      const powLevel = normalizePowLevel(body.powLevel);
       const hostParticipates = Boolean(body.hostParticipates);
       const sessionToken = makeToken();
 
@@ -161,18 +165,19 @@ export default async function handler(req, res) {
         const seed = newCode();
         const now = Date.now();
         const room = {
-          version: 2,
+          version: 5,
           seed,
           gameSeed: seed,
           numPlayers: clampNumPlayers(body.numPlayers),
           blocksToWin: clampBlocksToWin(body.blocksToWin ?? DEFAULT_BLOCKS_TO_WIN),
           difficulty,
+          powLevel,
           status: 'waiting',
           winner: null,
           hostDisplayName: hostName,
           hostParticipates,
           hostTokenHash: tokenHash(sessionToken),
-          players: hostParticipates ? [newPlayer(hostName, sessionToken, difficulty, seed)] : [],
+          players: hostParticipates ? [newPlayer(hostName, sessionToken, difficulty, seed, powLevel)] : [],
           createdAt: now,
           updatedAt: now,
           startedAt: null,
@@ -197,9 +202,12 @@ export default async function handler(req, res) {
       const hash = tokenHash(sessionToken);
       const result = await updateAtomically(roomKey(code), (room) => {
         if (room.status !== 'waiting') throw new ApiError(409, 'ROOM_NOT_WAITING');
-        if (room.players.some((p) => nameKey(p.name) === nameKey(playerName))) throw new ApiError(409, 'NAME_TAKEN');
-        if (room.players.length >= room.numPlayers) throw new ApiError(409, 'ROOM_FULL');
-        room.players.push(newPlayer(playerName, sessionToken, room.difficulty, room.seed));
+        if (nameKey(room.hostDisplayName) === nameKey(playerName)
+          || room.players.some((p) => nameKey(p.name) === nameKey(playerName))) {
+          throw new ApiError(409, 'NAME_TAKEN');
+        }
+        if (getRoomOccupancy(room) >= room.numPlayers) throw new ApiError(409, 'ROOM_FULL');
+        room.players.push(newPlayer(playerName, sessionToken, room.difficulty, room.seed, room.powLevel));
         room.updatedAt = Date.now();
         return room;
       });
@@ -265,8 +273,9 @@ export default async function handler(req, res) {
         room.startedAt = null;
         room.players.forEach((player) => {
           player.blocks = 0;
+          player.feesEarned = 0;
           player.lastMinedAt = null;
-          player.gameState = createInitialGameState(room.difficulty, room.seed);
+          player.gameState = createInitialGameState(room.difficulty, room.seed, room.powLevel);
         });
         room.updatedAt = Date.now();
         return room;
@@ -293,6 +302,7 @@ export default async function handler(req, res) {
         if (!applied.ok) throw new ApiError(422, applied.error);
         auth.player.gameState = applied.state;
         auth.player.blocks += 1;
+        auth.player.feesEarned = applied.state.feesEarned;
         auth.player.lastMinedAt = Date.now();
         auth.player.connectedAt = Date.now();
         minedPlayerHash = auth.player.tokenHash;
@@ -308,6 +318,7 @@ export default async function handler(req, res) {
       return successRoom(res, result.value, { player }, {
         playerBlocks: player.blocks,
         won: result.value.status === 'finished',
+        block: player.gameState.history[player.gameState.history.length - 1],
       });
     }
 

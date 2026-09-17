@@ -53,7 +53,8 @@ export default function GameResultsPanel({ room, playerName, isHost }) {
                 )}
               </span>
               <span className="bp-results-board__score">
-                {p.blocks}/{goal}
+                <strong>{p.blocks}/{goal}</strong>
+                <small>{tr('feesScore', { fees: p.feesEarned ?? 0 })}</small>
               </span>
             </li>
           ))}

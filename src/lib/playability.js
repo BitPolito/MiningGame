@@ -1,29 +1,16 @@
-import { canSelectTransaction } from './txSelection.js';
+import { getValidBlockSelections } from './txSelection.js';
 
-/** True if some sequence of 3 picks is allowed by fee/balance rules. */
+/** True if at least one affordable three-transaction block exists. */
 export function canCompleteBlockSelection(mempool, balances) {
-  const tryPick = (selected) => {
-    if (selected.length === 3) return true;
-    for (const tx of mempool) {
-      if (selected.includes(tx.id)) continue;
-      if (canSelectTransaction(tx.id, mempool, selected, balances)) {
-        if (tryPick([...selected, tx.id])) return true;
-      }
-    }
-    return false;
-  };
-  return tryPick([]);
+  return getValidBlockSelections(mempool, balances).length > 0;
 }
 
-/** Greedy pick matching typical player behaviour (highest fee first). */
+/** Deterministic maximum-fee selection used by tests and simulations. */
 export function pickGreedySelection(mempool, balances) {
-  const selected = [];
-  const sorted = [...mempool].sort((a, b) => b.fee - a.fee || a.id - b.id);
-  for (const tx of sorted) {
-    if (selected.length >= 3) break;
-    if (canSelectTransaction(tx.id, mempool, selected, balances)) {
-      selected.push(tx.id);
-    }
-  }
-  return selected;
+  const valid = getValidBlockSelections(mempool, balances);
+  valid.sort((a, b) =>
+    b.totalFees - a.totalFees ||
+    a.ids.join(',').localeCompare(b.ids.join(',')),
+  );
+  return valid[0]?.ids ?? [];
 }

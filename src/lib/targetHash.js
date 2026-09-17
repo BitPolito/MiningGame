@@ -1,32 +1,44 @@
-import { createSeededRandom } from './seededRandom.js';
+export const POW_BITS = 0x20050000;
 
-/** Classroom-friendly: ~1/16 hashes pass the leading-zero check per dice roll. */
-export const LEADING_ZEROS = 1;
-
-/**
- * Full Bitcoin-style check also compares hash < target (median ~19 rolls).
- * Prefix-only is tuned for faster dice sessions (median ~11 rolls); see npm run simulate:pow.
- */
-export const HARD_POW_CHECK_TARGET = true;
-
-export function isProofOfWorkValid(
-  finalHash,
-  targetHash,
-  leadingZeros = LEADING_ZEROS,
-  checkTarget = HARD_POW_CHECK_TARGET,
-) {
-  if (!finalHash || !targetHash) return false;
-  const prefix = '0'.repeat(leadingZeros);
-  if (!finalHash.startsWith(prefix)) return false;
-  if (!checkTarget) return true;
-  return finalHash <= targetHash;
+export function normalizePowLevel(value) {
+  void value;
+  return '2';
 }
 
-export function generateTargetHash(roomSeed = '', blockNum = 1) {
-  const rng = createSeededRandom(`${roomSeed || 'solo'}-target-${blockNum}`);
-  let randomTarget = '';
-  for (let i = 0; i < 64 - LEADING_ZEROS; i++) {
-    randomTarget += Math.floor(rng() * 16).toString(16);
-  }
-  return '0'.repeat(LEADING_ZEROS) + randomTarget;
+export function compactToTargetHash(bits) {
+  const compact = Number(bits) >>> 0;
+  const exponent = compact >>> 24;
+  const mantissa = compact & 0x007fffff;
+  if (!mantissa || compact & 0x00800000) throw new RangeError('Invalid compact target');
+  const target = exponent <= 3
+    ? BigInt(mantissa) >> BigInt(8 * (3 - exponent))
+    : BigInt(mantissa) << BigInt(8 * (exponent - 3));
+  if (target <= 0n || target >= (1n << 256n)) throw new RangeError('Target outside uint256 range');
+  return target.toString(16).padStart(64, '0');
+}
+
+export function getPowBits() {
+  return POW_BITS;
+}
+
+/** A short game keeps nBits fixed, as Bitcoin does inside a difficulty period. */
+export function generateTargetHash(roomSeed = 'solo', blockNum = 1, powLevel = '2') {
+  void roomSeed;
+  void blockNum;
+  void powLevel;
+  return compactToTargetHash(getPowBits());
+}
+
+export function isProofOfWorkValid(displayHash, targetHash) {
+  if (!displayHash || !targetHash) return false;
+  if (!/^[0-9a-f]{64}$/i.test(displayHash) || !/^[0-9a-f]{64}$/i.test(targetHash)) return false;
+  return BigInt(`0x${displayHash}`) <= BigInt(`0x${targetHash}`);
+}
+
+export function getTargetPacing(targetHash) {
+  if (!/^[0-9a-f]{64}$/i.test(targetHash)) return null;
+  const prefix = Number.parseInt(targetHash.slice(0, 8), 16);
+  const probability = (prefix + 1) / 0x100000000;
+  const percentile = (chance) => Math.max(1, Math.ceil(Math.log(1 - chance) / Math.log(1 - probability)));
+  return { probability, median: percentile(0.5), p90: percentile(0.9) };
 }

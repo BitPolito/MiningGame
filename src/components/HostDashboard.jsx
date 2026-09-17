@@ -6,6 +6,7 @@ import RoomSettingsCard from './RoomSettingsCard';
 import { ICON } from '../assets/icons';
 import { analyzeRace } from '../lib/raceProjection';
 import { getHostDisplayName } from '../lib/roomAuth';
+import { getRoomOccupancy } from '../lib/roomConfig';
 import { useLocale } from '../i18n/LocaleContext';
 
 function formatLastActive(ts, tr) {
@@ -25,11 +26,14 @@ export default function HostDashboard({
   startDisabled,
   showStart,
   showPlayAgain,
+  startDisabledReason,
+  startLoading = false,
 }) {
   const { tr } = useLocale();
   const { leader, likelyWinner, goal, sorted } = analyzeRace(room);
   const hostLabel = getHostDisplayName(room);
   const status = room?.status ?? 'waiting';
+  const occupancy = getRoomOccupancy(room);
 
   return (
     <div className="bp-host-dash">
@@ -38,12 +42,10 @@ export default function HostDashboard({
       <div className="bp-host-dash__hero">
         <BpIcon src={ICON.crown} className="bp-icon--lg" />
         <div>
-          <p className="bp-host-dash__label">{tr('hostDashboardTitle')}</p>
+          <p className="bp-host-dash__label">{tr('hostBadge')}</p>
           <p className="bp-host-dash__host-name">{hostLabel}</p>
           <p className="bp-host-dash__status">
-            {status === 'waiting' && tr('hostDashboardWaiting')}
-            {status === 'playing' && tr('hostDashboardPlaying')}
-            {status === 'finished' && tr('hostDashboardFinished')}
+            {tr('playersJoined', { current: occupancy, total: room?.numPlayers ?? 0 })}
           </p>
         </div>
       </div>
@@ -69,10 +71,8 @@ export default function HostDashboard({
         </p>
       )}
 
-      <PanelCard title={tr('hostLiveRace')} iconSrc={ICON.pickaxe}>
-        {!sorted.length ? (
-          <p className="bp-hint">{tr('hostNoPlayersYet')}</p>
-        ) : (
+      {sorted.length > 0 && (
+        <PanelCard title={tr('hostLiveRace')} iconSrc={ICON.pickaxe}>
           <ol className="bp-host-race-list">
             {sorted.map((p, i) => {
               const pct = Math.min(100, (p.blocks / goal) * 100);
@@ -97,10 +97,10 @@ export default function HostDashboard({
               );
             })}
           </ol>
-        )}
-      </PanelCard>
+        </PanelCard>
+      )}
 
-      <RoomSettingsCard room={room} onShowRules={onShowRules} />
+      <RoomSettingsCard room={room} onShowRules={onShowRules} showCapacity={false} />
 
       {(showStart || showPlayAgain) && (
         <div className="bp-host-dash__actions">
@@ -110,9 +110,13 @@ export default function HostDashboard({
               className="bp-btn bp-btn-solid bp-btn--block"
               onClick={onStartGame}
               disabled={startDisabled}
+              aria-busy={startLoading}
             >
-              {tr('startGame')}
+              {startLoading ? tr('startingGame') : tr('startGame')}
             </button>
+          )}
+          {showStart && startDisabled && startDisabledReason && (
+            <p className="bp-hint bp-hint--center" role="status">{startDisabledReason}</p>
           )}
           {showPlayAgain && (
             <button

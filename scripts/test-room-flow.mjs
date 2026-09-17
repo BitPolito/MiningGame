@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { computeBlockValue } from '../src/lib/easyMining.js';
 import { pickGreedySelection } from '../src/lib/playability.js';
+import { getTransactionsInSelectionOrder, getValidBlockSelections } from '../src/lib/txSelection.js';
 
 const BASE = process.env.ROOM_API || 'http://127.0.0.1:3001/api/room';
 
@@ -45,8 +46,18 @@ async function main() {
   const status = expectOk(await call('status', { method: 'GET', seed, token: hostToken }), 'status');
   const game = status.playerState;
   const selectedTxIds = pickGreedySelection(game.mempool, game.balances);
-  const selected = game.mempool.filter((tx) => selectedTxIds.includes(tx.id));
+  const selected = getTransactionsInSelectionOrder(game.mempool, selectedTxIds);
   const nonce = game.target - game.prevTarget - computeBlockValue(selected);
+
+  const suboptimal = getValidBlockSelections(game.mempool, game.balances)
+    .find((selection) => selection.totalFees < selected.reduce((sum, tx) => sum + tx.fee, 0));
+  if (!suboptimal) throw new Error('test mempool lacks a suboptimal valid group');
+  const suboptimalTxs = getTransactionsInSelectionOrder(game.mempool, suboptimal.ids);
+  const suboptimalNonce = game.target - game.prevTarget - computeBlockValue(suboptimalTxs);
+  const lowFees = await call('mine', {
+    body: { seed, blockIndex: game.blockNum, selectedTxIds: suboptimal.ids, nonce: suboptimalNonce }, token: hostToken,
+  });
+  if (lowFees.data.error !== 'FEES_NOT_MAXIMIZED') throw new Error('suboptimal fees accepted');
 
   const cheat = await call('mine', {
     body: { seed, blockIndex: game.blockNum, selectedTxIds, nonce: nonce + 1 }, token: hostToken,
@@ -57,6 +68,7 @@ async function main() {
     body: { seed, blockIndex: game.blockNum, selectedTxIds, nonce }, token: hostToken,
   }), 'mine');
   if (mined.playerState.blockNum !== 2 || mined.playerBlocks !== 1) throw new Error('mine state not advanced');
+  if (!mined.block?.totalFees || mined.playerState.feesEarned !== mined.block.totalFees) throw new Error('miner fees not recorded');
 
   const replay = await call('mine', {
     body: { seed, blockIndex: game.blockNum, selectedTxIds, nonce }, token: hostToken,
@@ -71,16 +83,19 @@ async function main() {
 
   const secondGame = mined.playerState;
   const secondIds = pickGreedySelection(secondGame.mempool, secondGame.balances);
-  const secondTxs = secondGame.mempool.filter((tx) => secondIds.includes(tx.id));
+  const secondTxs = getTransactionsInSelectionOrder(secondGame.mempool, secondIds);
   const secondNonce = secondGame.target - secondGame.prevTarget - computeBlockValue(secondTxs);
-  const won = expectOk(await call('mine', {
-    body: { seed, blockIndex: secondGame.blockNum, selectedTxIds: secondIds, nonce: secondNonce }, token: hostToken,
-  }), 'winning mine');
-  if (!won.won) throw new Error('winning state not recorded');
-  expectOk(await call('reset', { body: { seed }, token: hostToken }), 'reset');
+  const simultaneous = await Promise.all([
+    call('mine', { body: { seed, blockIndex: secondGame.blockNum, selectedTxIds: secondIds, nonce: secondNonce }, token: hostToken }),
+    call('mine', { body: { seed, blockIndex: secondGame.blockNum, selectedTxIds: secondIds, nonce: secondNonce }, token: hostToken }),
+  ]);
+  const winners = simultaneous.filter((entry) => entry.data.success);
+  if (winners.length !== 1 || !winners[0].data.won) throw new Error('simultaneous proof was not committed exactly once');
+  const reset = expectOk(await call('reset', { body: { seed }, token: hostToken }), 'reset');
+  if (reset.room.players.some((player) => player.feesEarned !== 0)) throw new Error('reset retained miner fees');
 
   const raceRoom = expectOk(await call('create', { body: {
-    hostName: 'Teacher', numPlayers: 2, difficulty: 'easy', blocksToWin: 1, hostParticipates: false,
+    hostName: 'Teacher', numPlayers: 3, difficulty: 'easy', blocksToWin: 1, hostParticipates: false,
   } }), 'concurrency room');
   const joins = await Promise.all(
     ['A', 'B', 'C', 'D', 'E'].map((playerName) => call('join', { body: { seed: raceRoom.seed, playerName } })),

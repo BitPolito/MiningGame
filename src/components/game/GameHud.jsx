@@ -4,38 +4,41 @@ import SelectionCounter from '../SelectionCounter';
 import { useLocale } from '../../i18n/LocaleContext';
 
 /**
- * Fixed in-game HUD: navigation + live metrics (replaces toolbar + status bar).
- * @param {{ label: string, value: string | number, mono?: boolean, title?: string }[]} stats
+ * In-game HUD: navigation, room state and compact live stats.
  */
 export default function GameHud({
   onHome,
   onHelp,
   difficulty,
-  blocksMined = 0,
-  blockGoal = 6,
   roomSeed,
-  selectionCount = 0,
   stats = [],
   children,
+  syncStatus = 'online',
 }) {
   const { tr } = useLocale();
-  const progressPct =
-    blockGoal > 0 ? Math.min(100, (blocksMined / blockGoal) * 100) : 0;
-
   return (
     <header className="bp-game-hud" aria-label={tr('gameHudAria')}>
       <div className="bp-game-hud__nav">
         <div className="bp-game-hud__nav-start">
           <AppNavActions onHome={onHome} onRules={onHelp} compact />
           <span
-            className={`bp-game-hud__pill${difficulty === 'hard' ? ' bp-game-hud__pill--hard' : ''}`}
+            className={`bp-game-hud__pill bp-game-hud__pill--difficulty${difficulty === 'hard' ? ' bp-game-hud__pill--hard' : ''}`}
           >
             {tr(difficulty === 'easy' ? 'difficultyEasy' : 'difficultyHard')}
           </span>
           {roomSeed && (
-            <span className="bp-game-hud__pill bp-game-hud__pill--room" title={tr('roomCode')}>
-              {roomSeed}
-            </span>
+            <>
+              <span className="bp-game-hud__pill bp-game-hud__pill--room" title={tr('roomCode')}>
+                {roomSeed}
+              </span>
+              <span
+                className={'bp-game-hud__pill bp-game-hud__pill--sync bp-game-hud__pill--sync-' + syncStatus}
+                role="status"
+                aria-live="polite"
+              >
+                {tr(syncStatus === 'online' ? 'syncOnline' : syncStatus === 'offline' ? 'syncOffline' : 'syncReconnecting')}
+              </span>
+            </>
           )}
         </div>
         <div className="bp-game-hud__nav-end">
@@ -44,39 +47,31 @@ export default function GameHud({
       </div>
 
       <div className="bp-game-hud__metrics">
-        <div
-          className={`bp-hud-tile bp-hud-tile--tx${selectionCount === 3 ? ' bp-hud-tile--ready' : ''}`}
-        >
-          <span className="bp-hud-tile__label">{tr('hudTxLabel')}</span>
-          <SelectionCounter count={selectionCount} />
-        </div>
-
-        <div className="bp-hud-tile bp-hud-tile--block">
-          <span className="bp-hud-tile__label">{tr('blockProgressLabel')}</span>
-          <div className="bp-hud-block">
-            <div className="bp-hud-block__track" aria-hidden>
-              <div className="bp-hud-block__fill" style={{ width: `${progressPct}%` }} />
-            </div>
-            <span className="bp-hud-block__nums">
-              {Math.min(blocksMined, blockGoal)}
-              <span className="bp-hud-block__sep">/</span>
-              {blockGoal}
-            </span>
-          </div>
-        </div>
-
-        {stats.map((stat) => (
+        {stats.map((stat, index) => (
           <div
-            key={stat.label}
-            className={`bp-hud-tile${stat.mono ? ' bp-hud-tile--mono' : ''}${stat.wide ? ' bp-hud-tile--wide' : ''}`}
+            className={[
+              'bp-hud-stat',
+              stat.kind === 'selection' ? 'bp-hud-stat--selection' : '',
+              stat.ready ? 'bp-hud-stat--ready' : '',
+              stat.secondary ? 'bp-hud-stat--secondary' : '',
+            ].filter(Boolean).join(' ')}
+            key={`${stat.label}-${index}`}
             title={stat.title}
           >
-            <span className="bp-hud-tile__label">{stat.label}</span>
-            <span
-              className={`bp-hud-tile__value${stat.mono ? ' bp-hud-tile__value--mono' : ''}`}
-            >
-              {stat.value}
+            <span className="bp-hud-stat__label">
+              <span className="bp-hud-stat__label-full">{stat.label}</span>
+              {stat.shortLabel && <span className="bp-hud-stat__label-short">{stat.shortLabel}</span>}
             </span>
+            {stat.kind === 'selection' ? (
+              <div className="bp-hud-stat__selection-row">
+                <SelectionCounter count={stat.count} variant="hud" />
+                {stat.meta && <span className="bp-hud-stat__meta">{stat.meta}</span>}
+              </div>
+            ) : (
+              <span className={`bp-hud-stat__value${stat.mono ? ' bp-hud-stat__value--mono' : ''}`}>
+                {stat.value}
+              </span>
+            )}
           </div>
         ))}
       </div>

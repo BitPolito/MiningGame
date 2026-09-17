@@ -23,7 +23,7 @@ app.all('/api/room', async (req, res) => {
   }
 });
 
-const PORT = 3001;
+const PORT = Number.parseInt(process.env.PORT || '3001', 10);
 app.listen(PORT, () => {
   console.log(`Local Vercel API simulation server running on port ${PORT}`);
 });

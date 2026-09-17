@@ -5,6 +5,7 @@ import './styles/bitpolito.css';
 import './styles/light-ui.css';
 import './styles/game-spacing.css';
 import './styles/game-layout.css';
+import './styles/block-details.css';
 import './styles/text-colors.css';
 import './styles/palette-fixes.css';
 import App from './App.jsx';

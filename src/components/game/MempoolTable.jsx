@@ -24,7 +24,8 @@ export default function MempoolTable({
   showUserIcons = true,
   inlineNameValues = false,
   emptyMessage,
-  maxSelectable = 3,
+  rejectedId = null,
+  rejectionMessage = '',
 }) {
   const { tr } = useLocale();
   const selectable = !!onToggle && !disabled;
@@ -36,8 +37,6 @@ export default function MempoolTable({
       </div>
     );
   }
-
-  const selectionFull = selectedIds.length >= maxSelectable;
 
   return (
     <div className="bp-table-wrap mempool-table-wrap">
@@ -56,7 +55,7 @@ export default function MempoolTable({
           {transactions.map((tx) => {
             const id = tx.id;
             const isSelected = selectedIds.includes(id);
-            const canClick = selectable && (isSelected || !selectionFull);
+            const canClick = selectable;
 
             return (
               <tr
@@ -64,6 +63,7 @@ export default function MempoolTable({
                 className={[
                   canClick ? 'bp-row--clickable' : '',
                   isSelected ? 'bp-row--picked' : '',
+                  rejectedId === id ? 'error-shake' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -81,6 +81,7 @@ export default function MempoolTable({
                 tabIndex={canClick ? 0 : undefined}
                 role={canClick ? 'button' : undefined}
                 aria-pressed={isSelected}
+                aria-describedby={rejectedId === id && rejectionMessage ? 'mempool-selection-error' : undefined}
               >
                 {selectable && (
                   <td className="mempool-col-check">
@@ -88,19 +89,28 @@ export default function MempoolTable({
                       <span className="mempool-check" aria-hidden>
                         ✓
                       </span>
-                    ) : null}
+                    ) : (
+                      <span className="mempool-check mempool-check--empty" aria-hidden />
+                    )}
                   </td>
                 )}
                 <td className="mempool-col-id">{tx.displayId ?? tx.id}</td>
-                <td className="mempool-col-player">
+                <td className="mempool-col-player mempool-col-from">
                   <PlayerCell
                     name={tx.sender}
                     showUserIcons={showUserIcons}
                     nameValue={inlineNameValues ? getNameValue(tx.sender) : null}
                     nameValueLabel={tr('colNameVal')}
                   />
+                  <span className="mempool-route-mobile">
+                    <span aria-hidden>→</span>
+                    <PlayerCell
+                      name={tx.receiver}
+                      showUserIcons={showUserIcons}
+                    />
+                  </span>
                 </td>
-                <td className="mempool-col-player">
+                <td className="mempool-col-player mempool-col-to">
                   <PlayerCell
                     name={tx.receiver}
                     showUserIcons={showUserIcons}
@@ -108,7 +118,12 @@ export default function MempoolTable({
                     nameValueLabel={tr('colNameVal')}
                   />
                 </td>
-                <td className="mempool-col-amount">{tx.amount}</td>
+                <td className="mempool-col-amount">
+                  <span className="mempool-amount-value">{tx.amount}</span>
+                  <span className="mempool-fee-mobile">
+                    {tr('colFee')} <span className="bp-fee">{tx.fee}</span>
+                  </span>
+                </td>
                 <td className="mempool-col-fee">
                   <span className="bp-fee">{tx.fee}</span>
                 </td>
@@ -117,6 +132,11 @@ export default function MempoolTable({
           })}
         </tbody>
       </table>
+      {rejectionMessage && (
+        <p id="mempool-selection-error" className="mempool-inline-error" role="alert">
+          {rejectionMessage}
+        </p>
+      )}
     </div>
   );
 }

@@ -1875,6 +1875,9 @@ a.bp-btn--link {
   line-height: 1.2;
   color: var(--bp-blue);
   font-variant-numeric: tabular-nums;
+  min-width: 10ch;
+  letter-spacing: 0.025em;
+  text-align: right;
   white-space: nowrap;
 }
 
@@ -2444,7 +2447,7 @@ a.bp-btn--link {
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: var(--bp-text);
+  background: var(--bp-blue);
   color: var(--bp-white);
   font-size: 0.85rem;
   font-weight: 800;
@@ -2452,7 +2455,7 @@ a.bp-btn--link {
 
 .mempool-check--empty {
   background: transparent;
-  border: 2px dashed var(--bp-green);
+  border: 2px dashed var(--bp-blue);
 }
 
 .easy-formula-panel {
@@ -2939,9 +2942,9 @@ a.bp-btn--link {
 }
 
 .bp-selection--ready {
-  background: var(--bp-green-bg);
-  border-color: var(--bp-tint-green-35);
-  color: var(--bp-green);
+  background: var(--bp-50);
+  border-color: var(--bp-blue);
+  color: var(--bp-blue);
 }
 
 .bp-selection__dot {
@@ -2952,7 +2955,7 @@ a.bp-btn--link {
 }
 
 .bp-selection--ready .bp-selection__dot {
-  background: var(--bp-green);
+  background: var(--bp-blue);
 }
 
 .bp-selection__dot--on {
@@ -3646,3 +3649,117 @@ tr.error-shake td {
   justify-content: flex-end;
   gap: 8px;
 }
+
+
+/* Rules guide — structured reading flow and compact mobile layout. */
+.bp-rules-modal {
+  width: min(calc(100vw - 24px), 640px);
+  max-height: min(calc(100dvh - 24px), 760px);
+}
+
+.bp-rules-modal__header {
+  padding: 16px 18px 12px;
+}
+
+.bp-rules-modal__heading {
+  min-width: 0;
+}
+
+.bp-rules-modal__heading p {
+  margin: 3px 0 0;
+  color: var(--bp-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.bp-rules-modal__tabs {
+  padding: 0 18px 12px;
+}
+
+.bp-rules-modal__tab {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 53px;
+  padding: 7px 12px;
+  border-radius: var(--bp-radius-sm);
+}
+
+.bp-rules-modal__tab small {
+  max-width: 100%;
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.bp-rules-modal__tab:focus-visible {
+  outline: 2px solid var(--bp-blue);
+  outline-offset: 2px;
+}
+
+.bp-rules-modal__body {
+  min-height: 0;
+  padding: 14px 20px 22px;
+  overscroll-behavior: contain;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.bp-rules-modal__body h2 {
+  margin: 1.3rem 0 0.55rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bp-200);
+  color: var(--bp-text);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.bp-rules-modal__body h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.bp-rules-modal__body h3 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.87rem;
+}
+
+.bp-rules-modal__body p,
+.bp-rules-modal__body ul {
+  margin: 0 0 0.85rem;
+}
+
+.bp-rules-modal__body li + li {
+  margin-top: 0.3rem;
+}
+
+.bp-rules-modal__body blockquote {
+  margin: 0 0 1rem;
+  padding: 10px 12px;
+  border-left: 3px solid var(--bp-blue);
+  border-radius: 0 var(--bp-radius-sm) var(--bp-radius-sm) 0;
+  background: var(--bp-50);
+}
+
+.bp-rules-modal__body blockquote p {
+  margin: 0;
+}
+
+.bp-rules-modal__body pre {
+  margin: 0 0 1rem;
+  padding: 10px 12px;
+  border: 1px solid var(--bp-200);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 480px) {
+  .bp-rules-modal__header { padding: 12px 14px 10px; }
+  .bp-rules-modal__tabs { padding: 0 14px 10px; }
+  .bp-rules-modal__tab { padding-inline: 9px; }

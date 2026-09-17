@@ -1,37 +1,55 @@
-# Bitcoin Block Mining Simulator (Hard Mode)
+## Goal
 
-A simulator with real double SHA-256 proof-of-work and the same mempool rules as Easy mode.
+In **Hard mode**, you build a Bitcoin-style block candidate and search for a valid proof of work using HASH256.
 
-## Overview
+> **At a glance:** choose 3 optimal transactions → build the 80-byte header → try random nonces → confirm when the hash is less than or equal to the target.
 
-You **manually** select transactions, then **roll the dice** to try random nonces until `SHA256(SHA256(raw transactions) + nonce)` satisfies the block target. Each roll is one independent guess (not nonce 1, 2, 3… in sequence). Transaction selection rules are identical to Easy mode; only the mining puzzle changes.
+In multiplayer, every miner advances their own chain; the first to reach the block goal wins.
 
-## Transaction selection rules
+## 1. Choose and order the transactions
 
-1. **Exactly three transactions.** You choose which three rows to include; the game never fills them automatically.
+The economic rule is the same as in Easy mode: choose **exactly three affordable transactions** with the highest possible total fees.
 
-2. **Sufficient balance.** Each sender must cover `amount + fee`. Multiple selections from the same sender add their costs against that sender's balance.
+- Every sender must cover **amount + fee**.
+- Costs from multiple transactions with the same sender add together.
+- All groups tied at the maximum fee total are valid.
+- An unaffordable transaction is rejected immediately; the group is checked for optimality on the first mining attempt.
 
-3. **Fee priority (step by step).** When you still need *k* transactions (k = 3 minus already selected), among remaining **affordable** transactions you may click only those in the **top k by fee** (highest fees first; ties broken by the lower transaction id). Others remain unavailable until higher-fee options are taken or fail the balance check.
+Selection order matters: it becomes part of the candidate payload and can change both the Merkle root and the block hash.
 
-## Cryptographic rules (after selection)
+Transactions use an educational encoding rather than Bitcoin’s complete binary wire format. Each payload includes sender, receiver, amount, fee and date, then receives HASH256. The raw 32-byte hashes form the Merkle tree; when a level has an odd number of hashes, its last hash is duplicated.
 
-4. **Raw string.** Concatenate the selected transactions as `SenderToReceiverAmountDate`, joined with `-` (in the order you selected them).
+## 2. Build the Bitcoin header
 
-5. **Double SHA-256.** `txHash = SHA256(raw)` then `finalHash = SHA256(txHash + nonce)`.
+The candidate uses the six Bitcoin header fields in their fixed 80-byte layout:
 
-6. **Target.** A valid roll requires `finalHash` to begin with enough leading hexadecimal zeros (shown on screen). The block target hash is displayed as on real networks; in this educational build, the leading-zero prefix is the main success criterion (about 1 in 16 rolls).
+```text
+version | previous block hash | Merkle root | timestamp | nBits | nonce
+ 4 B    |        32 B         |    32 B     |    4 B    |  4 B  |  4 B
+```
 
-7. **Proof of work (dice).** Press **Roll the dice**. Two dice appear and a **random nonce** is chosen for that roll; the game computes the hash. Each roll is one attempt, as in real mining. When the hash is valid, click **Mine block** to commit.
+Integer fields use little-endian encoding. The previous block hash and Merkle root are inserted in internal byte order. The compact `nBits` value defines the complete 256-bit target.
 
-## How to play
+## 3. Search for proof of work
 
-1. **Mempool.** Select three transactions following the balance and fee-priority rules.
+Every press of **Roll the dice** generates a random 32-bit nonce and calculates:
 
-2. **Inspect.** With three transactions selected, review the transaction hash (`txHash`).
+```text
+first digest  = SHA256(80-byte header)
+second digest = SHA256(first digest)
+displayed hash = second digest with its bytes reversed
+```
 
-3. **Roll the dice.** Keep rolling until `finalHash` is valid (status turns green). Typical luck: about **11 rolls** (median); 9 in 10 players succeed within about 38 rolls.
+The dice are only a visual representation of an attempt; their faces do not encode the nonce.
 
-4. **Commit.** Click **Mine block** when proof of work succeeds.
+The proof is valid when the displayed hash is numerically **less than or equal to the target**. The target remains fixed throughout the match. At the current difficulty, the median is about 36 attempts, but every hash is independent and luck can make the search much shorter or longer.
 
-5. **Hash checker.** Optionally paste the raw data and nonce in the SHA-256 panel to verify the calculation by hand.
+The HASH256 verifier exposes the header, both SHA-256 rounds and the final comparison.
+
+## 4. Confirm and link the block
+
+After finding a valid proof, press **Mine block**. The confirmed hash becomes the next block’s previous hash, and the simulated timestamp advances by ten minutes.
+
+Confirmed transactions leave the mempool, unconfirmed ones remain and three new transactions arrive. Fees are recorded as a statistic; only mined blocks determine the winner.
+
+> Bitcoin recalculates difficulty every 2,016 blocks. In this short match, `nBits` stays fixed just as it does within one adjustment period.

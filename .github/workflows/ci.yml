@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npm run simulate
+      - run: npm run simulate:pow
       - run: npm run test:api
       - run: npm run build
       - run: npm audit --omit=dev

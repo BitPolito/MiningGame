@@ -1,37 +1,55 @@
-# Simulatore di mining dei blocchi Bitcoin (modalità Difficile)
+## Obiettivo
 
-Simulatore con proof-of-work SHA-256 reale e le stesse regole mempool della modalità Facile.
+In modalità **Difficile** costruisci un candidato simile a un blocco Bitcoin e cerchi una proof of work valida con HASH256.
 
-## Panoramica
+> **In breve:** scegli 3 transazioni ottimali → costruisci l’header di 80 byte → prova nonce casuali → conferma quando l’hash è minore o uguale al target.
 
-Selezioni le transazioni **manualmente**, poi **lanci i dadi** per provare nonce casuali finché `SHA256(SHA256(transazioni grezze) + nonce)` soddisfa il target del blocco. Ogni lancio è un tentativo indipendente (non nonce 1, 2, 3… in sequenza). Le regole di selezione sono identiche alla modalità Facile; cambia solo il puzzle di mining.
+In multiplayer ogni minatore avanza sulla propria catena: vince chi raggiunge per primo l’obiettivo di blocchi.
 
-## Regole di selezione delle transazioni
+## 1. Scegli e ordina le transazioni
 
-1. **Esattamente tre transazioni.** Scegli tu quali tre righe includere; il gioco non le compila automaticamente.
+La regola economica è la stessa della modalità Facile: scegli **esattamente tre transazioni sostenibili** con la somma delle commissioni più alta possibile.
 
-2. **Saldo sufficiente.** Ogni mittente deve coprire `importo + commissione`. Più selezioni dallo stesso mittente sommano i costi sul suo saldo.
+- Ogni mittente deve coprire **importo + commissione**.
+- I costi di più transazioni dello stesso mittente si sommano.
+- Più terne a pari commissione massima sono tutte valide.
+- Una transazione non sostenibile viene rifiutata subito; l’ottimalità della terna viene controllata al primo tentativo di mining.
 
-3. **Priorità delle commissioni (passo per passo).** Se ti mancano *k* transazioni (k = 3 meno quelle già selezionate), tra quelle ancora **sostenibili** puoi cliccare solo le **k con commissione più alta** (commissioni più alte per prime; a parità di commissione, id transazione più basso). Le altre restano non selezionabili finché non prendi quelle prioritarie o non superano il controllo sul saldo.
+L’ordine di selezione conta: entra nel payload del candidato e può cambiare la Merkle root e l’hash del blocco.
 
-## Regole crittografiche (dopo la selezione)
+Le transazioni usano una codifica didattica non equivalente al formato binario completo di Bitcoin. Ogni payload include mittente, destinatario, importo, commissione e data, poi riceve HASH256. Gli hash grezzi di 32 byte formano il Merkle tree; quando un livello contiene un numero dispari di hash, l’ultimo viene duplicato.
 
-4. **Stringa grezza.** Concatena le transazioni come `MittenteDestinatarioImportoData`, unite da `-` (nell'ordine in cui le hai selezionate).
+## 2. Costruisci l’header Bitcoin
 
-5. **Double SHA-256.** `hashTx = SHA256(grezzo)` poi `hashFinale = SHA256(hashTx + nonce)`.
+Il candidato usa i sei campi dell’header Bitcoin nel layout fisso di 80 byte:
 
-6. **Target.** Un lancio valido richiede che `hashFinale` inizi con abbastanza zeri esadecimali iniziali (indicati a schermo). Il target del blocco è mostrato come nelle reti reali; in questa versione didattica il criterio principale è il prefisso con zeri iniziali (circa 1 lancio su 16).
+```text
+versione | hash precedente | Merkle root | timestamp | nBits | nonce
+  4 B    |      32 B       |    32 B     |    4 B    |  4 B  |  4 B
+```
 
-7. **Proof of work (dadi).** Premi **Lancia i dadi**. Compaiono due dadi e un **nonce casuale** per quel lancio; il gioco calcola l'hash. Ogni lancio è un tentativo, come nel mining reale. Con hash valido, clicca **Mina il blocco** per confermare.
+Gli interi sono serializzati in little-endian. L’hash precedente e la Merkle root sono inseriti nel loro ordine interno di byte. Il valore compatto `nBits` determina il target completo a 256 bit.
 
-## Come giocare
+## 3. Cerca la proof of work
 
-1. **Mempool.** Seleziona tre transazioni rispettando saldo e priorità delle commissioni.
+Ogni pressione di **Lancia i dadi** genera un nonce casuale a 32 bit e calcola:
 
-2. **Ispeziona.** Con tre transazioni selezionate, controlla l'hash delle transazioni (`hashTx`).
+```text
+primo digest  = SHA256(header di 80 byte)
+secondo digest = SHA256(primo digest)
+hash mostrato  = secondo digest con byte invertiti
+```
 
-3. **Lancia i dadi.** Continua a lanciare finché `hashFinale` è valido (stato verde). In media circa **11 lanci** (mediana); il 90% dei giocatori ci arriva entro circa 38 lanci.
+I dadi sono soltanto la rappresentazione visiva del tentativo: le facce non codificano il nonce.
 
-4. **Conferma.** Clicca **Mina il blocco** quando la proof of work è valida.
+La prova è valida quando l’hash mostrato è numericamente **minore o uguale al target**. Il target resta fisso per tutta la partita. Con la difficoltà attuale servono circa 36 tentativi in mediana, ma ogni hash è indipendente e la fortuna può accorciare o allungare molto la ricerca.
 
-5. **Controllo hash.** Opzionale: incolla dati grezzi e nonce nel pannello SHA-256 per verificare il calcolo a mano.
+Il verificatore HASH256 mostra header, due passaggi SHA-256 e confronto finale.
+
+## 4. Conferma e concatena
+
+Quando trovi una prova valida, premi **Mina il blocco**. L’hash confermato diventa l’hash precedente del blocco successivo e il timestamp simulato avanza di dieci minuti.
+
+Le transazioni confermate vengono rimosse, le altre restano e ne arrivano tre nuove. Le commissioni vengono registrate come statistica; la vittoria dipende soltanto dai blocchi minati.
+
+> In Bitcoin la difficoltà viene ricalcolata ogni 2.016 blocchi. In questa partita breve `nBits` resta fisso, come accade all’interno di un singolo periodo di aggiustamento.

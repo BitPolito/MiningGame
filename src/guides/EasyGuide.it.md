@@ -1,45 +1,54 @@
-# Simulatore di mining dei blocchi Bitcoin (modalità Facile)
+## Obiettivo
 
-Simulatore semplificato per imparare la selezione dalla mempool e la proof-of-work numerica.
+In modalità **Facile** costruisci un blocco valido, ne calcoli il valore e trovi manualmente il nonce che completa l’equazione.
 
-## Panoramica
+> **In breve:** scegli 3 transazioni sostenibili con le commissioni totali più alte → calcola il valore del blocco → trova il nonce → conferma il blocco.
 
-Giochi da minatore: selezioni le transazioni dalla mempool, poi trovi un nonce che soddisfa l'equazione del blocco. Il gioco applica le regole del protocollo ma non sceglie mai le transazioni al posto tuo.
+In solitaria completi il numero di blocchi scelto. In multiplayer ogni minatore avanza sulla propria catena: vince chi raggiunge per primo l’obiettivo.
 
-## Regole di selezione delle transazioni
+## 1. Scegli le transazioni
 
-Valgono per ogni blocco. Selezioni le righe cliccando la tabella della mempool.
+Ogni blocco deve contenere **esattamente tre transazioni**. Una terna è valida quando rispetta entrambe le condizioni:
 
-1. **Esattamente tre transazioni.** Ogni blocco deve contenere precisamente tre transazioni. Decidi tu quali includere.
+- ogni mittente può pagare **importo + commissione**;
+- la somma delle commissioni è la più alta fra tutte le terne sostenibili.
 
-2. **Saldo sufficiente.** Per ogni transazione il mittente deve poter pagare `importo + commissione`. Se selezioni **più transazioni** dallo stesso mittente, i costi **si cumulano** (ogni transazione aggiuntiva da quel mittente incide sul suo saldo).
+Se scegli più transazioni dello stesso mittente, devi sommarne i costi. Per questo le tre commissioni più alte non formano necessariamente il blocco migliore. Se più terne raggiungono lo stesso massimo, sono tutte valide.
 
-3. **Priorità delle commissioni (una scelta alla volta).** I minatori preferiscono commissioni più alte. Dopo ogni selezione, considera ciò che resta non selezionato e sostenibile:
-   - Conta quanti posti ti mancano (3 meno quelle già selezionate).
-   - Tra le transazioni sostenibili puoi selezionare solo quelle con le **commissioni più alte** per quel passo: tante quante i posti ancora disponibili.
-   - Esempio: ti mancano 2 transazioni e le commissioni sostenibili sono 5, 4 e 2. Puoi selezionare solo quelle con commissione 5 e 4. La transazione con commissione 2 resta non selezionabile finché non prendi un'opzione prioritaria o non diventa insostenibile.
+### Cosa controlla il gioco
 
-Le transazioni con saldo insufficiente non sono selezionabili. Quelle sostenibili ma con commissione troppo bassa per il passo corrente vengono rifiutate finché la regola di priorità lo consente.
+- Una transazione non sostenibile viene rifiutata appena provi a selezionarla.
+- L’ottimalità della terna viene verificata soltanto quando premi **Mina il blocco**.
+- La soluzione migliore non viene evidenziata: confronta la mempool con i saldi disponibili.
 
-## Come giocare
+## 2. Calcola il valore del blocco
 
-1. **Esamina la mempool.** Il gioco non evidenzia le righe valide. Un avviso compare se la selezione viola le regole di saldo o di commissione.
+Assegna alle lettere il valore A=1, B=2, …, Z=26. Per ogni transazione calcola:
 
-2. **Seleziona tre transazioni.** Clicca solo le righe consentite. Clicca di nuovo una riga selezionata per deselezionarla.
+```text
+Valore transazione =
+lettere del mittente + lettere del destinatario + importo + commissione
+```
 
-3. **Calcola il valore del blocco manualmente.** Per ogni transazione selezionata somma:
-   - Valore lettere del nome del mittente (A=1 … Z=26)
-   - Valore lettere del destinatario
-   - Importo
-   - Commissione  
-   Somma sulle tre transazioni. Il gioco non mostra il totale.
+Il **valore del blocco** è la somma dei valori delle tre transazioni selezionate. Il gioco non mostra questo totale: devi calcolarlo tu.
 
-4. **Trova il nonce.** Scegli un nonce positivo tale che:
+## 3. Trova il nonce
 
-   ```
-   Target blocco precedente + Nonce + Valore blocco = Target attuale
-   ```
+Trova un intero positivo che soddisfi:
 
-   Per il blocco genesi il target precedente è 0 (nessun blocco precedente).
+```text
+Target precedente + Nonce + Valore del blocco = Target attuale
+```
 
-5. **Mina il blocco.** Invia il nonce. Se l'equazione è corretta, i saldi si aggiornano e il blocco successivo riceve un nuovo target. Altrimenti prova un altro nonce.
+Per il primo blocco da minare, il target precedente vale 0. Se il nonce è errato, il gioco non indica se sia troppo alto o troppo basso.
+
+## 4. Conferma il blocco
+
+Quando selezione e nonce sono corretti:
+
+- i pagamenti aggiornano i saldi;
+- le tre transazioni confermate lasciano la mempool;
+- le transazioni non confermate restano e ne arrivano tre nuove;
+- le commissioni del blocco si aggiungono ai tuoi ricavi da miner.
+
+Le commissioni guadagnate sono una statistica. La vittoria dipende esclusivamente dal numero di blocchi minati.
