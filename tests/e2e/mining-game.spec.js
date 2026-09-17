@@ -171,6 +171,13 @@ test('a spectator host occupies one room participant slot', async ({ page, brows
   await page.getByLabel('Host name (organizer)').fill('Spectator');
   await page.getByRole('button', { name: 'Create Room', exact: true }).click();
 
+  const qrButton = page.getByRole('button', { name: 'Open a larger QR code' });
+  await expect(qrButton).toBeVisible();
+  await qrButton.click();
+  await expect(page.getByRole('dialog').locator('.bp-qr-dialog__image')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+
   await expect(page.getByText('1 of 3 participants in the room')).toBeVisible();
   const code = (await page.locator('.bp-room-invite__code').first().textContent()).trim();
   const guestContext = await browser.newContext();

@@ -35,41 +35,77 @@ export default function HostDashboard({
   const status = room?.status ?? 'waiting';
   const occupancy = getRoomOccupancy(room);
 
+  const actions = (showStart || showPlayAgain) ? (
+    <div className="bp-host-dash__actions">
+      {showStart && (
+        <button
+          type="button"
+          className="bp-btn bp-btn-solid bp-btn--block"
+          onClick={onStartGame}
+          disabled={startDisabled}
+          aria-busy={startLoading}
+        >
+          {startLoading ? tr('startingGame') : tr('startGame')}
+        </button>
+      )}
+      {showStart && startDisabled && startDisabledReason && (
+        <p className="bp-hint bp-hint--center" role="status">{startDisabledReason}</p>
+      )}
+      {showPlayAgain && (
+        <button
+          type="button"
+          className="bp-btn bp-btn-solid bp-btn--block"
+          onClick={onPlayAgain}
+        >
+          <BpIcon src={ICON.pickaxe} className="bp-icon" tone="on-solid" />
+          {tr('playAgain')}
+        </button>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="bp-host-dash">
-      <RoomInvite code={roomSeed} compact />
+      <div className="bp-host-dash__overview">
+        <RoomInvite code={roomSeed} compact />
 
-      <div className="bp-host-dash__hero">
-        <BpIcon src={ICON.crown} className="bp-icon--lg" />
-        <div>
-          <p className="bp-host-dash__label">{tr('hostBadge')}</p>
-          <p className="bp-host-dash__host-name">{hostLabel}</p>
-          <p className="bp-host-dash__status">
-            {tr('playersJoined', { current: occupancy, total: room?.numPlayers ?? 0 })}
-          </p>
-        </div>
+        <aside className="bp-host-dash__control">
+          <div className="bp-host-dash__hero">
+            <BpIcon src={ICON.crown} className="bp-icon--lg" />
+            <div>
+              <p className="bp-host-dash__label">{tr('hostBadge')}</p>
+              <p className="bp-host-dash__host-name">{hostLabel}</p>
+              <p className="bp-host-dash__status">
+                {tr('playersJoined', { current: occupancy, total: room?.numPlayers ?? 0 })}
+              </p>
+            </div>
+          </div>
+
+          {status === 'playing' && sorted.length > 0 && (
+            <div className="bp-host-dash__insights">
+              {leader && (
+                <p className="bp-host-dash__insight">
+                  <strong>{tr('hostLeader')}:</strong> {leader.name} ({leader.blocks}/{goal})
+                </p>
+              )}
+              {likelyWinner && (
+                <p className="bp-host-dash__insight bp-host-dash__insight--accent">
+                  <strong>{tr('hostLikelyWinner')}:</strong> {likelyWinner.name}
+                </p>
+              )}
+            </div>
+          )}
+
+          {status === 'finished' && room?.winner && (
+            <p className="bp-host-dash__winner">
+              {tr('playerWon', { name: room.winner })}
+            </p>
+          )}
+
+          <RoomSettingsCard room={room} onShowRules={onShowRules} showCapacity={false} />
+          {actions}
+        </aside>
       </div>
-
-      {status === 'playing' && sorted.length > 0 && (
-        <div className="bp-host-dash__insights">
-          {leader && (
-            <p className="bp-host-dash__insight">
-              <strong>{tr('hostLeader')}:</strong> {leader.name} ({leader.blocks}/{goal})
-            </p>
-          )}
-          {likelyWinner && (
-            <p className="bp-host-dash__insight bp-host-dash__insight--accent">
-              <strong>{tr('hostLikelyWinner')}:</strong> {likelyWinner.name}
-            </p>
-          )}
-        </div>
-      )}
-
-      {status === 'finished' && room?.winner && (
-        <p className="bp-host-dash__winner">
-          {tr('playerWon', { name: room.winner })}
-        </p>
-      )}
 
       {sorted.length > 0 && (
         <PanelCard title={tr('hostLiveRace')} iconSrc={ICON.pickaxe}>
@@ -98,37 +134,6 @@ export default function HostDashboard({
             })}
           </ol>
         </PanelCard>
-      )}
-
-      <RoomSettingsCard room={room} onShowRules={onShowRules} showCapacity={false} />
-
-      {(showStart || showPlayAgain) && (
-        <div className="bp-host-dash__actions">
-          {showStart && (
-            <button
-              type="button"
-              className="bp-btn bp-btn-solid bp-btn--block"
-              onClick={onStartGame}
-              disabled={startDisabled}
-              aria-busy={startLoading}
-            >
-              {startLoading ? tr('startingGame') : tr('startGame')}
-            </button>
-          )}
-          {showStart && startDisabled && startDisabledReason && (
-            <p className="bp-hint bp-hint--center" role="status">{startDisabledReason}</p>
-          )}
-          {showPlayAgain && (
-            <button
-              type="button"
-              className="bp-btn bp-btn-solid bp-btn--block"
-              onClick={onPlayAgain}
-            >
-              <BpIcon src={ICON.pickaxe} className="bp-icon" tone="on-solid" />
-              {tr('playAgain')}
-            </button>
-          )}
-        </div>
       )}
     </div>
   );

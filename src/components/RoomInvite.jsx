@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import BpIcon from './BpIcon';
+import ModalCloseButton from './ModalCloseButton';
 import { ICON } from '../assets/icons';
+import { useModalFocus } from '../hooks/useModalFocus';
 import { buildJoinUrl } from '../lib/roomJoin';
 import { useLocale } from '../i18n/LocaleContext';
 
@@ -10,12 +12,15 @@ export default function RoomInvite({ code, compact = false }) {
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [qrSrc, setQrSrc] = useState('');
+  const [qrOpen, setQrOpen] = useState(false);
   const [copyFallback, setCopyFallback] = useState('');
   const joinUrl = buildJoinUrl(code);
+  const closeQr = useCallback(() => setQrOpen(false), []);
+  const qrDialogRef = useModalFocus(qrOpen, closeQr);
 
   useEffect(() => {
     let cancelled = false;
-    QRCode.toDataURL(joinUrl, { width: 200, margin: 1, errorCorrectionLevel: 'M' })
+    QRCode.toDataURL(joinUrl, { width: 512, margin: 2, errorCorrectionLevel: 'M' })
       .then((value) => { if (!cancelled) setQrSrc(value); })
       .catch(() => { if (!cancelled) setQrSrc(''); });
     return () => { cancelled = true; };
@@ -39,40 +44,73 @@ export default function RoomInvite({ code, compact = false }) {
   };
 
   return (
-    <div className={`bp-room-invite${compact ? ' bp-room-invite--compact' : ''}`}>
-      <div className="bp-room-invite__details">
-        <div className="bp-room-invite__code">{code}</div>
-        <div className="bp-room-invite__actions">
-          <button type="button" className="bp-btn bp-btn-outline" onClick={() => copyText(code, 'code')}>
-            <BpIcon src={ICON.save} className="bp-icon" tone="primary" />
-            <span className="bp-btn__label">{copiedCode ? tr('copied') : tr('copyCode')}</span>
-          </button>
-          <button type="button" className="bp-btn bp-btn-outline" onClick={() => copyText(joinUrl, 'link')}>
-            <BpIcon src={ICON.wallet} className="bp-icon" tone="primary" />
-            <span className="bp-btn__label">{copiedLink ? tr('copied') : tr('copyJoinLink')}</span>
-          </button>
+    <>
+      <div className={`bp-room-invite${compact ? ' bp-room-invite--compact' : ''}`}>
+        <div className="bp-room-invite__details">
+          <p className="bp-room-invite__eyebrow">{tr('roomCode')}</p>
+          <div className="bp-room-invite__code">{code}</div>
+          <div className="bp-room-invite__actions">
+            <button type="button" className="bp-btn bp-btn-outline" onClick={() => copyText(code, 'code')}>
+              <BpIcon src={ICON.save} className="bp-icon" tone="primary" />
+              <span className="bp-btn__label">{copiedCode ? tr('copied') : tr('copyCode')}</span>
+            </button>
+            <button type="button" className="bp-btn bp-btn-outline" onClick={() => copyText(joinUrl, 'link')}>
+              <BpIcon src={ICON.wallet} className="bp-icon" tone="primary" />
+              <span className="bp-btn__label">{copiedLink ? tr('copied') : tr('copyJoinLink')}</span>
+            </button>
+          </div>
+          <span className="bp-sr-only" role="status" aria-live="polite">
+            {copiedCode || copiedLink ? tr('copied') : ''}
+          </span>
+          {copyFallback && (
+            <label className="bp-room-invite__copy-fallback">
+              <span className="bp-hint">{tr('copyFailed')}</span>
+              <input
+                className="bp-input"
+                readOnly
+                value={copyFallback}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+            </label>
+          )}
         </div>
-        <span className="bp-sr-only" role="status" aria-live="polite">
-          {copiedCode || copiedLink ? tr('copied') : ''}
-        </span>
-        {copyFallback && (
-          <label className="bp-room-invite__copy-fallback">
-            <span className="bp-hint">{tr('copyFailed')}</span>
-            <input
-              className="bp-input"
-              readOnly
-              value={copyFallback}
-              onFocus={(event) => event.currentTarget.select()}
-            />
-          </label>
+        {qrSrc && (
+          <button
+            type="button"
+            className="bp-room-invite__qr-button"
+            onClick={() => setQrOpen(true)}
+            aria-label={tr('enlargeQr')}
+          >
+            <img src={qrSrc} alt="" className="bp-room-invite__qr" width={200} height={200} />
+            <span className="bp-room-invite__qr-hint">{tr('enlargeQr')}</span>
+          </button>
         )}
       </div>
-      {qrSrc && (
-        <div className="bp-room-invite__qr-wrap">
-          <img src={qrSrc} alt={tr('scanQrHint')} className="bp-room-invite__qr" width={200} height={200} />
-          <p className="bp-room-invite__qr-hint">{tr('scanQrHint')}</p>
+
+      {qrOpen && qrSrc && (
+        <div className="modal-overlay bp-qr-overlay" onClick={closeQr}>
+          <div
+            ref={qrDialogRef}
+            className="modal-content bp-qr-dialog"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qr-dialog-title"
+          >
+            <div className="modal-header">
+              <div>
+                <p className="bp-room-invite__eyebrow">{tr('roomCode')}</p>
+                <h2 id="qr-dialog-title" className="bp-qr-dialog__title">{code}</h2>
+              </div>
+              <ModalCloseButton onClick={closeQr} />
+            </div>
+            <div className="modal-body bp-qr-dialog__body">
+              <img src={qrSrc} alt={tr('scanQrHint')} className="bp-qr-dialog__image" width={512} height={512} />
+              <p className="bp-qr-dialog__hint">{tr('scanQrHint')}</p>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

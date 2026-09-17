@@ -1854,3 +1854,214 @@ button.bp-candidate-slot--filled:focus-visible {
     height: 148px;
   }
 }
+
+
+/* Desktop dashboard composition and expandable room QR. */
+.bp-host-dash__overview {
+  display: grid;
+  gap: var(--bp-space-3);
+}
+
+.bp-host-dash__control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bp-space-3);
+  min-width: 0;
+}
+
+.bp-room-invite__eyebrow {
+  margin: 0 0 5px;
+  color: var(--bp-text-muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bp-room-invite__qr-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 150px;
+  padding: 8px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius);
+  background: var(--bp-50);
+  color: var(--bp-blue);
+  font: inherit;
+  cursor: zoom-in;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.bp-room-invite__qr-button:hover {
+  border-color: var(--bp-blue);
+  background: var(--bp-white);
+  transform: translateY(-1px);
+}
+
+.bp-room-invite__qr-button:focus-visible {
+  outline: 2px solid var(--bp-blue);
+  outline-offset: 2px;
+}
+
+.bp-room-invite--compact .bp-room-invite__qr-button .bp-room-invite__qr {
+  width: 132px;
+  height: 132px;
+  border: 0;
+  border-radius: 6px;
+}
+
+.bp-room-invite--compact .bp-room-invite__qr-button .bp-room-invite__qr-hint {
+  max-width: 140px;
+  color: var(--bp-blue);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.bp-qr-overlay {
+  z-index: 300;
+  padding: 20px;
+}
+
+.bp-qr-dialog.modal-content {
+  width: min(92vw, 560px);
+  max-width: 560px;
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+}
+
+.bp-qr-dialog__title {
+  margin: 2px 0 0;
+  color: var(--bp-blue);
+  font-size: clamp(1.1rem, 4vw, 1.5rem);
+  letter-spacing: 0.12em;
+  overflow-wrap: anywhere;
+}
+
+.bp-qr-dialog__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--bp-space-2);
+}
+
+.bp-qr-dialog__image {
+  display: block;
+  width: min(100%, 420px);
+  height: auto;
+  aspect-ratio: 1;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius);
+  background: var(--bp-white);
+}
+
+.bp-qr-dialog__hint {
+  max-width: 420px;
+  margin: 0;
+  color: var(--bp-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@media (min-width: 760px) {
+  .bp-host-dash__overview {
+    grid-template-columns: minmax(0, 1.2fr) minmax(270px, 0.8fr);
+    align-items: stretch;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite {
+    height: 100%;
+    margin: 0;
+  }
+
+  .bp-host-dash__control {
+    padding: var(--bp-space-3);
+    border: 1px solid var(--bp-200);
+    border-radius: var(--bp-radius-md);
+    background: var(--bp-white);
+  }
+
+  .bp-host-dash__control .bp-host-dash__hero {
+    padding: 0 0 var(--bp-space-3);
+    border-bottom: 1px solid var(--bp-200);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .bp-host-dash__control .bp-room-settings {
+    box-shadow: none;
+  }
+
+  .bp-host-dash > .bp-panel .bp-host-race-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--bp-space-3);
+    max-height: min(48dvh, 500px);
+  }
+
+  .bp-host-dash > .bp-panel .bp-host-race-list__row {
+    padding: 10px;
+    border: 1px solid var(--bp-200);
+    border-radius: var(--bp-radius-sm);
+    background: var(--bp-50);
+  }
+}
+
+@media (min-width: 1100px) {
+  .bp-main--wide {
+    max-width: 1360px;
+  }
+
+  .bp-game-workspace__body {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 250px);
+    gap: 18px;
+  }
+
+  .bp-game-workspace__body--solo {
+    grid-template-columns: 1fr;
+  }
+
+  .bp-game-play-stack {
+    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.75fr);
+    column-gap: 18px;
+  }
+}
+
+@media (max-width: 759px) {
+  .bp-host-dash__overview {
+    grid-template-columns: 1fr;
+  }
+
+  .bp-host-dash__control {
+    display: contents;
+  }
+
+  .bp-room-invite--compact .bp-room-invite__qr-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .bp-room-invite--compact .bp-room-invite__qr-button .bp-room-invite__qr {
+    width: 164px;
+    height: 164px;
+  }
+
+  .bp-qr-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .bp-qr-dialog.modal-content {
+    width: 100%;
+    max-width: none;
+    max-height: 92dvh;
+    border-radius: var(--bp-radius-lg) var(--bp-radius-lg) 0 0;
+  }
+
+  .bp-host-dash > .bp-panel .bp-host-race-list {
+    display: flex;
+  }
+}
