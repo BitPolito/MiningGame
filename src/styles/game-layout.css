@@ -1665,3 +1665,192 @@ button.bp-candidate-slot--filled:focus-visible {
     font-size: 0.64rem;
   }
 }
+
+
+/* Unified dashboard layout and mining controls. */
+.bp-flow-card--dashboard {
+  max-width: 900px;
+}
+
+.bp-mining-live-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.bp-mining-live-facts > div {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-50);
+}
+
+.bp-mining-live-facts dt {
+  color: var(--bp-text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.bp-mining-live-facts dd {
+  margin: 3px 0 0;
+  overflow: hidden;
+  color: var(--bp-text);
+  font-family: var(--bp-mono);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 760px) {
+  .bp-flow-card--dashboard .bp-host-dash:has(> .bp-panel) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(250px, 0.75fr);
+    gap: var(--bp-space-3);
+    align-items: start;
+  }
+
+  .bp-flow-card--dashboard .bp-host-dash > .bp-room-invite {
+    grid-column: 1 / -1;
+  }
+
+  .bp-flow-card--dashboard .bp-host-dash > .bp-panel {
+    grid-column: 1;
+    grid-row: 2 / span 5;
+  }
+
+  .bp-flow-card--dashboard .bp-host-dash > .bp-host-dash__hero,
+  .bp-flow-card--dashboard .bp-host-dash > .bp-host-dash__insights,
+  .bp-flow-card--dashboard .bp-host-dash > .bp-host-dash__winner,
+  .bp-flow-card--dashboard .bp-host-dash > .bp-room-settings,
+  .bp-flow-card--dashboard .bp-host-dash > .bp-host-dash__actions {
+    grid-column: 2;
+  }
+
+  .bp-flow-card--dashboard .bp-host-race-list {
+    max-height: min(60dvh, 620px);
+  }
+}
+
+@media (min-width: 901px) {
+  .bp-game-play-stack .bp-panel--mempool-full .bp-table-wrap {
+    max-height: min(68vh, 720px);
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .bp-game-play-stack > .bp-panel--mining-action {
+    position: sticky;
+    top: 12px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .bp-game-workspace__body--solo .bp-game-play-stack {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+    align-items: start;
+  }
+
+  .bp-game-workspace__body--solo .bp-game-play-stack > .bp-panel--mempool-full {
+    grid-column: 1;
+    grid-row: 1 / span 20;
+  }
+
+  .bp-game-workspace__body--solo .bp-game-play-stack > .bp-panel--selected-summary,
+  .bp-game-workspace__body--solo .bp-game-play-stack > .bp-panel--mining-action,
+  .bp-game-workspace__body--solo .bp-game-play-stack > .bp-collapse {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 900px) {
+  .bp-game-play-stack .bp-panel--mempool-full .bp-table-wrap {
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior-y: auto;
+    touch-action: pan-y;
+  }
+
+  .bp-mobile-mining-dock__details {
+    overscroll-behavior-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .bp-mining-live-facts {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bp-main--dashboard {
+  max-width: 940px;
+}
+
+
+/* Room invitation: room code and local QR are visible together. */
+.bp-room-invite__details {
+  min-width: 0;
+}
+
+.bp-room-invite--compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--bp-space-3);
+  padding: var(--bp-space-3);
+  text-align: left;
+}
+
+.bp-room-invite--compact .bp-room-invite__code {
+  margin: 0 0 10px;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.bp-room-invite--compact .bp-room-invite__actions {
+  margin: 0;
+}
+
+.bp-room-invite--compact .bp-room-invite__qr-wrap {
+  width: 150px;
+  gap: 5px;
+  padding-left: var(--bp-space-3);
+  border-left: 1px solid var(--bp-200);
+}
+
+.bp-room-invite--compact .bp-room-invite__qr {
+  width: 120px;
+  height: 120px;
+}
+
+.bp-room-invite--compact .bp-room-invite__qr-hint {
+  font-size: 0.68rem;
+  line-height: 1.25;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .bp-room-invite--compact {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .bp-room-invite--compact .bp-room-invite__qr-wrap {
+    width: 100%;
+    padding: var(--bp-space-2) 0 0;
+    border-top: 1px solid var(--bp-200);
+    border-left: 0;
+  }
+
+  .bp-room-invite--compact .bp-room-invite__qr {
+    width: 148px;
+    height: 148px;
+  }
+}

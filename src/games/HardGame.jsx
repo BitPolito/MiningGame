@@ -32,7 +32,7 @@ import {
   validateAndApplyMine,
   validateSelection,
 } from '../lib/gameEngine';
-import { getTargetPacing, isProofOfWorkValid } from '../lib/targetHash';
+import { isProofOfWorkValid } from '../lib/targetHash';
 import {
   getBlockColumns,
   getRoomBlocksToWin,
@@ -432,7 +432,6 @@ export default function HardGame({
       ? 'ok'
       : 'err';
 
-  const targetPacing = useMemo(() => getTargetPacing(targetHash), [targetHash]);
   return (
     <div className="bp-app">
       <main className="bp-main bp-main--wide">
@@ -571,12 +570,22 @@ export default function HardGame({
                               ? tr('powDiceHint')
                               : tr('miningNeedTx')}
                       </div>
-                      <p className="bp-hint">{tr('powTargetHint')}</p>
-                      {targetPacing && (
-                        <p className="bp-hint">
-                          {tr('powTargetPacing', { median: targetPacing.median, p90: targetPacing.p90 })}
-                        </p>
-                      )}
+                      <dl className="bp-mining-live-facts">
+                        <div>
+                          <dt>{tr('blockTargetShort')}</dt>
+                          <dd title={targetHash}>{targetHash.slice(0, 10)}…</dd>
+                        </div>
+                        <div>
+                          <dt>{tr('powAttempts')}</dt>
+                          <dd>{rollCount}</dd>
+                        </div>
+                        {rollCount > 0 && (
+                          <div>
+                            <dt>{tr('nonce')}</dt>
+                            <dd>{formatPowNonce(nonce)}</dd>
+                          </div>
+                        )}
+                      </dl>
                     </PanelSection>
 
                     {(canRollDice || powFound) && (
@@ -685,13 +694,8 @@ export default function HardGame({
         }
         details={
           <div className="bp-mobile-mining-dock__details-stack">
-            <p className="bp-hint">{tr('powTargetHint')}</p>
-            {targetPacing && (
-              <p className="bp-hint">
-                {tr('powTargetPacing', { median: targetPacing.median, p90: targetPacing.p90 })}
-              </p>
-            )}
             <dl className="bp-mobile-mining-dock__facts">
+              <div><dt>{tr('blockTargetShort')}</dt><dd title={targetHash}>{targetHash.slice(0, 8)}…</dd></div>
               <div><dt>{tr('powAttempts')}</dt><dd>{rollCount}</dd></div>
               {rollCount > 0 && <div><dt>{tr('nonce')}</dt><dd>{formatPowNonce(nonce)}</dd></div>}
               {finalHash && <div><dt>{tr('hashResult')}</dt><dd>{`${finalHash.slice(0, 8)}…`}</dd></div>}

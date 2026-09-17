@@ -927,6 +927,7 @@ function App() {
           onBack={goHomeSafe}
           onHome={goHomeSafe}
           onRules={() => openRulesGuide(roomData?.difficulty ?? difficulty)}
+          wide
           footer={
             status === 'finished' ? (
               <div className="bp-flow-actions">

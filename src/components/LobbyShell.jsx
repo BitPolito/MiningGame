@@ -11,14 +11,15 @@ export default function LobbyShell({
   onRules,
   children,
   footer,
+  wide = false,
 }) {
   return (
     <div className="bp-app bp-flow">
       <div className="bp-flow__top">
         <LangToggle />
       </div>
-      <main className="bp-main bp-flow__main">
-        <div className="bp-flow-card">
+      <main className={`bp-main bp-flow__main${wide ? ' bp-main--dashboard' : ''}`}>
+        <div className={`bp-flow-card${wide ? ' bp-flow-card--dashboard' : ''}`}>
           <ApiStatusBanner compact />
           {onBack && <BackButton onClick={onBack} />}
           <header className="bp-flow-header">

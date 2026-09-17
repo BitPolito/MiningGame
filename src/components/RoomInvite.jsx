@@ -9,7 +9,6 @@ export default function RoomInvite({ code, compact = false }) {
   const { tr } = useLocale();
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [showQr, setShowQr] = useState(!compact);
   const [qrSrc, setQrSrc] = useState('');
   const [copyFallback, setCopyFallback] = useState('');
   const joinUrl = buildJoinUrl(code);
@@ -41,42 +40,34 @@ export default function RoomInvite({ code, compact = false }) {
 
   return (
     <div className={`bp-room-invite${compact ? ' bp-room-invite--compact' : ''}`}>
-      <div className="bp-room-invite__code">{code}</div>
-      <div className="bp-room-invite__actions">
-        <button type="button" className="bp-btn bp-btn-outline" onClick={() => copyText(code, 'code')}>
-          <BpIcon src={ICON.save} className="bp-icon" tone="primary" />
-          <span className="bp-btn__label">{copiedCode ? tr('copied') : tr('copyCode')}</span>
-        </button>
-        <button type="button" className="bp-btn bp-btn-outline" onClick={() => copyText(joinUrl, 'link')}>
-          <BpIcon src={ICON.wallet} className="bp-icon" tone="primary" />
-          <span className="bp-btn__label">{copiedLink ? tr('copied') : tr('copyJoinLink')}</span>
-        </button>
+      <div className="bp-room-invite__details">
+        <div className="bp-room-invite__code">{code}</div>
+        <div className="bp-room-invite__actions">
+          <button type="button" className="bp-btn bp-btn-outline" onClick={() => copyText(code, 'code')}>
+            <BpIcon src={ICON.save} className="bp-icon" tone="primary" />
+            <span className="bp-btn__label">{copiedCode ? tr('copied') : tr('copyCode')}</span>
+          </button>
+          <button type="button" className="bp-btn bp-btn-outline" onClick={() => copyText(joinUrl, 'link')}>
+            <BpIcon src={ICON.wallet} className="bp-icon" tone="primary" />
+            <span className="bp-btn__label">{copiedLink ? tr('copied') : tr('copyJoinLink')}</span>
+          </button>
+        </div>
+        <span className="bp-sr-only" role="status" aria-live="polite">
+          {copiedCode || copiedLink ? tr('copied') : ''}
+        </span>
+        {copyFallback && (
+          <label className="bp-room-invite__copy-fallback">
+            <span className="bp-hint">{tr('copyFailed')}</span>
+            <input
+              className="bp-input"
+              readOnly
+              value={copyFallback}
+              onFocus={(event) => event.currentTarget.select()}
+            />
+          </label>
+        )}
       </div>
-      <span className="bp-sr-only" role="status" aria-live="polite">
-        {copiedCode || copiedLink ? tr('copied') : ''}
-      </span>
-      {copyFallback && (
-        <label className="bp-room-invite__copy-fallback">
-          <span className="bp-hint">{tr('copyFailed')}</span>
-          <input
-            className="bp-input"
-            readOnly
-            value={copyFallback}
-            onFocus={(event) => event.currentTarget.select()}
-          />
-        </label>
-      )}
-      {compact ? (
-        <button
-          type="button"
-          className="bp-btn bp-btn-ghost bp-room-invite__qr-toggle"
-          onClick={() => setShowQr((value) => !value)}
-          aria-expanded={showQr}
-        >
-          {showQr ? tr('hideQr') : tr('showQr')}
-        </button>
-      ) : null}
-      {(!compact || showQr) && qrSrc && (
+      {qrSrc && (
         <div className="bp-room-invite__qr-wrap">
           <img src={qrSrc} alt={tr('scanQrHint')} className="bp-room-invite__qr" width={200} height={200} />
           <p className="bp-room-invite__qr-hint">{tr('scanQrHint')}</p>
