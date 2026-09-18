@@ -11,21 +11,19 @@ export default function MiningPhaseIndicator({ phase = 'select' }) {
   const activeIndex = Math.max(0, PHASES.findIndex((item) => item.id === phase));
 
   return (
-    <ol className="bp-mining-phases" aria-label={tr('miningPhasesAria')}>
-      {PHASES.map((item, index) => (
-        <li
-          key={item.id}
-          className={[
-            'bp-mining-phases__item',
-            index < activeIndex ? 'bp-mining-phases__item--done' : '',
-            index === activeIndex ? 'bp-mining-phases__item--active' : '',
-          ].filter(Boolean).join(' ')}
-          aria-current={index === activeIndex ? 'step' : undefined}
-        >
-          <span className="bp-mining-phases__number" aria-hidden>{index + 1}</span>
-          <span>{tr(item.labelKey)}</span>
-        </li>
-      ))}
-    </ol>
+    <div className="bp-mining-phases" aria-label={tr('miningPhasesAria')}>
+      <span className="bp-mining-phases__current">
+        <span className="bp-mining-phases__number" aria-hidden>{activeIndex + 1}</span>
+        <strong aria-current="step">{tr(PHASES[activeIndex].labelKey)}</strong>
+      </span>
+      <span className="bp-mining-phases__track" aria-hidden="true">
+        {PHASES.map((item, index) => (
+          <span
+            key={item.id}
+            className={`bp-mining-phases__segment${index <= activeIndex ? ' bp-mining-phases__segment--active' : ''}`}
+          />
+        ))}
+      </span>
+    </div>
   );
 }

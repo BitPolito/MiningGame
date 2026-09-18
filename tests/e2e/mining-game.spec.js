@@ -254,7 +254,11 @@ test('a spectator host does not occupy a player slot', async ({ page, browser })
   await expect(page.locator('.bp-room-invite--featured')).toBeVisible();
   const codeBox = await page.locator('.bp-room-invite--featured .bp-room-invite__code-block').boundingBox();
   const qrBox = await qrButton.boundingBox();
-  expect(qrBox.y).toBeGreaterThan(codeBox.y + codeBox.height);
+  if ((page.viewportSize()?.width ?? 0) >= 1100) {
+    expect(qrBox.x).toBeGreaterThan(codeBox.x + codeBox.width - 2);
+  } else {
+    expect(qrBox.y).toBeGreaterThan(codeBox.y + codeBox.height - 2);
+  }
   await qrButton.click();
   await expect(page.getByRole('dialog').locator('.bp-qr-dialog__image')).toBeVisible();
   await page.keyboard.press('Escape');

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocale } from '../../i18n/LocaleContext';
 
-export default function MobileMiningDock({ summary, details, children }) {
+export default function MobileMiningDock({ summary, details, stageLabel, children }) {
   const { tr } = useLocale();
   const [expanded, setExpanded] = useState(false);
 
@@ -16,7 +16,7 @@ export default function MobileMiningDock({ summary, details, children }) {
         aria-expanded={expanded}
         onClick={() => setExpanded((value) => !value)}
       >
-        <span>{tr('miningController')}</span>
+        <span>{stageLabel || tr('miningController')}</span>
         <span aria-hidden className="bp-mobile-mining-dock__chevron">⌃</span>
         <span className="bp-sr-only">
           {tr(expanded ? 'collapseMiningController' : 'expandMiningController')}

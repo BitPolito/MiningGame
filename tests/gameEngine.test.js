@@ -103,6 +103,7 @@ describe('maximum-fee transaction selection', () => {
 
   it('generates strategic pools where the three highest fees are not the answer', () => {
     const state = createInitialGameState('easy', 'STRATEGIC-FEES');
+    expect(state.mempool).toHaveLength(15);
     const naive = [...state.mempool]
       .sort((a, b) => b.fee - a.fee || a.id - b.id)
       .slice(0, 3);

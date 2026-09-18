@@ -51,6 +51,43 @@ test('home and setup remain proportional in production assets', async ({ page },
   await screenshot(page, testInfo, 'setup');
 });
 
+test('rules difficulty tabs keep contrast on hover without separator lines', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'How to play' }).click();
+  const dialog = page.getByRole('dialog');
+  const easy = dialog.getByRole('tab', { name: /Easy/ });
+  const hard = dialog.getByRole('tab', { name: /Hard/ });
+  await expect(easy).toHaveAttribute('aria-selected', 'true');
+
+  const styles = await dialog.evaluate((element) => {
+    const header = element.querySelector('.bp-rules-modal__header');
+    const tabs = element.querySelector('.bp-rules-modal__tabs');
+    return {
+      headerBorder: getComputedStyle(header).borderBottomWidth,
+      tabsBorder: getComputedStyle(tabs).borderBottomWidth,
+    };
+  });
+  expect(styles).toEqual({ headerBorder: '0px', tabsBorder: '0px' });
+
+  for (const selected of [easy, hard]) {
+    if (selected === hard) await hard.click();
+    await expect(selected).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await expect(selected).toHaveCSS('background-color', 'rgb(0, 28, 224)');
+    const normal = await selected.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { color: style.color, background: style.backgroundColor };
+    });
+    expect(normal).toEqual({ color: 'rgb(255, 255, 255)', background: 'rgb(0, 28, 224)' });
+    await selected.hover();
+    await expect.poll(() => selected.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { color: style.color, background: style.backgroundColor };
+    })).toEqual(normal);
+  }
+  await assertNoPageOverflow(page);
+  await screenshot(page, testInfo, 'rules-guide');
+});
+
 test('Easy workspace, HUD and mining work on the production build', async ({ page }, testInfo) => {
   await startSolo(page, 'easy');
   const width = page.viewportSize().width;
@@ -78,6 +115,7 @@ test('Easy workspace, HUD and mining work on the production build', async ({ pag
     else expect(miningBox.y).toBeGreaterThanOrEqual(mempoolBox.y + mempoolBox.height - 2);
   }
   await assertNoPageOverflow(page);
+  await expect(page.locator('.bp-panel--mempool-full .mempool-table tbody tr')).toHaveCount(15);
   await screenshot(page, testInfo, 'easy-workspace');
   const { nonce } = await selectOptimalTransactions(page, 'easy');
   const mobile = width <= 900;
@@ -90,11 +128,13 @@ test('Easy workspace, HUD and mining work on the production build', async ({ pag
 
 test('Hard selection and dice remain usable without overlap', async ({ page }, testInfo) => {
   await startSolo(page, 'hard');
+  await expect(page.locator('.bp-panel--mempool-full .mempool-table tbody tr')).toHaveCount(15);
+  await expect(page.getByText(/shake to roll/i)).toHaveCount(0);
   await selectOptimalTransactions(page, 'hard');
   const mobile = page.viewportSize().width <= 900;
   const control = mobile ? page.locator('.bp-mobile-mining-dock') : page.locator('.bp-panel--mining-action');
-  await expect(control.getByRole('button', { name: 'Roll the dice' })).toBeVisible();
-  await control.getByRole('button', { name: 'Roll the dice' }).click();
+  await expect(control.getByRole('button', { name: 'Roll the dice', exact: true })).toBeVisible();
+  await control.getByRole('button', { name: 'Roll the dice', exact: true }).click();
   await expect(page.locator('.bp-panel--mempool-full tr[aria-pressed="true"]')).toHaveCount(3);
   await assertNoPageOverflow(page);
   await screenshot(page, testInfo, 'hard-mining');
@@ -124,10 +164,75 @@ test('spectator lobby and host dashboard show a scannable expandable QR', async 
   await expect(overview).toBeVisible();
   const qr = page.getByRole('button', { name: 'Open a larger QR code' });
   await expect(qr.locator('svg, canvas, img')).toBeVisible();
+  const codeBox = await page.locator('.bp-room-invite--featured .bp-room-invite__code-block').boundingBox();
+  const qrBox = await qr.boundingBox();
+  if (page.viewportSize().width >= 1100) {
+    expect(qrBox.x).toBeGreaterThan(codeBox.x + codeBox.width - 2);
+  } else {
+    expect(qrBox.y).toBeGreaterThan(codeBox.y + codeBox.height - 2);
+  }
   await assertNoPageOverflow(page);
   await screenshot(page, testInfo, 'host-dashboard');
   await qr.click();
   await expect(page.getByRole('dialog').locator('.bp-qr-dialog__image')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toBeHidden();
+});
+
+
+test('the host can watch a full 30-miner race without the join QR', async ({ page, request }, testInfo) => {
+  const width = page.viewportSize().width;
+
+  const createdResponse = await request.post('/api/room?action=create', {
+    data: { hostName: 'Observer', hostParticipates: false, numPlayers: 30, difficulty: 'easy', blocksToWin: 3 },
+  });
+  expect(createdResponse.ok()).toBe(true);
+  const created = await createdResponse.json();
+  const { seed, sessionToken } = created;
+  let firstMinerToken = '';
+  for (let index = 1; index <= 30; index += 1) {
+    const response = await request.post('/api/room?action=join', {
+      data: { seed, playerName: 'Miner ' + index },
+    });
+    expect(response.ok()).toBe(true);
+    if (index === 1) firstMinerToken = (await response.json()).sessionToken;
+  }
+  const startResponse = await request.post('/api/room?action=start', {
+    data: { seed },
+    headers: { Authorization: 'Bearer ' + sessionToken },
+  });
+  expect(startResponse.ok()).toBe(true);
+  const privateResponse = await request.get('/api/room?action=status&seed=' + encodeURIComponent(seed), {
+    headers: { Authorization: 'Bearer ' + firstMinerToken },
+  });
+  const { playerState } = await privateResponse.json();
+  const selected = getValidBlockSelections(playerState.mempool, playerState.balances)
+    .sort((a, b) => b.totalFees - a.totalFees)[0];
+  const txs = getTransactionsInSelectionOrder(playerState.mempool, selected.ids);
+  const nonce = playerState.target - playerState.prevTarget - computeBlockValue(txs);
+  const minedResponse = await request.post('/api/room?action=mine', {
+    data: { seed, blockIndex: playerState.blockNum, selectedTxIds: selected.ids, nonce },
+    headers: { Authorization: 'Bearer ' + firstMinerToken },
+  });
+  expect(minedResponse.ok()).toBe(true);
+
+  await page.addInitScript(({ roomSeed, token }) => {
+    localStorage.setItem('bp-room-session-v5', JSON.stringify({
+      seed: roomSeed, sessionToken: token, role: 'host', displayName: 'Observer', hostParticipates: false,
+    }));
+  }, { roomSeed: seed, token: sessionToken });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Host dashboard' })).toBeVisible();
+  const race = page.locator('.bp-host-dash--live .bp-host-race-list');
+  await expect(race.locator('.bp-host-race-list__row')).toHaveCount(30);
+  await expect(race.locator('.bp-host-race-list__row').first()).toContainText('Miner 1');
+  await expect(race.locator('.bp-host-race-list__row').first()).toContainText('1/3');
+  await expect(race.locator('.bp-host-race-list__miner')).toHaveCount(30);
+  await expect(page.locator('.bp-room-invite__qr-button')).toHaveCount(0);
+  const columns = await race.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length);
+  expect(columns).toBe(width >= 1200 ? 4 : width >= 900 ? 3 : width >= 600 ? 2 : 1);
+  const raceBox = await race.boundingBox();
+  expect(raceBox.y).toBeLessThan(page.viewportSize().height * (width < 600 ? 0.7 : 0.5));
+  await assertNoPageOverflow(page);
+  await screenshot(page, testInfo, 'live-host-race');
 });

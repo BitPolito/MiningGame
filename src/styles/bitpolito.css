@@ -2189,7 +2189,6 @@ a.bp-btn--link {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 16px 12px;
-  border-bottom: 1px solid var(--bp-100);
 }
 
 .bp-rules-modal__title {
@@ -2225,7 +2224,6 @@ a.bp-btn--link {
   display: flex;
   gap: 8px;
   padding: 0 16px 12px;
-  border-bottom: 1px solid var(--bp-100);
 }
 
 .bp-rules-modal__tab {
@@ -2242,12 +2240,19 @@ a.bp-btn--link {
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.bp-rules-modal__tab:hover {
+.bp-rules-modal__tab:not(.bp-rules-modal__tab--active):hover {
   border-color: var(--bp-400);
   color: var(--bp-text);
+  background: var(--bp-50);
 }
 
 .bp-rules-modal__tab--active {
+  border-color: var(--bp-blue);
+  background: var(--bp-blue);
+  color: var(--bp-white);
+}
+
+.bp-rules-modal__tab--active:hover {
   border-color: var(--bp-blue);
   background: var(--bp-blue);
   color: var(--bp-white);

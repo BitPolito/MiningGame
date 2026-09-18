@@ -1129,24 +1129,6 @@ button.bp-candidate-slot--filled:focus-visible {
     white-space: nowrap;
   }
 
-  .bp-shake-toggle {
-    width: 100%;
-    min-height: 34px;
-    margin-top: 7px;
-    padding: 6px 10px;
-    border: 1px solid var(--bp-200);
-    border-radius: var(--bp-radius-sm);
-    background: var(--bp-50);
-    color: var(--bp-text-muted);
-    font: 700 0.68rem var(--bp-font);
-  }
-
-  .bp-shake-toggle--active {
-    border-color: var(--bp-blue);
-    background: var(--bp-tint-blue-15);
-    color: var(--bp-blue);
-  }
-
   .bp-mobile-mining-dock__status {
     min-width: 0;
   }
@@ -2579,5 +2561,292 @@ button.bp-candidate-slot--filled:focus-visible {
   .bp-panel--mining-action .bp-mining-phases__item,
   .bp-mining-phases__item {
     font-size: 0.7rem;
+  }
+}
+
+/* A single current mining instruction replaces the dense three-label stepper. */
+.bp-panel--mining-action .bp-mining-phases {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--bp-50);
+  border-bottom: 1px solid var(--bp-200);
+}
+
+.bp-mining-phases__current {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--bp-blue);
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
+.bp-mining-phases__current strong {
+  font-weight: 800;
+}
+
+.bp-mining-phases__track {
+  display: grid;
+  grid-template-columns: repeat(3, 18px);
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.bp-mining-phases__segment {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bp-200);
+}
+
+.bp-mining-phases__segment--active {
+  background: var(--bp-blue);
+}
+
+.bp-mining-panel-hint {
+  margin: 0;
+  padding: 15px 16px;
+  color: var(--bp-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+@media (min-width: 1100px) {
+  .bp-host-dash__overview > .bp-room-invite--featured {
+    grid-template-columns: minmax(0, 1fr) 184px;
+    align-items: center;
+    justify-items: stretch;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__details {
+    align-items: flex-start;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__code-block {
+    text-align: left;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__code {
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    letter-spacing: 0.1em;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__actions {
+    justify-content: flex-start;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__qr-button {
+    width: 184px;
+    min-width: 0;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__qr-button .bp-room-invite__qr {
+    width: 164px;
+    height: 164px;
+  }
+}
+
+@media (min-width: 760px) {
+  .bp-host-dash__overview {
+    align-items: start;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite,
+  .bp-host-dash__control {
+    height: auto;
+  }
+}
+
+/* During a race, standings take the full dashboard instead of sitting below the invite. */
+.bp-host-dash--live {
+  gap: 12px;
+}
+
+.bp-host-dash__live-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.bp-host-dash__live-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-white);
+  color: var(--bp-text-muted);
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
+.bp-host-dash__live-meta-item strong {
+  overflow: hidden;
+  color: var(--bp-text);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bp-host-dash__live-meta-item--miners {
+  background: var(--bp-50);
+  color: var(--bp-blue);
+}
+
+.bp-host-dash--live > .bp-panel .bp-panel__body {
+  padding: 12px;
+}
+
+.bp-host-dash--live > .bp-panel .bp-host-race-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  max-height: min(65dvh, 620px);
+  margin: 0;
+  padding: 0 3px 0 0;
+  overflow-y: auto;
+}
+
+.bp-host-dash--live > .bp-panel .bp-host-race-list__row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 68px;
+  padding: 8px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-white);
+}
+
+.bp-host-dash--live > .bp-panel .bp-host-race-list__row--leading {
+  border-color: var(--bp-blue);
+  background: var(--bp-50);
+}
+
+.bp-host-race-list__miner {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-50);
+}
+
+.bp-host-race-list__identity {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  min-width: 0;
+}
+
+.bp-host-race-list__identity .bp-host-race-list__name {
+  min-width: 0;
+  font-size: 0.83rem;
+}
+
+.bp-host-race-list__score {
+  flex: 0 0 auto;
+  color: var(--bp-blue);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bp-host-dash--live .bp-host-race-list__meta {
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+@media (min-width: 760px) {
+  .bp-host-dash--live > .bp-panel .bp-host-race-list {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 1199px) {
+  .bp-host-dash--live > .bp-panel .bp-host-race-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 899px) {
+  .bp-host-dash--live > .bp-panel .bp-host-race-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .bp-host-dash__live-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bp-host-dash__live-meta-item {
+    justify-content: center;
+    padding: 8px 6px;
+    font-size: 0.65rem;
+  }
+
+  .bp-host-dash__live-meta-item--miners {
+    grid-column: 1 / -1;
+  }
+
+  .bp-host-dash--live > .bp-panel .bp-host-race-list {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: min(58dvh, 520px);
+  }
+}
+
+/* Keep joined miners visible before the race starts. */
+.bp-host-dash__waiting-miners .bp-host-race-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bp-host-dash__waiting-miners .bp-host-race-list__row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-white);
+}
+
+.bp-host-dash__waiting-miners .bp-host-race-list__row:only-child {
+  grid-column: auto;
+}
+
+@media (max-width: 1199px) {
+  .bp-host-dash__waiting-miners .bp-host-race-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 899px) {
+  .bp-host-dash__waiting-miners .bp-host-race-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .bp-host-dash__waiting-miners .bp-host-race-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

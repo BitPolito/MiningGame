@@ -961,18 +961,18 @@ function App() {
           }
         >
           {errorBlock}
-          <HostDashboard
-            room={roomData}
-            roomSeed={roomSeed}
-            onStartGame={handleStartGame}
-            onPlayAgain={handlePlayAgain}
-            onShowRules={openRulesGuide}
-            startDisabled={playersCount < 1 || startingRoom}
-            startLoading={startingRoom}
-            showStart={status === 'waiting'}
-            showPlayAgain={false}
-            startDisabledReason={tr('startNeedsOnePlayer')}
-          />
+          {status !== 'finished' && (
+            <HostDashboard
+              room={roomData}
+              roomSeed={roomSeed}
+              onStartGame={handleStartGame}
+              onShowRules={openRulesGuide}
+              startDisabled={playersCount < 1 || startingRoom}
+              startLoading={startingRoom}
+              showStart={status === 'waiting'}
+              startDisabledReason={tr('startNeedsOnePlayer')}
+            />
+          )}
           {status === 'finished' && (
             <GameResultsPanel room={roomData} playerName={hostDisplayName} isHost />
           )}

@@ -52,6 +52,7 @@ for (const scenario of scenarios) {
     const seed = `SIM-${seedIndex}`;
     let state = createInitialGameState(difficulty, seed, powLevel);
     for (let block = 1; block <= BLOCKS; block += 1) {
+      if (state.mempool.length !== 15) throw new Error(`${difficulty} seed ${seedIndex} block ${block}: expected 15 transactions`);
       const valid = getValidBlockSelections(state.mempool, state.balances);
       const maximum = Math.max(...valid.map((item) => item.totalFees));
       if (valid.length < 2 || valid.filter((item) => item.totalFees === maximum).length !== 1) {

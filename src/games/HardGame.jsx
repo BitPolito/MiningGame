@@ -20,7 +20,6 @@ import MiningPhaseIndicator from '../components/game/MiningPhaseIndicator';
 import BlockCandidateTray from '../components/game/BlockCandidateTray';
 import MobileMiningDock from '../components/game/MobileMiningDock';
 import BlockDetailsContent from '../components/game/BlockDetailsContent';
-import ShakeToMineControl from '../components/game/ShakeToMineControl';
 import BpIcon from '../components/BpIcon';
 import { ICON } from '../assets/icons';
 import { canSelectTransaction, getRejectReasonKey, getTransactionsInSelectionOrder } from '../lib/txSelection';
@@ -559,34 +558,9 @@ export default function HardGame({
                     bodyClassName="bp-panel__body--sections"
                   >
                     <MiningPhaseIndicator phase={isSubmitting || powFound ? 'confirm' : selectedTxIds.length === 3 ? 'mine' : 'select'} />
-                    <PanelSection variant="status">
-                      <div className={`bp-status${rollingDice ? ' bp-status--mining' : ''}`}>
-                        {rollingDice && <span className="bp-spinner" />}
-                        {rollingDice
-                          ? tr('powRolling')
-                          : powFound
-                            ? tr('miningReady')
-                            : canRollDice
-                              ? tr('powDiceHint')
-                              : tr('miningNeedTx')}
-                      </div>
-                      <dl className="bp-mining-live-facts">
-                        <div>
-                          <dt>{tr('blockTargetShort')}</dt>
-                          <dd title={targetHash}>{targetHash.slice(0, 10)}…</dd>
-                        </div>
-                        <div>
-                          <dt>{tr('powAttempts')}</dt>
-                          <dd>{rollCount}</dd>
-                        </div>
-                        {rollCount > 0 && (
-                          <div>
-                            <dt>{tr('nonce')}</dt>
-                            <dd>{formatPowNonce(nonce)}</dd>
-                          </div>
-                        )}
-                      </dl>
-                    </PanelSection>
+                    {selectedTxIds.length < 3 && (
+                      <p className="bp-mining-panel-hint" role="status">{tr('miningNeedTx')}</p>
+                    )}
 
                     {(canRollDice || powFound) && (
                       <PanelSection title={tr('rollDice')} variant="action">
@@ -684,6 +658,7 @@ export default function HardGame({
       </main>
 
       <MobileMiningDock
+        stageLabel={selectedTxIds.length < 3 ? tr('phaseSelect') : powFound ? tr('phaseConfirm') : tr('rollDice')}
         summary={
           <BlockCandidateTray
             transactions={selectedTxs}
@@ -700,7 +675,6 @@ export default function HardGame({
               {rollCount > 0 && <div><dt>{tr('nonce')}</dt><dd>{formatPowNonce(nonce)}</dd></div>}
               {finalHash && <div><dt>{tr('hashResult')}</dt><dd>{`${finalHash.slice(0, 8)}…`}</dd></div>}
             </dl>
-            <ShakeToMineControl disabled={!canRollDice || isSubmitting} onShake={rollDiceForPow} />
           </div>
         }
       >

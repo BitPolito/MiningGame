@@ -11,6 +11,7 @@ export const ICON = {
   home: '/icons/icon-home.svg',
   info: '/icons/icon-info.svg',
   pickaxe: '/icons/icon-pickaxe.svg',
+  miner: '/icons/icon-miner.svg',
   coin: '/icons/icon-coin.svg',
   wallet: '/icons/icon-wallet.svg',
   padlock: '/icons/icon-padlock.svg',

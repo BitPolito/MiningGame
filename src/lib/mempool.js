@@ -3,7 +3,7 @@ import { createSeededRandom } from './seededRandom.js';
 import { getValidBlockSelections, isSelectionAffordable } from './txSelection.js';
 
 const CORE_FEES = [8, 7, 6, 4];
-const FILLER_FEES = [3, 3, 2, 2, 1, 1, 1];
+const FILLER_FEES = [5, 4, 3, 3, 2, 2, 1, 1, 1];
 
 function txDate(blockNum) {
   return `2026/05/${String(blockNum).padStart(2, '0')}`;

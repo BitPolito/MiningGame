@@ -412,6 +412,7 @@ export default function EasyGame({
       </main>
 
       <MobileMiningDock
+        stageLabel={selectedTxIds.length < 3 ? tr('phaseSelect') : tr('phaseMine')}
         summary={
           <BlockCandidateTray
             transactions={selectedTxs}
