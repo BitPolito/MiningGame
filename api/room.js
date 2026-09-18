@@ -1,10 +1,10 @@
-import { createHash, randomBytes, randomInt } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { kv, updateAtomically } from './kv.js';
+import { generateRoomCode } from './roomCode.js';
 import { createInitialGameState, validateAndApplyMine } from '../src/lib/gameEngine.js';
 import { clampBlocksToWin, clampNumPlayers, DEFAULT_BLOCKS_TO_WIN, getRoomOccupancy, normalizePowLevel } from './roomConfig.js';
+import { isValidRoomCode, normalizeRoomCode } from '../src/lib/roomCode.js';
 
-const SEED_WORDS = ['SATOSHI', 'GENESIS', 'HALVING', 'MEMPOOL', 'LEDGER', 'NODE', 'HASH', 'WALLET', 'BLOCK', 'MINER'];
-const CODE_RE = /^[A-Z]+-[A-Z]+-\d{4}$/;
 const MAX_NAME_LENGTH = 32;
 
 class ApiError extends Error {
@@ -22,7 +22,7 @@ function parseBody(req) {
 }
 
 function normalizeSeed(seed) {
-  return String(seed ?? '').trim().toUpperCase();
+  return normalizeRoomCode(seed);
 }
 
 function normalizeName(name) {
@@ -43,7 +43,7 @@ function validateName(name) {
 
 function validateCode(seed) {
   const code = normalizeSeed(seed);
-  if (!CODE_RE.test(code)) throw new ApiError(400, 'INVALID_ROOM_CODE');
+  if (!isValidRoomCode(code)) throw new ApiError(400, 'INVALID_ROOM_CODE');
   return code;
 }
 
@@ -120,12 +120,6 @@ function fail(res, status, code) {
   return res.status(status).json({ success: false, error: code });
 }
 
-function newCode() {
-  const a = SEED_WORDS[randomInt(SEED_WORDS.length)];
-  const b = SEED_WORDS[randomInt(SEED_WORDS.length)];
-  return `${a}-${b}-${String(randomInt(10000)).padStart(4, '0')}`;
-}
-
 function newPlayer(name, token, difficulty, seed, powLevel = '2') {
   const now = Date.now();
   return {
@@ -162,7 +156,7 @@ export default async function handler(req, res) {
       const sessionToken = makeToken();
 
       for (let attempt = 0; attempt < 8; attempt += 1) {
-        const seed = newCode();
+        const seed = generateRoomCode();
         const now = Date.now();
         const room = {
           version: 6,

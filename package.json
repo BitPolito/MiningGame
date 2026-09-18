@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run check:css && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node server.js",
@@ -16,8 +16,10 @@
     "test:room": "node scripts/test-room-flow.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm test && npm run test:api && npm run build && npm audit --omit=dev",
-    "test:api": "node scripts/test-api.mjs"
+    "check": "npm run check:css && npm run lint && npm test && npm run test:api && npm run build && npm audit --omit=dev",
+    "test:api": "node scripts/test-api.mjs",
+    "check:css": "node scripts/check-css.mjs",
+    "test:e2e:prod": "playwright test -c playwright.prod.config.js"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.4",
@@ -37,6 +39,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "postcss": "^8.5.28",
     "vite": "^8.0.12",
     "vitest": "^5.0.0"
   },

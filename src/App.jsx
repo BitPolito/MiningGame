@@ -32,6 +32,7 @@ import {
 import { BITPOLITO_WEBSITE_URL } from './lib/siteConfig';
 import { getRandomHostName, isPlayerNameTaken } from './lib/playerNames';
 import { readJoinCodeFromUrl, clearJoinParamsFromUrl } from './lib/roomJoin';
+import { normalizeRoomCode } from './lib/roomCode';
 import {
   getHostDisplayName,
   findPlayerInRoom,
@@ -283,6 +284,7 @@ function App() {
       setErrorMsg(tr('errRoomNotWaiting'));
       return;
     }
+    setRoomSeed(result.room.seed);
     setJoinPreview(result.room);
     setRulesDifficulty(result.room.difficulty || 'easy');
     if (getRoomOccupancy(result.room) >= result.room.numPlayers) {
@@ -306,7 +308,7 @@ function App() {
     const data = await joinRoom(roomSeed, playerName);
     setJoiningRoom(false);
     if (data.success) {
-      const code = roomSeed.toUpperCase();
+      const code = data.room.seed;
       setRoomSeed(code);
       setIsHost(false);
       setSessionToken(data.sessionToken);
@@ -391,7 +393,7 @@ function App() {
     setRoomSeed(codeFromUrl);
 
     const saved = loadRoomSession();
-    if (saved?.seed === codeFromUrl.toUpperCase() && saved.sessionToken) {
+    if (saved?.seed === codeFromUrl && saved.sessionToken) {
       setRestoringSession(true);
       (async () => {
         const data = await rejoinRoom(codeFromUrl, saved.sessionToken);
@@ -794,7 +796,7 @@ function App() {
                 type="text"
                 placeholder={tr('roomCodePlaceholder')}
                 value={roomSeed}
-                onChange={(e) => setRoomSeed(e.target.value.toUpperCase())}
+                onChange={(e) => setRoomSeed(normalizeRoomCode(e.target.value))}
               />
             </div>
           )}

@@ -217,6 +217,32 @@ test('the create-room form assigns its suggested host name only on creation', as
   await expect(page.locator('.bp-host-dash .bp-capacity-summary')).toContainText('Mining slots3');
 });
 
+test('a room code is easy to enter manually on another device', async ({ page, browser }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Create Room/ }).click();
+  await page.getByRole('button', { name: 'Create Room', exact: true }).click();
+  const code = (await page.locator('.bp-room-invite__code').first().textContent()).trim();
+  expect(code).toMatch(/^[A-Z0-9]{10}$/);
+  expect(code).not.toContain('-');
+
+  const guestContext = await browser.newContext();
+  try {
+    const guest = await guestContext.newPage();
+    await guest.goto('/');
+    await guest.getByRole('button', { name: /Join Room/ }).click();
+    const codeInput = guest.getByLabel('Room Code');
+    await codeInput.fill(`${code.slice(0, 4).toLowerCase()} ${code.slice(4).toLowerCase()}`);
+    await expect(codeInput).toHaveValue(code);
+    await guest.getByRole('button', { name: 'Find room' }).click();
+    await expect(guest.locator('.bp-room-invite__code').first()).toHaveText(code);
+    await guest.getByLabel('Your name').fill('Manual Guest');
+    await guest.getByRole('button', { name: 'Join Room', exact: true }).click();
+    await expect(guest.getByText('1 of 3 miners joined')).toBeVisible();
+  } finally {
+    await guestContext.close();
+  }
+});
+
 test('a spectator host does not occupy a player slot', async ({ page, browser }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Create Room/ }).click();

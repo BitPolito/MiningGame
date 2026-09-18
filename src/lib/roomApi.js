@@ -1,3 +1,5 @@
+import { normalizeRoomCode } from './roomCode.js';
+
 async function parseJsonResponse(res) {
   try {
     return await res.json();
@@ -42,14 +44,14 @@ export function createRoom(options) {
 export function joinRoom(seed, playerName) {
   return request('/api/room?action=join', {
     method: 'POST',
-    body: { seed: String(seed).trim().toUpperCase(), playerName: playerName.trim() },
+    body: { seed: normalizeRoomCode(seed), playerName: playerName.trim() },
   });
 }
 
 export function rejoinRoom(seed, sessionToken) {
   return request('/api/room?action=rejoin', {
     method: 'POST',
-    body: { seed: String(seed).trim().toUpperCase() },
+    body: { seed: normalizeRoomCode(seed) },
     sessionToken,
   });
 }
@@ -57,14 +59,14 @@ export function rejoinRoom(seed, sessionToken) {
 export function startRoom(seed, sessionToken) {
   return request('/api/room?action=start', {
     method: 'POST',
-    body: { seed: String(seed).trim().toUpperCase() },
+    body: { seed: normalizeRoomCode(seed) },
     sessionToken,
   });
 }
 
 export async function fetchRoomStatus(seed, sessionToken) {
   if (!seed?.trim()) return { success: false, error: 'INVALID_ROOM_CODE' };
-  return request(`/api/room?action=status&seed=${encodeURIComponent(seed.trim().toUpperCase())}`, {
+  return request(`/api/room?action=status&seed=${encodeURIComponent(normalizeRoomCode(seed))}`, {
     sessionToken,
   });
 }
@@ -73,7 +75,7 @@ export function reportMine(roomSeed, sessionToken, { blockIndex, selectedTxIds, 
   return request('/api/room?action=mine', {
     method: 'POST',
     body: {
-      seed: String(roomSeed).trim().toUpperCase(),
+      seed: normalizeRoomCode(roomSeed),
       blockIndex,
       selectedTxIds,
       nonce,
@@ -85,7 +87,7 @@ export function reportMine(roomSeed, sessionToken, { blockIndex, selectedTxIds, 
 export function resetRoom(seed, sessionToken) {
   return request('/api/room?action=reset', {
     method: 'POST',
-    body: { seed: String(seed).trim().toUpperCase() },
+    body: { seed: normalizeRoomCode(seed) },
     sessionToken,
   });
 }

@@ -1,10 +1,12 @@
+import { normalizeRoomCode } from './roomCode.js';
+
 /** Build a shareable URL that opens the join flow with this room code. */
 export function buildJoinUrl(seed) {
   if (typeof window === 'undefined') return '';
   const url = new URL(window.location.href);
   url.search = '';
   url.hash = '';
-  url.searchParams.set('join', String(seed).trim().toUpperCase());
+  url.searchParams.set('join', normalizeRoomCode(seed));
   return url.toString();
 }
 
@@ -12,7 +14,7 @@ export function buildJoinUrl(seed) {
 export function readJoinCodeFromUrl() {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
-  const code = (params.get('join') || params.get('room') || '').trim().toUpperCase();
+  const code = normalizeRoomCode(params.get('join') || params.get('room'));
   return code || null;
 }
 

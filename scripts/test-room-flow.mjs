@@ -30,9 +30,15 @@ async function main() {
     hostName: 'Host', numPlayers: 2, difficulty: 'easy', blocksToWin: 2, hostParticipates: true,
   } }), 'create');
   const { seed, sessionToken: hostToken } = created;
+  if (!/^[A-Z]{4}[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/.test(seed)) {
+    throw new Error('new room code is not short and separator-free');
+  }
+  const typedCode = `${seed.slice(0, 4).toLowerCase()} ${seed.slice(4).toLowerCase()}`;
+  const typedStatus = expectOk(await call('status', { method: 'GET', seed: typedCode }), 'manual room code');
+  if (typedStatus.room.seed !== seed) throw new Error('manual room code did not normalize');
   if (created.room.hostTokenHash || created.room.players[0].tokenHash) throw new Error('public room leaked credentials');
 
-  const joined = expectOk(await call('join', { body: { seed, playerName: 'Guest' } }), 'join');
+  const joined = expectOk(await call('join', { body: { seed: typedCode, playerName: 'Guest' } }), 'join');
   const guestToken = joined.sessionToken;
 
   const duplicate = await call('join', { body: { seed, playerName: 'guest' } });

@@ -16,6 +16,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run check:css
       - run: npm run lint
       - run: npm test
       - run: npm run simulate
@@ -25,3 +26,4 @@ jobs:
       - run: npm audit --omit=dev
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - run: npm run test:e2e:prod
