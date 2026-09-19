@@ -1,12 +1,13 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import HowToPlay from '../HowToPlay';
 import ModalCloseButton from '../components/ModalCloseButton';
 import GameHud from '../components/game/GameHud';
 import WinOverlay from '../components/WinOverlay';
 import PowFoundOverlay from '../components/PowFoundOverlay';
-import PowDicePanel from '../components/game/PowDicePanel';
+import PowDicePanel, { CompactDice } from '../components/game/PowDicePanel';
 import { emptyDiceFaces, formatPowNonce, nonceFromDiceRoll } from '../lib/powDice';
 import GameToast from '../components/GameToast';
+import { useGameNotice } from '../hooks/useGameNotice';
 import PanelCard from '../components/PanelCard';
 import MempoolTable from '../components/game/MempoolTable';
 import MempoolRulesPanel from '../components/game/MempoolRulesPanel';
@@ -78,9 +79,10 @@ export default function HardGame({
   const [miningDone, setMiningDone] = useState(false);
   const [hasAcknowledgedPow, setHasAcknowledgedPow] = useState(() => initialDraft?.draft.hasAcknowledgedPow ?? false);
   const [rollingDice, setRollingDice] = useState(false);
+  const rollRunRef = useRef(0);
   const [diceFaces, setDiceFaces] = useState(() => initialDraft?.draft.diceFaces ?? emptyDiceFaces());
   const [rollCount, setRollCount] = useState(() => initialDraft?.draft.rollCount ?? 0);
-  const [messageKey, setMessageKey] = useState(() => initialDraft && (initialDraft.draft.selectedTxIds.length || initialDraft.draft.rollCount) ? 'draftRestored' : null);
+  const [messageKey, setMessageKey, noticeId] = useGameNotice(initialDraft && (initialDraft.draft.selectedTxIds.length || initialDraft.draft.rollCount) ? 'draftRestored' : null);
   const [lastMinedBlockId, setLastMinedBlockId] = useState(null);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [rulesGuideMode, setRulesGuideMode] = useState('hard');
@@ -220,6 +222,7 @@ export default function HardGame({
 
   useEffect(() => {
     if (!gameOver) return;
+    rollRunRef.current += 1;
     setMiningDone(false);
     setHasAcknowledgedPow(false);
     setFinalHash('');
@@ -232,6 +235,8 @@ export default function HardGame({
 
   const applyPlayerState = useCallback((state) => {
     if (!state) return;
+    rollRunRef.current += 1;
+    setRollingDice(false);
     setGameState(state);
     setSelectedTxIds([]);
     setNonce(0);
@@ -249,6 +254,8 @@ export default function HardGame({
 
   useEffect(() => {
     if (!roomSeed || !playerState) return;
+    rollRunRef.current += 1;
+    setRollingDice(false);
     const saved = loadGameDraft(draftContext, playerState);
     setGameState(playerState);
     if (saved) {
@@ -271,7 +278,7 @@ export default function HardGame({
       setDiceFaces(emptyDiceFaces());
       setRollCount(0);
     }
-  }, [roomSeed, playerState, draftContext]);
+  }, [roomSeed, playerState, draftContext, setMessageKey]);
 
   useEffect(() => {
     if (gameOver) return;
@@ -287,6 +294,7 @@ export default function HardGame({
   }, [gameOver, draftContext, roomSeed]);
 
   const handleHome = useCallback(() => {
+    rollRunRef.current += 1;
     clearGameDraft(draftContext);
     if (!roomSeed) clearSoloSessionMeta();
     onHome();
@@ -326,6 +334,7 @@ export default function HardGame({
       setLastMinedFees(result.block?.totalFees ?? selectedFeeTotal);
       setMessageKey('blockMinedHardWithFees');
       if (!roomSeed && nextState.history.length >= blocksToWinLive) setSoloWon(true);
+      if (roomSeed && result.won) void onViewResults?.(result.room, result.playerState);
       return;
     }
 
@@ -356,12 +365,14 @@ export default function HardGame({
       return;
     }
 
+    const runId = ++rollRunRef.current;
     setRollingDice(true);
     setMessageKey(null);
     setRejectedTxId(null);
-    const nextRoll = rollCount + 1;
     try {
-      await new Promise((r) => setTimeout(r, 250));
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      if (runId !== rollRunRef.current) return;
+      const nextRoll = rollCount + 1;
       const { dice, nonce: rolledNonce } = nonceFromDiceRoll(nextRoll);
       const proof = await computeHardBlockHash({
         transactions: selectedTxs,
@@ -371,6 +382,7 @@ export default function HardGame({
         bits: gameState.bits,
         nonce: rolledNonce,
       });
+      if (runId !== rollRunRef.current) return;
       const hash = proof.finalHash;
       const valid = isProofOfWorkValid(hash, targetHash);
       setRollCount(nextRoll);
@@ -384,14 +396,14 @@ export default function HardGame({
       setMiningDone(valid);
       setHasAcknowledgedPow(false);
       miningHaptic(valid);
-      if (valid) setMessageKey('powHashValid');
     } finally {
-      setRollingDice(false);
+      if (runId === rollRunRef.current) setRollingDice(false);
     }
   };
 
   const toggleSelection = (id) => {
-    if (gameOver) return;
+    if (gameOver || rollingDice || isSubmitting) return;
+    rollRunRef.current += 1;
     setMessageKey(null);
     setRejectedTxId(null);
 
@@ -427,12 +439,12 @@ export default function HardGame({
         : '';
   const toastVariant =
     !messageKey ||
-    messageKey === 'blockMinedHardWithFees' || messageKey === 'powHashValid'
+    messageKey === 'blockMinedHardWithFees' || messageKey === 'powHashValid' || messageKey === 'draftRestored'
       ? 'ok'
       : 'err';
 
   return (
-    <div className="bp-app">
+    <div className="bp-app bp-app--hard">
       <main className="bp-main bp-main--wide">
         <div className="bp-game">
           <GameHud
@@ -512,7 +524,7 @@ export default function HardGame({
                       <BlockCandidateTray
                         transactions={selectedTxs}
                         feeTotal={selectedFeeTotal}
-                        onRemove={toggleSelection}
+                        onRemove={rollingDice || isSubmitting ? null : toggleSelection}
                       />
                     </PanelCard>
                   <PanelCard
@@ -546,7 +558,7 @@ export default function HardGame({
                       onToggle={toggleSelection}
                       rejectedId={rejectedTxId}
                       rejectionMessage={rejectedTxId != null && messageKey ? tr(messageKey) : ''}
-                      disabled={gameOver}
+                      disabled={gameOver || rollingDice || isSubmitting}
                       showUserIcons={false}
                     />
                   </PanelCard>
@@ -658,48 +670,51 @@ export default function HardGame({
       </main>
 
       <MobileMiningDock
+        variant="pow"
         stageLabel={selectedTxIds.length < 3 ? tr('phaseSelect') : powFound ? tr('phaseConfirm') : tr('rollDice')}
+        activity={
+          <div className="bp-mobile-pow" aria-live="polite">
+            <CompactDice diceFaces={diceFaces} rolling={rollingDice} />
+            <div className="bp-mobile-pow__readout">
+              <strong>{rollingDice ? tr('powRolling') : powFound ? tr('powLastHit') : rollCount > 0 ? tr('powLastMiss') : selectedTxIds.length < 3 ? tr('powSelectFirst') : tr('powNoAttempts')}</strong>
+              <span>{rollCount > 0 ? `${rollCount === 1 ? tr('powRollOne') : tr('powRollCount', { count: rollCount })} · ${tr('nonce')} ${formatPowNonce(nonce)}` : tr('powTryHintShort')}</span>
+            </div>
+          </div>
+        }
         summary={
           <BlockCandidateTray
             transactions={selectedTxs}
             feeTotal={selectedFeeTotal}
-            onRemove={toggleSelection}
+            onRemove={rollingDice || isSubmitting ? null : toggleSelection}
             compact
           />
         }
-        details={
-          <div className="bp-mobile-mining-dock__details-stack">
-            <dl className="bp-mobile-mining-dock__facts">
-              <div><dt>{tr('blockTargetShort')}</dt><dd title={targetHash}>{targetHash.slice(0, 8)}…</dd></div>
-              <div><dt>{tr('powAttempts')}</dt><dd>{rollCount}</dd></div>
-              {rollCount > 0 && <div><dt>{tr('nonce')}</dt><dd>{formatPowNonce(nonce)}</dd></div>}
-              {finalHash && <div><dt>{tr('hashResult')}</dt><dd>{`${finalHash.slice(0, 8)}…`}</dd></div>}
-            </dl>
-          </div>
-        }
       >
-        <button
-          type="button"
-          className="bp-btn bp-btn-solid bp-mobile-mining-dock__button bp-mobile-mining-dock__button--wide"
-          onClick={powFound && hasAcknowledgedPow ? handleMineBlock : rollDiceForPow}
-          aria-busy={isSubmitting || rollingDice}
-          disabled={isSubmitting || rollingDice || (!canRollDice && !(powFound && hasAcknowledgedPow))}
-        >
-          {isSubmitting
-            ? tr('checkingBlock')
-            : rollingDice
-              ? tr('powRolling')
-              : powFound && hasAcknowledgedPow
-                ? tr('mineBlock')
-                : selectedTxIds.length !== 3
-                  ? tr('selectMoreTransactions', { count: 3 - selectedTxIds.length })
-                  : tr('rollDice')}
-        </button>
+        <div className="bp-mobile-mining-dock__actions bp-mobile-mining-dock__actions--single">
+          <button
+            type="button"
+            className="bp-btn bp-btn-solid bp-mobile-mining-dock__button"
+            onClick={() => powFound && hasAcknowledgedPow ? handleMineBlock() : rollDiceForPow()}
+            aria-busy={isSubmitting || rollingDice}
+            disabled={isSubmitting || rollingDice || (!canRollDice && !(powFound && hasAcknowledgedPow))}
+          >
+            {isSubmitting
+              ? tr('checkingBlock')
+              : rollingDice
+                ? tr('powRolling')
+                : powFound && hasAcknowledgedPow
+                  ? tr('mineBlock')
+                  : selectedTxIds.length !== 3
+                    ? tr('selectMoreTransactions', { count: 3 - selectedTxIds.length })
+                    : tr('rollDice')}
+          </button>
+        </div>
       </MobileMiningDock>
 
       <GameToast
         message={toastMessage}
         variant={toastVariant}
+        noticeId={noticeId}
         onDismiss={() => { setMessageKey(null); setRejectedTxId(null); }}
       />
 

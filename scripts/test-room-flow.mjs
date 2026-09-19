@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { computeBlockValue } from '../src/lib/easyMining.js';
 import { pickGreedySelection } from '../src/lib/playability.js';
+import { computeHardBlockHash } from '../src/lib/gameEngine.js';
+import { isProofOfWorkValid } from '../src/lib/targetHash.js';
 import { getTransactionsInSelectionOrder, getValidBlockSelections } from '../src/lib/txSelection.js';
 
 const BASE = process.env.ROOM_API || 'http://127.0.0.1:3001/api/room';
@@ -109,6 +111,41 @@ async function main() {
   if (joins.filter((entry) => entry.data.success).length !== 3) throw new Error('concurrent joins exceeded room capacity');
   const raceStatus = expectOk(await call('status', { method: 'GET', seed: raceRoom.seed }), 'concurrency status');
   if (raceStatus.room.players.length !== 3) throw new Error('concurrent room state is inconsistent');
+
+  const hardRoom = expectOk(await call('create', { body: {
+    hostName: 'HardHost', numPlayers: 2, difficulty: 'hard', blocksToWin: 1, hostParticipates: true,
+  } }), 'hard create');
+  const hardGuest = expectOk(await call('join', { body: { seed: hardRoom.seed, playerName: 'HardGuest' } }), 'hard join');
+  if (JSON.stringify(hardRoom.playerState.powSchedule) !== JSON.stringify(hardGuest.playerState.powSchedule)) throw new Error('hard miners received different targets');
+  const hardPublic = expectOk(await call('status', { method: 'GET', seed: hardRoom.seed }), 'hard public status');
+  if (JSON.stringify(hardPublic).includes('powSchedule')) throw new Error('future targets leaked publicly');
+  expectOk(await call('start', { body: { seed: hardRoom.seed }, token: hardRoom.sessionToken }), 'hard start');
+  const hardState = hardRoom.playerState;
+  const hardIds = pickGreedySelection(hardState.mempool, hardState.balances);
+  const hardTxs = getTransactionsInSelectionOrder(hardState.mempool, hardIds);
+  let hardNonce = 0;
+  let foundHardProof = false;
+  for (; hardNonce < 10000; hardNonce += 1) {
+    const candidate = await computeHardBlockHash({
+      transactions: hardTxs,
+      previousBlockHash: hardState.previousBlockHash,
+      version: hardState.blockVersion,
+      timestamp: hardState.blockTimestamp,
+      bits: hardState.bits,
+      nonce: hardNonce,
+    });
+    if (isProofOfWorkValid(candidate.finalHash, hardState.targetHash)) { foundHardProof = true; break; }
+  }
+  if (!foundHardProof) throw new Error('hard target could not be mined');
+  const hardMined = expectOk(await call('mine', {
+    body: { seed: hardRoom.seed, blockIndex: 1, selectedTxIds: hardIds, nonce: hardNonce },
+    token: hardRoom.sessionToken,
+  }), 'hard mine');
+  if (!hardMined.won) throw new Error('hard room did not finish');
+  const hardReset = expectOk(await call('reset', { body: { seed: hardRoom.seed }, token: hardRoom.sessionToken }), 'hard reset');
+  const guestAfterReset = expectOk(await call('status', { method: 'GET', seed: hardRoom.seed, token: hardGuest.sessionToken }), 'hard guest after reset');
+  if (JSON.stringify(hardReset.playerState.powSchedule) !== JSON.stringify(guestAfterReset.playerState.powSchedule)) throw new Error('reset desynchronized miners');
+  if (hardReset.playerState.powRound !== hardState.powRound + 1) throw new Error('reset did not start a new PoW round');
 
   console.log('Room API flow, authorization, proof validation, concurrency and restore passed.');
 }

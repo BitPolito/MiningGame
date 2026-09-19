@@ -1772,16 +1772,16 @@ a.bp-btn--link {
 .bp-pow-toolbar__dice {
   display: flex;
   flex-shrink: 0;
-  gap: 10px;
+  gap: 6px;
 }
 
 .bp-die {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
   border: var(--bp-border-width) solid var(--bp-300);
   background: var(--bp-white);
   box-shadow: var(--bp-shadow-sm);
@@ -1805,16 +1805,16 @@ a.bp-btn--link {
 
 .bp-die__pips {
   display: grid;
-  grid-template-columns: repeat(3, 8px);
-  grid-template-rows: repeat(3, 8px);
-  gap: 4px;
-  width: 32px;
-  height: 32px;
+  grid-template-columns: repeat(3, 6px);
+  grid-template-rows: repeat(3, 6px);
+  gap: 3px;
+  width: 24px;
+  height: 24px;
 }
 
 .bp-die__pip {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--bp-blue);
 }
@@ -1890,13 +1890,13 @@ a.bp-btn--link {
 }
 
 .bp-pow-toolbar .bp-die {
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
 }
 
 .bp-pow-found-card__dice {
   display: flex;
-  gap: 12px;
+  gap: 6px;
   justify-content: center;
   margin: 0;
 }
@@ -1905,13 +1905,13 @@ a.bp-btn--link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  height: 44px;
-  padding: 0 10px;
-  border-radius: 10px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 8px;
   border: var(--bp-border-width) solid var(--bp-green-border);
   background: var(--bp-green-bg);
-  font-size: 1.35rem;
+  font-size: 1rem;
   font-weight: 800;
   color: var(--bp-green);
 }
@@ -2461,6 +2461,37 @@ a.bp-btn--link {
 .mempool-check--empty {
   background: transparent;
   border: 2px dashed var(--bp-blue);
+}
+
+.bp-easy-targets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.bp-easy-targets div {
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-white);
+}
+
+.bp-easy-targets dt {
+  color: var(--bp-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.bp-easy-targets dd {
+  margin: 3px 0 0;
+  overflow: hidden;
+  color: var(--bp-text);
+  font: 800 1rem var(--bp-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .easy-formula-panel {
@@ -3347,14 +3378,8 @@ button.lang-toggle .lang-toggle-active {
 }
 
 @keyframes bp-toast-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  from { transform: translateX(-50%) translateY(10px); }
+  to { transform: translateX(-50%) translateY(0); }
 }
 
 .game-toast--ok {

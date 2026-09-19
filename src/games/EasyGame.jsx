@@ -4,6 +4,7 @@ import ModalCloseButton from '../components/ModalCloseButton';
 import GameHud from '../components/game/GameHud';
 import WinOverlay from '../components/WinOverlay';
 import GameToast from '../components/GameToast';
+import { useGameNotice } from '../hooks/useGameNotice';
 import PanelCard from '../components/PanelCard';
 import MempoolTable from '../components/game/MempoolTable';
 import MempoolNameGuide from '../components/game/MempoolNameGuide';
@@ -12,6 +13,7 @@ import MempoolRulesPanel from '../components/game/MempoolRulesPanel';
 import CollapsibleSection from '../components/game/CollapsibleSection';
 import GameWorkspaceLayout from '../components/game/GameWorkspaceLayout';
 import GamePinnedChain from '../components/game/GamePinnedChain';
+import EasyTargetPair from '../components/game/EasyTargetPair';
 import PanelSection from '../components/game/PanelSection';
 import EasyFormulaPanel from '../components/game/EasyFormulaPanel';
 import MiningPhaseIndicator from '../components/game/MiningPhaseIndicator';
@@ -57,7 +59,7 @@ export default function EasyGame({
   const [selectedTxIds, setSelectedTxIds] = useState(() => initialDraft?.draft.selectedTxIds ?? []);
   const [gameTab, setGameTab] = useState('play');
   const [nonceInput, setNonceInput] = useState(() => initialDraft?.draft.nonceInput ?? '');
-  const [messageKey, setMessageKey] = useState(() => initialDraft && (initialDraft.draft.selectedTxIds.length || initialDraft.draft.nonceInput) ? 'draftRestored' : null);
+  const [messageKey, setMessageKey, noticeId] = useGameNotice(initialDraft && (initialDraft.draft.selectedTxIds.length || initialDraft.draft.nonceInput) ? 'draftRestored' : null);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [rulesGuideMode, setRulesGuideMode] = useState('easy');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,7 +116,7 @@ export default function EasyGame({
   const toastMessage = messageKey === 'blockMinedWithFees'
     ? tr(messageKey, { fees: lastMinedFees })
     : messageKey ? tr(messageKey) : '';
-  const toastVariant = !messageKey || messageKey === 'blockMinedWithFees' ? 'ok' : 'err';
+  const toastVariant = !messageKey || messageKey === 'blockMinedWithFees' || messageKey === 'draftRestored' ? 'ok' : 'err';
 
   const toggleSelection = (id) => {
     if (gameOver) return;
@@ -163,7 +165,7 @@ export default function EasyGame({
       setSelectedTxIds([]);
       setNonceInput('');
     }
-  }, [roomSeed, playerState, draftContext]);
+  }, [roomSeed, playerState, draftContext, setMessageKey]);
 
   useEffect(() => {
     if (gameOver) return;
@@ -227,6 +229,7 @@ export default function EasyGame({
       setLastMinedFees(result.block?.totalFees ?? selection.totalFees);
       setMessageKey('blockMinedWithFees');
       if (!roomSeed && nextState.history.length >= blocksToWinLive) setSoloWon(true);
+      if (roomSeed && result.won) void onViewResults?.(result.room, result.playerState);
       return;
     }
 
@@ -248,7 +251,7 @@ export default function EasyGame({
   };
 
   return (
-    <div className="bp-app">
+    <div className="bp-app bp-app--easy">
       <main className="bp-main bp-main--wide">
         <div className="bp-game">
           <GameHud
@@ -376,6 +379,7 @@ export default function EasyGame({
                     <MiningPhaseIndicator phase={isSubmitting ? 'confirm' : selectedTxIds.length === 3 ? 'mine' : 'select'} />
                     <PanelSection variant="mine">
                       <EasyFormulaPanel />
+                      <EasyTargetPair previousTarget={prevTarget} target={target} />
                       <div className="bp-mining-toolbar">
                         <label className="bp-mining-toolbar__field" htmlFor="nonce-easy">
                           <span className="bp-mining-toolbar__label">{tr('nonce')}</span>
@@ -421,16 +425,10 @@ export default function EasyGame({
             compact
           />
         }
-        details={
-          <div className="bp-mobile-mining-dock__details-stack">
-            <EasyFormulaPanel />
-            <dl className="bp-mobile-mining-dock__facts">
-              <div><dt>{tr('blockTarget')}</dt><dd>{target}</dd></div>
-              <div><dt>{tr('prevBlockTarget')}</dt><dd>{prevTarget}</dd></div>
-              <div><dt>{tr('feesEarned')}</dt><dd>{feesEarned}</dd></div>
-            </dl>
-          </div>
+        activity={
+          <EasyTargetPair previousTarget={prevTarget} target={target} compact />
         }
+        details={<EasyFormulaPanel />}
       >
         <input
           className="bp-mobile-mining-dock__input"
@@ -460,6 +458,7 @@ export default function EasyGame({
       <GameToast
         message={toastMessage}
         variant={toastVariant}
+        noticeId={noticeId}
         onDismiss={() => { setMessageKey(null); setRejectedTxId(null); }}
       />
 

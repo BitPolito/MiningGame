@@ -2,6 +2,7 @@ import BpIcon from './BpIcon';
 import PlayerAvatar from './PlayerAvatar';
 import { ICON } from '../assets/icons';
 import { getRoomBlocksToWin } from '../lib/roomConfig';
+import { sortPlayersByBlocks } from '../lib/raceProjection';
 import { useLocale } from '../i18n/LocaleContext';
 
 export default function GameResultsPanel({ room, playerName, isHost }) {
@@ -9,7 +10,7 @@ export default function GameResultsPanel({ room, playerName, isHost }) {
   if (!room?.winner) return null;
 
   const goal = getRoomBlocksToWin(room);
-  const sorted = [...(room.players ?? [])].sort((a, b) => b.blocks - a.blocks);
+  const sorted = sortPlayersByBlocks(room.players);
   const youWon = room.winner === playerName;
 
   return (

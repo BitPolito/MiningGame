@@ -2,17 +2,14 @@ import { generateTargetHash, isProofOfWorkValid } from './targetHash.js';
 import { hash256Trace } from './sha256.js';
 import { nonceFromDiceRoll } from './powDice.js';
 
-/** Monte Carlo for the probability represented by a deterministic block target. */
+/** Monte Carlo for a chosen target; draw one at random if none is supplied. */
 export async function simulateDicePow({
   txHash = 'demo-block-header-seed',
-  roomSeed = 'solo',
-  blockNum = 1,
-  powLevel = '2',
+  targetHash = generateTargetHash(),
   trials = 2000,
   maxAttemptsPerTrial = 500,
   rng = Math.random,
 } = {}) {
-  const targetHash = generateTargetHash(roomSeed, blockNum, powLevel);
   const attemptsList = [];
   let timeouts = 0;
 
@@ -39,7 +36,6 @@ export async function simulateDicePow({
 
   return {
     targetHash,
-    powLevel,
     trials,
     successes: count,
     timeouts,
@@ -56,13 +52,11 @@ export async function simulateDicePow({
 /** Compare random dice nonces and sequential nonces under the same target. */
 export async function compareNonceStrategies({
   txHash = 'demo-block-header-seed',
-  roomSeed = 'solo',
-  powLevel = '2',
+  targetHash = generateTargetHash(),
   trials = 500,
   maxAttempts = 250,
   rng = Math.random,
 } = {}) {
-  const targetHash = generateTargetHash(roomSeed, 1, powLevel);
   let diceWins = 0;
   let sequentialWins = 0;
   let diceAttempts = 0;

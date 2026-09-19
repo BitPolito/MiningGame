@@ -14,7 +14,7 @@ import {
   getMaximumFeeTotal,
   getTransactionsInSelectionOrder,
 } from '../src/lib/txSelection.js';
-import { isProofOfWorkValid } from '../src/lib/targetHash.js';
+import { compactToTargetHash, isProofOfWorkValid } from '../src/lib/targetHash.js';
 import { hash256Trace, hexToBytes } from '../src/lib/sha256.js';
 
 function easyProof(state, ids = pickGreedySelection(state.mempool, state.balances)) {
@@ -148,6 +148,12 @@ describe('authoritative game engine', () => {
   it('preserves selection order in Hard serialization and validates real SHA-256 proof', async () => {
     const seed = 'TEST-SEED-0003';
     const state = createInitialGameState('hard', seed);
+    const schedule = state.powSchedule;
+    const peerState = createInitialGameState('hard', seed, '2', schedule);
+    expect(peerState.bits).toBe(schedule[0]);
+    expect(peerState).toEqual(state);
+    expect(peerState.powSchedule).toEqual(schedule);
+    expect(peerState.targetHash).toBe(compactToTargetHash(schedule[0]));
     const optimal = pickGreedySelection(state.mempool, state.balances);
     const ids = [...optimal].reverse();
     const ordered = getTransactionsInSelectionOrder(state.mempool, ids);
@@ -170,8 +176,18 @@ describe('authoritative game engine', () => {
     expect(result.block.firstHash).toMatch(/^[0-9a-f]{64}$/);
     expect(result.block.secondHash).toMatch(/^[0-9a-f]{64}$/);
     expect(result.state.previousBlockHash).toBe(result.block.blockHash);
-    expect(result.state.targetHash).toBe(state.targetHash);
-    expect(result.state.bits).toBe(state.bits);
+    expect(result.state.targetHash).toBe(compactToTargetHash(state.powSchedule[1]));
+    expect(result.state.bits).toBe(state.powSchedule[1]);
     expect(result.state.blockTimestamp).toBe(state.blockTimestamp + 600);
+    const secondIds = pickGreedySelection(result.state.mempool, result.state.balances);
+    const secondResult = await validateAndApplyMine({
+      difficulty: 'hard',
+      roomSeed: seed,
+      state: result.state,
+      proof: await hardProof(result.state, secondIds),
+    });
+    expect(secondResult.ok).toBe(true);
+    expect(secondResult.block.bits).toBe(state.powSchedule[1]);
+    expect(secondResult.state.bits).toBe(state.powSchedule[2]);
   });
 });

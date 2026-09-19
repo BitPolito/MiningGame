@@ -40,9 +40,9 @@ second digest = SHA256(first digest)
 displayed hash = second digest with its bytes reversed
 ```
 
-The dice are only a visual representation of an attempt; their faces do not encode the nonce.
+The four smaller dice are only a visual representation of one attempt; their faces do not encode the nonce. Each press checks exactly one nonce.
 
-The proof is valid when the displayed hash is numerically **less than or equal to the target**. The target remains fixed throughout the match. At the current difficulty, the median is about 36 attempts, but every hash is independent and luck can make the search much shorter or longer.
+The proof is valid when the displayed hash is numerically **less than or equal to the target**. At game creation, targets are drawn with secure randomness from three nearby difficulties (25% harder, 50% standard, 25% easier) and saved for the match. Every miner in a room gets the same target for a given block; a reset draws a new sequence. Typical medians range from about 36 to 59 attempts, but individual searches can be much shorter or longer.
 
 The HASH256 verifier exposes the header, both SHA-256 rounds and the final comparison.
 
@@ -52,4 +52,4 @@ After finding a valid proof, press **Mine block**. The confirmed hash becomes th
 
 Confirmed transactions leave the mempool, unconfirmed ones remain and three new transactions arrive. Fees are recorded as a statistic; only mined blocks determine the winner.
 
-> Bitcoin recalculates difficulty every 2,016 blocks. In this short match, `nBits` stays fixed just as it does within one adjustment period.
+> Bitcoin recalculates difficulty every 2,016 blocks. This game's small per-block variation is an educational pacing choice, not Bitcoin's actual retargeting rule.

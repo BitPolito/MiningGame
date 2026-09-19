@@ -1097,38 +1097,6 @@ button.bp-candidate-slot--filled:focus-visible {
     border-block: 1px solid var(--bp-200);
   }
 
-  .bp-mobile-mining-dock__facts {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 7px;
-    margin: 0;
-  }
-
-  .bp-mobile-mining-dock__facts div {
-    min-width: 0;
-  }
-
-  .bp-mobile-mining-dock__facts dt {
-    overflow: hidden;
-    color: var(--bp-text-muted);
-    font-size: 0.55rem;
-    font-weight: 700;
-    text-overflow: ellipsis;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .bp-mobile-mining-dock__facts dd {
-    margin: 2px 0 0;
-    overflow: hidden;
-    color: var(--bp-text);
-    font-family: var(--bp-mono);
-    font-size: 0.72rem;
-    font-weight: 800;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
   .bp-mobile-mining-dock__status {
     min-width: 0;
   }
@@ -1186,17 +1154,6 @@ button.bp-candidate-slot--filled:focus-visible {
     white-space: nowrap;
   }
 
-  .bp-mobile-mining-dock__button--wide {
-    grid-column: 2 / 4;
-  }
-
-  .game-toast {
-    bottom: 108px;
-  }
-
-  .bp-mobile-mining-dock--expanded + .game-toast {
-    bottom: 156px;
-  }
 }
 
 .bp-race-row--advanced {
@@ -1361,7 +1318,6 @@ button.bp-candidate-slot--filled:focus-visible {
 /* Final responsive pass: keep the current visual language while reducing UI obstruction. */
 .bp-game-hud { position: relative; top: auto; }
 .bp-mempool-quick-tools { padding: 0 var(--bp-space-3) var(--bp-space-2); }
-.bp-mobile-mining-dock__details-stack { display: grid; gap: var(--bp-space-2); }
 .bp-mining-phases__item { flex-wrap: wrap; text-align: center; line-height: 1.2; }
 @media (max-width: 900px) {
   html { scroll-padding-top: 16px; scroll-padding-bottom: 132px; }
@@ -1372,9 +1328,6 @@ button.bp-candidate-slot--filled:focus-visible {
   .bp-mobile-mining-dock__handle { min-height: 34px; }
   .bp-mobile-mining-dock__body { grid-template-columns: auto minmax(48px, 72px) minmax(0, 1fr); }
   .bp-mobile-mining-dock__button { white-space: normal; line-height: 1.15; }
-  .bp-mobile-mining-dock__button--wide { grid-column: 2 / 4; }
-  .game-toast { bottom: 132px; width: min(calc(100% - 24px), 440px); }
-  .bp-mobile-mining-dock--expanded + .game-toast { bottom: min(48vh, 350px); }
 }
 @media (max-width: 480px) {
   .bp-main--wide { padding-inline: 8px; }
@@ -2849,4 +2802,212 @@ button.bp-candidate-slot--filled:focus-visible {
   .bp-host-dash__waiting-miners .bp-host-race-list {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* A compact, always-visible Hard mining control; Easy keeps optional formula details. */
+@media (max-width: 900px) {
+  .bp-app--hard .bp-game {
+    padding-bottom: 240px;
+  }
+
+  .bp-app--easy .bp-game {
+    padding-bottom: 205px;
+  }
+
+  .bp-easy-targets--compact {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+  }
+
+  .bp-easy-targets--compact div {
+    min-width: 0;
+    padding: 6px 8px;
+    border: 1px solid var(--bp-200);
+    border-radius: var(--bp-radius-sm);
+    background: var(--bp-50);
+  }
+
+  .bp-easy-targets--compact dt {
+    color: var(--bp-text-muted);
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .bp-easy-targets--compact dd {
+    margin: 2px 0 0;
+    overflow: hidden;
+    color: var(--bp-text);
+    font: 800 0.9rem var(--bp-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bp-mobile-mining-dock__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 24px;
+  }
+
+  .bp-mobile-mining-dock__stage {
+    min-width: 0;
+    color: var(--bp-text-muted);
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .bp-mobile-mining-dock__handle {
+    width: auto;
+    min-height: 28px;
+    justify-content: flex-end;
+    padding-inline: 4px;
+    font-size: 0.67rem;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+  }
+
+  .bp-mobile-mining-dock__activity {
+    min-width: 0;
+  }
+
+  .bp-mobile-mining-dock--pow .bp-mobile-mining-dock__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .bp-mobile-mining-dock--pow .bp-candidate-tray {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .bp-mobile-mining-dock--pow .bp-candidate-tray__fees {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bp-mobile-mining-dock__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .bp-mobile-mining-dock__actions--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bp-mobile-mining-dock__actions .bp-btn {
+    min-width: 0;
+    min-height: 42px;
+    padding: 6px 8px;
+    font-size: 0.77rem;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .bp-mobile-pow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    padding: 5px 7px;
+    border: 1px solid var(--bp-200);
+    border-radius: var(--bp-radius-sm);
+    background: var(--bp-50);
+  }
+
+  .bp-mobile-pow__readout {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .bp-mobile-pow__readout strong {
+    color: var(--bp-text);
+    font-size: 0.75rem;
+    line-height: 1.15;
+  }
+
+  .bp-mobile-pow__readout span {
+    color: var(--bp-text-muted);
+    font-size: 0.65rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .bp-compact-dice {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 3px;
+  }
+
+  .bp-compact-dice .bp-die {
+    width: 22px;
+    height: 22px;
+    border-width: 1px;
+    border-radius: 5px;
+  }
+
+  .bp-compact-dice .bp-die__pips {
+    grid-template-columns: repeat(3, 3px);
+    grid-template-rows: repeat(3, 3px);
+    gap: 1px;
+    width: 11px;
+    height: 11px;
+  }
+
+  .bp-compact-dice .bp-die__pip {
+    width: 3px;
+    height: 3px;
+  }
+
+  .bp-compact-dice .bp-die__placeholder {
+    font-size: 0.85rem;
+  }
+
+  .game-toast {
+    top: calc(10px + env(safe-area-inset-top));
+    bottom: auto;
+    width: min(calc(100% - 20px), 520px);
+    max-width: none;
+    max-height: min(34dvh, 240px);
+    overflow-y: auto;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .game-toast__message {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.35;
+  }
+
+  .game-toast-close {
+    flex: 0 0 28px;
+  }
+}
+
+.bp-pow-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.bp-pow-toolbar__actions .bp-pow-toolbar__btn {
+  margin-left: 0;
 }

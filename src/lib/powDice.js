@@ -2,15 +2,14 @@
 const DICE_MIN = 1;
 const DICE_MAX = 6;
 const UINT32_RANGE = 0x100000000;
+export const DICE_COUNT = 4;
 export function formatPowNonce(value) {
   if (!Number.isSafeInteger(value) || value < 0 || value >= UINT32_RANGE) return '—';
   return `0x${value.toString(16).padStart(8, '0').toUpperCase()}`;
 }
 
-export function rollDicePair(rng = Math.random) {
-  const d1 = DICE_MIN + Math.floor(rng() * DICE_MAX);
-  const d2 = DICE_MIN + Math.floor(rng() * DICE_MAX);
-  return { d1, d2, sum: d1 + d2 };
+export function rollDiceFaces(rng = Math.random) {
+  return Array.from({ length: DICE_COUNT }, () => DICE_MIN + Math.floor(rng() * DICE_MAX));
 }
 
 function secureUint32() {
@@ -24,15 +23,16 @@ function secureUint32() {
 export function nonceFromDiceRoll(attemptIndex, rng = null) {
   void attemptIndex;
   const visualRng = rng ?? Math.random;
-  const { d1, d2 } = rollDicePair(visualRng);
+  const dice = rollDiceFaces(visualRng);
   const nonce = rng ? Math.floor(rng() * UINT32_RANGE) >>> 0 : (secureUint32() ?? Math.floor(Math.random() * UINT32_RANGE));
-  return { dice: [d1, d2], nonce };
+  return { dice, nonce };
 }
 
 export function emptyDiceFaces() {
-  return [null, null];
+  return Array(DICE_COUNT).fill(null);
 }
 
 export function isDiceReady(faces) {
-  return faces.every((value) => typeof value === 'number' && value >= DICE_MIN && value <= DICE_MAX);
+  return Array.isArray(faces) && faces.length === DICE_COUNT
+    && faces.every((value) => Number.isInteger(value) && value >= DICE_MIN && value <= DICE_MAX);
 }

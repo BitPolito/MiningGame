@@ -13,13 +13,13 @@ import {
 import { evaluateBlockSelection } from './txSelection.js';
 import {
   compactToTargetHash,
-  generateTargetHash,
-  getPowBits,
+  createPowSchedule,
+  isValidPowSchedule,
   isProofOfWorkValid,
   normalizePowLevel,
 } from './targetHash.js';
 
-export const GAME_STATE_VERSION = 6;
+export const GAME_STATE_VERSION = 7;
 export const GENESIS_BLOCK_HASH = '0'.repeat(64);
 export const DEFAULT_BLOCK_VERSION = 0x20000000;
 export const MAX_BLOCK_NONCE = 0xffffffff;
@@ -126,11 +126,13 @@ function initialTimestamp(roomSeed) {
   return 1700000000 + ((hash >>> 0) % 31536000);
 }
 
-export function createInitialGameState(difficulty, roomSeed, powLevel = '2') {
+export function createInitialGameState(difficulty, roomSeed, powLevel = '2', powSchedule = null, powRound = 0) {
   const balances = initialBalances();
   const hard = difficulty === 'hard';
   const normalizedLevel = normalizePowLevel(powLevel);
-  const bits = getPowBits(normalizedLevel);
+  const schedule = hard ? (powSchedule ?? createPowSchedule()) : null;
+  if (hard && !isValidPowSchedule(schedule)) throw new TypeError('Invalid PoW schedule');
+  const bits = hard ? schedule[0] : null;
   return {
     version: GAME_STATE_VERSION,
     blockNum: 1,
@@ -142,6 +144,8 @@ export function createInitialGameState(difficulty, roomSeed, powLevel = '2') {
     ...(hard
       ? {
           powLevel: normalizedLevel,
+          powSchedule: schedule,
+          powRound,
           blockVersion: DEFAULT_BLOCK_VERSION,
           blockTimestamp: initialTimestamp(roomSeed),
           bits,
@@ -172,6 +176,12 @@ export async function validateAndApplyMine({ difficulty, roomSeed, state, proof 
 
   let hardProof = null;
   if (difficulty === 'hard') {
+    if (!isValidPowSchedule(state.powSchedule)
+      || state.blockNum >= state.powSchedule.length
+      || state.bits !== state.powSchedule[state.blockNum - 1]
+      || state.targetHash !== compactToTargetHash(state.bits)) {
+      return { ok: false, error: 'GAME_STATE_INVALID' };
+    }
     hardProof = await computeHardBlockHash({
       transactions: selection.transactions,
       previousBlockHash: state.previousBlockHash,
@@ -237,10 +247,12 @@ export async function validateAndApplyMine({ difficulty, roomSeed, state, proof 
         ? {
             powLevel: state.powLevel,
             blockVersion: state.blockVersion,
+            powRound: state.powRound,
             blockTimestamp: state.blockTimestamp + 600,
-            bits: state.bits,
+            powSchedule: state.powSchedule,
+            bits: state.powSchedule[nextBlockNum - 1],
             previousBlockHash: hardProof.finalHash,
-            targetHash: generateTargetHash(roomSeed, nextBlockNum, state.powLevel),
+            targetHash: compactToTargetHash(state.powSchedule[nextBlockNum - 1]),
           }
         : { prevTarget: state.target, target: nextEasyTarget(state.target, nextBlockNum, roomSeed) }),
     },

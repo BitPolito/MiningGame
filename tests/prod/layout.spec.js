@@ -20,7 +20,7 @@ async function startSolo(page, difficulty) {
 }
 
 async function selectOptimalTransactions(page, difficulty) {
-  const meta = await page.evaluate(() => JSON.parse(sessionStorage.getItem('bp-solo-session-v3')));
+  const meta = await page.evaluate(() => JSON.parse(sessionStorage.getItem('bp-solo-session-v4')));
   const state = createInitialGameState(difficulty, meta.id, meta.powLevel);
   const best = getValidBlockSelections(state.mempool, state.balances)
     .sort((a, b) => b.totalFees - a.totalFees)[0];
@@ -120,6 +120,10 @@ test('Easy workspace, HUD and mining work on the production build', async ({ pag
   const { nonce } = await selectOptimalTransactions(page, 'easy');
   const mobile = width <= 900;
   const control = mobile ? page.locator('.bp-mobile-mining-dock') : page.locator('.bp-panel--mining-action');
+  await expect(control.locator('.bp-easy-targets dd')).toHaveCount(2);
+  if (mobile) {
+    await expect(control.getByRole('button', { name: 'Show formula' })).toBeVisible();
+  }
   await control.locator(mobile ? '.bp-mobile-mining-dock__input' : '#nonce-easy').fill(String(nonce));
   await control.getByRole('button', { name: 'Mine block' }).click();
   await expect(page.locator('.bp-chain__node--latest')).toHaveCount(1);
@@ -133,6 +137,11 @@ test('Hard selection and dice remain usable without overlap', async ({ page }, t
   await selectOptimalTransactions(page, 'hard');
   const mobile = page.viewportSize().width <= 900;
   const control = mobile ? page.locator('.bp-mobile-mining-dock') : page.locator('.bp-panel--mining-action');
+  if (mobile) {
+    await expect(control.locator('.bp-compact-dice .bp-die')).toHaveCount(4);
+    await expect(control.locator('.bp-mobile-mining-dock__handle')).toHaveCount(0);
+  }
+  await expect(control.getByRole('button', { name: 'Roll 5 times' })).toHaveCount(0);
   await expect(control.getByRole('button', { name: 'Roll the dice', exact: true })).toBeVisible();
   await control.getByRole('button', { name: 'Roll the dice', exact: true }).click();
   await expect(page.locator('.bp-panel--mempool-full tr[aria-pressed="true"]')).toHaveCount(3);

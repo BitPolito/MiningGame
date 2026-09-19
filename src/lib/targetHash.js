@@ -1,4 +1,35 @@
-export const POW_BITS = 0x20050000;
+import { MAX_BLOCKS_TO_WIN } from './roomConfig.js';
+
+export const POW_BITS = 0x20040000;
+export const POW_SCHEDULE_LENGTH = MAX_BLOCKS_TO_WIN + 1;
+export const POW_BITS_CHOICES = Object.freeze([0x20030000, POW_BITS, 0x20050000]);
+
+/** A fresh Web Crypto draw, never derived from a public room code or block index. */
+export function getPowBits(randomUint32 = null) {
+  if (randomUint32) {
+    const quartile = Number(randomUint32()) >>> 30;
+    if (quartile === 0) return POW_BITS_CHOICES[0];
+    if (quartile === 3) return POW_BITS_CHOICES[2];
+    return POW_BITS;
+  }
+  const draw = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(draw);
+  const quartile = draw[0] >>> 30;
+  if (quartile === 0) return POW_BITS_CHOICES[0];
+  if (quartile === 3) return POW_BITS_CHOICES[2];
+  return POW_BITS;
+}
+
+/** Draw once at game creation/reset, then persist for every miner and block. */
+export function createPowSchedule(randomUint32 = null) {
+  return Array.from({ length: POW_SCHEDULE_LENGTH }, () => getPowBits(randomUint32));
+}
+
+export function isValidPowSchedule(schedule) {
+  return Array.isArray(schedule)
+    && schedule.length === POW_SCHEDULE_LENGTH
+    && schedule.every((bits) => POW_BITS_CHOICES.includes(bits));
+}
 
 export function normalizePowLevel(value) {
   void value;
@@ -17,15 +48,8 @@ export function compactToTargetHash(bits) {
   return target.toString(16).padStart(64, '0');
 }
 
-export function getPowBits() {
-  return POW_BITS;
-}
-
-/** A short game keeps nBits fixed, as Bitcoin does inside a difficulty period. */
-export function generateTargetHash(roomSeed = 'solo', blockNum = 1, powLevel = '2') {
-  void roomSeed;
-  void blockNum;
-  void powLevel;
+/** Educational per-block variation; Bitcoin itself retargets much less often. */
+export function generateTargetHash() {
   return compactToTargetHash(getPowBits());
 }
 

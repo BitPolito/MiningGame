@@ -1,10 +1,11 @@
 import { canAffordTx } from './txSelection.js';
+import { DICE_COUNT, emptyDiceFaces } from './powDice.js';
 
-const DRAFT_VERSION = 3;
-const PREFIX = 'bp-game-draft-v4:';
-const LEGACY_PREFIXES = ['bp-game-draft-v3:', 'bp-game-draft-v2:', 'bp-game-draft-v1:'];
-const SOLO_META_KEY = 'bp-solo-session-v3';
-const LEGACY_SOLO_META_KEYS = ['bp-solo-session-v2', 'bp-solo-session-v1'];
+const DRAFT_VERSION = 4;
+const PREFIX = 'bp-game-draft-v5:';
+const LEGACY_PREFIXES = ['bp-game-draft-v4:', 'bp-game-draft-v3:', 'bp-game-draft-v2:', 'bp-game-draft-v1:'];
+const SOLO_META_KEY = 'bp-solo-session-v4';
+const LEGACY_SOLO_META_KEYS = ['bp-solo-session-v3', 'bp-solo-session-v2', 'bp-solo-session-v1'];
 
 function safeSessionStorage() {
   return typeof sessionStorage === 'undefined' ? null : sessionStorage;
@@ -14,7 +15,7 @@ export function gameStateFingerprint(state) {
   if (!state) return '';
   const target = state.targetHash ?? `${state.prevTarget ?? ''}:${state.target ?? ''}`;
   const ids = (state.mempool ?? []).map((tx) => tx.id).join(',');
-  return `${state.version}:${state.blockNum}:${state.powLevel ?? ""}:${state.blockVersion ?? ""}:${state.blockTimestamp ?? ""}:${state.bits ?? ""}:${state.previousBlockHash ?? ""}:${target}:${ids}`;
+  return `${state.version}:${state.blockNum}:${state.powRound ?? 0}:${state.powLevel ?? ""}:${state.blockVersion ?? ""}:${state.blockTimestamp ?? ""}:${state.bits ?? ""}:${state.previousBlockHash ?? ""}:${target}:${(state.powSchedule ?? []).join(',')}:${ids}`;
 }
 
 export function gameDraftContext({ difficulty, roomSeed, playerName, soloSessionId }) {
@@ -51,9 +52,9 @@ function sanitizeDraft(raw, context, authoritativeState) {
       finalHash: /^[0-9a-f]{64}$/i.test(raw.draft?.finalHash ?? '') ? raw.draft.finalHash.toLowerCase() : '',
       miningDone: Boolean(raw.draft?.miningDone),
       hasAcknowledgedPow: Boolean(raw.draft?.hasAcknowledgedPow),
-      diceFaces: Array.isArray(raw.draft?.diceFaces) && raw.draft.diceFaces.length === 2
+      diceFaces: Array.isArray(raw.draft?.diceFaces) && raw.draft.diceFaces.length === DICE_COUNT
         ? raw.draft.diceFaces.map((face) => Number.isInteger(face) && face >= 1 && face <= 6 ? face : null)
-        : [null, null],
+        : emptyDiceFaces(),
       rollCount: Number.isSafeInteger(raw.draft?.rollCount) && raw.draft.rollCount >= 0
         ? raw.draft.rollCount
         : 0,

@@ -3,6 +3,7 @@ import { kv, updateAtomically } from './kv.js';
 import { generateRoomCode } from './roomCode.js';
 import { createInitialGameState, validateAndApplyMine } from '../src/lib/gameEngine.js';
 import { clampBlocksToWin, clampNumPlayers, DEFAULT_BLOCKS_TO_WIN, getRoomOccupancy, normalizePowLevel } from './roomConfig.js';
+import { createPowSchedule } from '../src/lib/targetHash.js';
 import { isValidRoomCode, normalizeRoomCode } from '../src/lib/roomCode.js';
 
 const MAX_NAME_LENGTH = 32;
@@ -48,7 +49,7 @@ function validateCode(seed) {
 }
 
 function roomKey(seed) {
-  return `room:v7:${seed}`;
+  return `room:v8:${seed}`;
 }
 
 function makeToken() {
@@ -120,7 +121,7 @@ function fail(res, status, code) {
   return res.status(status).json({ success: false, error: code });
 }
 
-function newPlayer(name, token, difficulty, seed, powLevel = '2') {
+function newPlayer(name, token, difficulty, seed, powLevel = '2', powSchedule = null, powRound = 0) {
   const now = Date.now();
   return {
     name,
@@ -129,7 +130,7 @@ function newPlayer(name, token, difficulty, seed, powLevel = '2') {
     lastMinedAt: null,
     connectedAt: now,
     tokenHash: tokenHash(token),
-    gameState: createInitialGameState(difficulty, seed, powLevel),
+    gameState: createInitialGameState(difficulty, seed, powLevel, powSchedule, powRound),
   };
 }
 
@@ -158,20 +159,23 @@ export default async function handler(req, res) {
       for (let attempt = 0; attempt < 8; attempt += 1) {
         const seed = generateRoomCode();
         const now = Date.now();
+        const powSchedule = difficulty === 'hard' ? createPowSchedule() : null;
         const room = {
-          version: 6,
+          version: 7,
           seed,
           gameSeed: seed,
           numPlayers: clampNumPlayers(body.numPlayers),
           blocksToWin: clampBlocksToWin(body.blocksToWin ?? DEFAULT_BLOCKS_TO_WIN),
           difficulty,
           powLevel,
+          powSchedule,
+          powRound: 1,
           status: 'waiting',
           winner: null,
           hostDisplayName: hostName,
           hostParticipates,
           hostTokenHash: tokenHash(sessionToken),
-          players: hostParticipates ? [newPlayer(hostName, sessionToken, difficulty, seed, powLevel)] : [],
+          players: hostParticipates ? [newPlayer(hostName, sessionToken, difficulty, seed, powLevel, powSchedule, 1)] : [],
           createdAt: now,
           updatedAt: now,
           startedAt: null,
@@ -201,7 +205,7 @@ export default async function handler(req, res) {
           throw new ApiError(409, 'NAME_TAKEN');
         }
         if (getRoomOccupancy(room) >= room.numPlayers) throw new ApiError(409, 'ROOM_FULL');
-        room.players.push(newPlayer(playerName, sessionToken, room.difficulty, room.seed, room.powLevel));
+        room.players.push(newPlayer(playerName, sessionToken, room.difficulty, room.seed, room.powLevel, room.powSchedule, room.powRound));
         room.updatedAt = Date.now();
         return room;
       });
@@ -265,11 +269,13 @@ export default async function handler(req, res) {
         room.status = 'waiting';
         room.winner = null;
         room.startedAt = null;
+        room.powSchedule = room.difficulty === 'hard' ? createPowSchedule() : null;
+        room.powRound += 1;
         room.players.forEach((player) => {
           player.blocks = 0;
           player.feesEarned = 0;
           player.lastMinedAt = null;
-          player.gameState = createInitialGameState(room.difficulty, room.seed, room.powLevel);
+          player.gameState = createInitialGameState(room.difficulty, room.seed, room.powLevel, room.powSchedule, room.powRound);
         });
         room.updatedAt = Date.now();
         return room;

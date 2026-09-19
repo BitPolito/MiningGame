@@ -14,7 +14,7 @@ async function startSolo(page, difficulty = 'easy') {
 
 async function optimalIndexes(page, difficulty, chooseSuboptimal = false) {
   return page.evaluate(async ({ mode, low }) => {
-    const meta = JSON.parse(sessionStorage.getItem('bp-solo-session-v3'));
+    const meta = JSON.parse(sessionStorage.getItem('bp-solo-session-v4'));
     const engine = await import('/src/lib/gameEngine.js');
     const selection = await import('/src/lib/txSelection.js');
     const easy = await import('/src/lib/easyMining.js');
@@ -80,10 +80,11 @@ test('mining workspace adapts and block details work by keyboard', async ({ page
     await expect(dock.locator('.bp-candidate-slot--filled')).toHaveCount(1);
     await dock.locator('.bp-candidate-slot--filled').click();
     await expect(dock.locator('.bp-candidate-slot--filled')).toHaveCount(0);
+    await expect(dock.locator('.bp-easy-targets dd')).toHaveCount(2);
     await dock.locator('.bp-mobile-mining-dock__handle').click();
-    await expect(dock.locator('.bp-mobile-mining-dock__facts')).toBeVisible();
+    await expect(dock.locator('.easy-formula-panel')).toBeVisible();
     await dock.locator('.bp-mobile-mining-dock__handle').click();
-    await expect(dock.locator('.bp-mobile-mining-dock__facts')).toBeHidden();
+    await expect(dock.locator('.easy-formula-panel')).toBeHidden();
   }
 
   const genesis = page.locator('.bp-chain__node--clickable').first();
@@ -132,16 +133,17 @@ test('Easy keeps arithmetic manual, rejects lower fees at mining and restores a 
   await expect(page.getByText('Your in-progress block was restored.')).toBeVisible();
 });
 
-test('Hard uses one fixed balanced target without a target selector', async ({ page }) => {
+test('Hard persists randomly drawn targets without a target selector', async ({ page }) => {
   await startSolo(page, 'hard');
   const values = await page.evaluate(async () => {
-    const meta = JSON.parse(sessionStorage.getItem('bp-solo-session-v3'));
-    const engine = await import('/src/lib/gameEngine.js');
-    const state = engine.createInitialGameState('hard', meta.id, meta.powLevel);
-    return { powLevel: meta.powLevel, targetByte: parseInt(state.targetHash.slice(0, 2), 16) };
+    const meta = JSON.parse(sessionStorage.getItem('bp-solo-session-v4'));
+    const saved = JSON.parse(sessionStorage.getItem(`bp-game-draft-v5:hard:solo:${meta.id}`));
+    const state = saved.gameState;
+    return { powLevel: meta.powLevel, targetByte: parseInt(state.targetHash.slice(0, 2), 16), scheduleLength: state.powSchedule.length };
   });
   expect(values.powLevel).toBe('2');
-  expect(values.targetByte).toBe(0x05);
+  expect([3, 4, 5]).toContain(values.targetByte);
+  expect(values.scheduleLength).toBe(13);
   await expect(page.getByRole('slider', { name: /PoW difficulty/ })).toHaveCount(0);
 
   if (!(await page.locator('.bp-mobile-mining-dock').isVisible())) {
@@ -165,11 +167,11 @@ test('Hard validates fees before PoW and restores dice progress', async ({ page 
   const controls = await visibleMiningControls(page, 'Roll the dice');
   await controls.action.click();
   if (controls.mobile) {
-    await controls.dock.locator('.bp-mobile-mining-dock__handle').click();
-    await expect(controls.dock.locator('.bp-mobile-mining-dock__facts')).toContainText('1');
-    await controls.dock.locator('.bp-mobile-mining-dock__handle').click();
+    await expect(controls.dock.locator('.bp-compact-dice .bp-die:not(.bp-die--empty)')).toHaveCount(4);
+    await expect(controls.dock.locator('.bp-mobile-pow__readout')).toContainText('1 roll so far');
+    await expect(controls.dock.locator('.bp-mobile-mining-dock__handle')).toHaveCount(0);
   } else {
-    await expect(page.getByText(/1 rolls so far|Valid hash found/).first()).toBeVisible();
+    await expect(page.getByText(/1 roll so far|Valid hash found/).first()).toBeVisible();
   }
   const powDialog = page.getByRole('dialog');
   if (await powDialog.isVisible()) await powDialog.getByRole('button', { name: 'Close' }).click();
@@ -182,11 +184,55 @@ test('Hard validates fees before PoW and restores dice progress', async ({ page 
   await expect(page.locator('.bp-panel--mempool-full tr[aria-pressed="true"]')).toHaveCount(3);
   const restoredControls = await visibleMiningControls(page);
   if (restoredControls.mobile) {
-    await restoredControls.dock.locator('.bp-mobile-mining-dock__handle').click();
-    await expect(restoredControls.dock.locator('.bp-mobile-mining-dock__facts')).toContainText('1');
+    await expect(restoredControls.dock.locator('.bp-mobile-pow__readout')).toContainText('1 roll so far');
+    await expect(restoredControls.dock.locator('.bp-compact-dice .bp-die:not(.bp-die--empty)')).toHaveCount(4);
   } else {
-    await expect(page.getByText(/1 rolls so far|Valid hash found/).first()).toBeVisible();
+    await expect(page.getByText(/1 roll so far|Valid hash found/).first()).toBeVisible();
   }
+});
+
+test('mobile Hard rolls one nonce with four visible dice and no details tab', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes('mobile'));
+  await startSolo(page, 'hard');
+  const optimal = await optimalIndexes(page, 'hard');
+  await clickMempoolRows(page, optimal.indexes);
+  const dock = page.locator('.bp-mobile-mining-dock--pow');
+  await expect(dock).toBeVisible();
+  await expect(dock.locator('.bp-compact-dice .bp-die')).toHaveCount(4);
+  await expect(dock.locator('.bp-mobile-mining-dock__handle')).toHaveCount(0);
+  await expect(dock.getByRole('button', { name: 'Roll 5 times' })).toHaveCount(0);
+  await dock.getByRole('button', { name: 'Roll the dice' }).click();
+  await expect(dock.locator('.bp-mobile-pow__readout')).not.toContainText('Rolling…');
+  const readout = await dock.locator('.bp-mobile-pow__readout').textContent();
+  const attempts = Number(readout.match(/(\d+) rolls? so far/)?.[1]);
+  expect(attempts).toBe(1);
+  await expect(dock.locator('.bp-compact-dice .bp-die:not(.bp-die--empty)')).toHaveCount(4);
+  const widths = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+  expect(widths.scroll).toBeLessThanOrEqual(widths.width + 1);
+});
+
+test('mobile notices remain readable above the dock and restart on repeated errors', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes('mobile'));
+  await page.clock.install();
+  await startSolo(page, 'easy');
+  const optimal = await optimalIndexes(page, 'easy');
+  await clickMempoolRows(page, optimal.indexes);
+  const controls = await visibleMiningControls(page, 'Mine block');
+  await controls.nonceInput.fill('0');
+  await controls.action.click();
+  const notice = page.locator('.game-toast');
+  await expect(notice).toContainText('valid positive number');
+  const noticeBox = await notice.boundingBox();
+  const dockBox = await controls.dock.boundingBox();
+  expect(noticeBox.y + noticeBox.height).toBeLessThan(dockBox.y - 8);
+  await page.screenshot({ path: testInfo.outputPath('mobile-notice.png') });
+  await page.clock.fastForward(7000);
+  await expect(notice).toBeVisible();
+  await controls.action.click();
+  await page.clock.fastForward(2000);
+  await expect(notice).toBeVisible();
+  await page.clock.fastForward(6100);
+  await expect(notice).toBeHidden();
 });
 
 test('the create-room form assigns its suggested host name only on creation', async ({ page }) => {
@@ -286,6 +332,71 @@ test('a spectator host does not occupy a player slot', async ({ page, browser })
   await guestContext.close();
 });
 
+test('a finished race shows the final standings before offering the menu', async ({ page, request }) => {
+  const createdResponse = await request.post('/api/room?action=create', {
+    data: {
+      hostName: 'Observer',
+      hostParticipates: false,
+      numPlayers: 2,
+      difficulty: 'easy',
+      blocksToWin: 1,
+    },
+  });
+  expect(createdResponse.ok()).toBe(true);
+  const created = await createdResponse.json();
+
+  const joinedResponse = await request.post('/api/room?action=join', {
+    data: { seed: created.seed, playerName: 'Student' },
+  });
+  expect(joinedResponse.ok()).toBe(true);
+  const joined = await joinedResponse.json();
+
+  const startedResponse = await request.post('/api/room?action=start', {
+    data: { seed: created.seed },
+    headers: { Authorization: `Bearer ${created.sessionToken}` },
+  });
+  expect(startedResponse.ok()).toBe(true);
+
+  await page.addInitScript(({ seed, sessionToken }) => {
+    localStorage.setItem('bp-room-session-v5', JSON.stringify({
+      seed,
+      sessionToken,
+      role: 'player',
+      displayName: 'Student',
+      hostParticipates: false,
+    }));
+  }, { seed: created.seed, sessionToken: joined.sessionToken });
+  await page.goto('/');
+  await expect(page.getByText('Mempool', { exact: true }).first()).toBeVisible();
+
+  const proof = await page.evaluate(async () => {
+    const session = JSON.parse(localStorage.getItem('bp-room-session-v5'));
+    const response = await fetch(`/api/room?action=status&seed=${encodeURIComponent(session.seed)}`, {
+      headers: { Authorization: `Bearer ${session.sessionToken}` },
+    });
+    const { playerState } = await response.json();
+    const selection = await import('/src/lib/txSelection.js');
+    const easy = await import('/src/lib/easyMining.js');
+    const optimal = selection.getValidBlockSelections(playerState.mempool, playerState.balances)
+      .sort((a, b) => b.totalFees - a.totalFees)[0];
+    const txs = selection.getTransactionsInSelectionOrder(playerState.mempool, optimal.ids);
+    return {
+      indexes: optimal.ids.map((id) => playerState.mempool.findIndex((tx) => tx.id === id)),
+      nonce: playerState.target - playerState.prevTarget - easy.computeBlockValue(txs),
+    };
+  });
+  await clickMempoolRows(page, proof.indexes);
+  const controls = await visibleMiningControls(page, 'Mine block');
+  await controls.nonceInput.fill(String(proof.nonce));
+  await controls.action.click();
+
+  await expect(page.getByRole('heading', { name: 'Race finished' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Final standings' })).toBeVisible();
+  await expect(page.locator('.bp-results-board__row').first()).toContainText('Student');
+  await expect(page.getByRole('button', { name: 'Main Menu' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'View full results' })).toHaveCount(0);
+});
+
 for (const difficulty of ['Easy', 'Hard']) {
   test(`${difficulty} room supports two browsers and authenticated reload`, async ({ browser }) => {
     const hostContext = await browser.newContext();
@@ -341,7 +452,9 @@ async function visibleMiningControls(page, actionName = '') {
       ? dock.locator('.bp-mobile-mining-dock__input')
       : page.locator('#nonce-easy'),
     action: mobile
-      ? dock.locator('.bp-mobile-mining-dock__button')
+      ? actionName
+        ? dock.getByRole('button', { name: actionName, exact: true })
+        : dock.locator('.bp-mobile-mining-dock__button').first()
       : actionName
         ? page.locator('.bp-panel--mining-action').getByRole('button', { name: actionName, exact: true })
         : page.locator('.bp-panel--mining-action').getByRole('button').first(),

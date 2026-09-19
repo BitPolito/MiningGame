@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import BpIcon from '../BpIcon';
 import { ICON } from '../../assets/icons';
 import { useLocale } from '../../i18n/LocaleContext';
-import { formatPowNonce, isDiceReady } from '../../lib/powDice';
+import { formatPowNonce, isDiceReady, rollDiceFaces } from '../../lib/powDice';
 
 function DieFace({ value, rolling, error }) {
   const pips =
@@ -61,6 +61,30 @@ function DieFace({ value, rolling, error }) {
   );
 }
 
+function useDisplayFaces(diceFaces, rolling) {
+  const [displayFaces, setDisplayFaces] = useState(diceFaces);
+  useEffect(() => {
+    if (!rolling) {
+      setDisplayFaces(diceFaces);
+      return undefined;
+    }
+    const id = setInterval(() => {
+      setDisplayFaces(rollDiceFaces());
+    }, 85);
+    return () => clearInterval(id);
+  }, [rolling, diceFaces]);
+  return displayFaces;
+}
+
+export function CompactDice({ diceFaces, rolling }) {
+  const displayFaces = useDisplayFaces(diceFaces, rolling);
+  return (
+    <span className="bp-compact-dice" aria-hidden="true">
+      {displayFaces.map((face, index) => <DieFace key={index} value={face} rolling={rolling} />)}
+    </span>
+  );
+}
+
 export default function PowDicePanel({
   diceFaces,
   rollCount,
@@ -72,38 +96,20 @@ export default function PowDicePanel({
   onRoll,
 }) {
   const { tr } = useLocale();
-  const [displayFaces, setDisplayFaces] = useState(diceFaces);
-
-  useEffect(() => {
-    if (!rolling) {
-      setDisplayFaces(diceFaces);
-      return undefined;
-    }
-
-    setDisplayFaces(diceFaces);
-    const id = setInterval(() => {
-      setDisplayFaces([
-        1 + Math.floor(Math.random() * 6),
-        1 + Math.floor(Math.random() * 6),
-      ]);
-    }, 70);
-    return () => clearInterval(id);
-  }, [rolling, diceFaces]);
-
+  const displayFaces = useDisplayFaces(diceFaces, rolling);
   const ready = isDiceReady(displayFaces);
 
   return (
     <div className="bp-pow-toolbar">
       <div className="bp-pow-toolbar__dice" aria-live="polite">
-        <DieFace value={displayFaces[0]} rolling={rolling} error={error} />
-        <DieFace value={displayFaces[1]} rolling={rolling} error={error} />
+        {displayFaces.map((face, index) => <DieFace key={index} value={face} rolling={rolling} error={error} />)}
       </div>
 
       <div className="bp-pow-toolbar__body">
         <p className="bp-pow-toolbar__hint">
-          {rollCount > 0 ? tr('powRollCount', { count: rollCount }) : tr('powRollHint')}
+          {rollCount === 1 ? tr('powRollOne') : rollCount > 1 ? tr('powRollCount', { count: rollCount }) : tr('powRollHint')}
         </p>
-        {ready && (
+        {ready && rollCount > 0 && (
           <div className="bp-pow-toolbar__nonce" aria-live="polite">
             <span className="bp-pow-toolbar__nonce-label">{tr('nonce')}</span>
             <span className="bp-pow-toolbar__nonce-value">{formatPowNonce(nonce)}</span>
@@ -111,15 +117,17 @@ export default function PowDicePanel({
         )}
       </div>
 
-      <button
-        type="button"
-        className="bp-btn bp-btn-solid bp-pow-toolbar__btn"
-        onClick={onRoll}
-        disabled={disabled || rolling || powFound}
-      >
-        <BpIcon src={ICON.party} className="bp-icon--sm" tone="on-solid" />
-        <span className="bp-btn__label">{rolling ? tr('powRolling') : tr('rollDice')}</span>
-      </button>
+      <div className="bp-pow-toolbar__actions">
+        <button
+          type="button"
+          className="bp-btn bp-btn-solid bp-pow-toolbar__btn"
+          onClick={onRoll}
+          disabled={disabled || rolling || powFound}
+        >
+          <BpIcon src={ICON.party} className="bp-icon--sm" tone="on-solid" />
+          <span className="bp-btn__label">{rolling ? tr('powRolling') : tr('rollDice')}</span>
+        </button>
+      </div>
     </div>
   );
 }

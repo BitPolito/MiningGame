@@ -49,13 +49,8 @@ export default function WinOverlay({
           {tr('winSubtitleBlocks', { name: roomData.winner, goal })}
         </p>
         <div className="bp-win-card__actions">
-          {onViewResults && (
-            <button type="button" className="bp-btn bp-btn-solid" onClick={onViewResults}>
-              {tr('viewResults')}
-            </button>
-          )}
-          <button type="button" className="bp-btn bp-btn-ghost" onClick={onHome}>
-            {tr('returnLobby')}
+          <button type="button" className="bp-btn bp-btn-solid" onClick={() => onViewResults?.()}>
+            {tr('viewResults')}
           </button>
         </div>
       </div>

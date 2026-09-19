@@ -40,9 +40,9 @@ secondo digest = SHA256(primo digest)
 hash mostrato  = secondo digest con byte invertiti
 ```
 
-I dadi sono soltanto la rappresentazione visiva del tentativo: le facce non codificano il nonce.
+I quattro dadi più piccoli rappresentano visivamente un solo tentativo: le facce non codificano il nonce. Ogni pressione verifica esattamente un nonce.
 
-La prova è valida quando l’hash mostrato è numericamente **minore o uguale al target**. Il target resta fisso per tutta la partita. Con la difficoltà attuale servono circa 36 tentativi in mediana, ma ogni hash è indipendente e la fortuna può accorciare o allungare molto la ricerca.
+La prova è valida quando l’hash mostrato è numericamente **minore o uguale al target**. Alla creazione della partita i target vengono estratti con casualità sicura fra tre difficoltà vicine (25% più impegnativa, 50% standard, 25% più accessibile) e salvati. Nella stessa stanza ogni minatore ha lo stesso target per lo stesso blocco; il reset estrae una nuova sequenza. Le mediane tipiche vanno da circa 36 a 59 tentativi, ma un singolo blocco può richiederne molti meno o molti di più.
 
 Il verificatore HASH256 mostra header, due passaggi SHA-256 e confronto finale.
 
@@ -52,4 +52,4 @@ Quando trovi una prova valida, premi **Mina il blocco**. L’hash confermato div
 
 Le transazioni confermate vengono rimosse, le altre restano e ne arrivano tre nuove. Le commissioni vengono registrate come statistica; la vittoria dipende soltanto dai blocchi minati.
 
-> In Bitcoin la difficoltà viene ricalcolata ogni 2.016 blocchi. In questa partita breve `nBits` resta fisso, come accade all’interno di un singolo periodo di aggiustamento.
+> In Bitcoin la difficoltà viene ricalcolata ogni 2.016 blocchi. La piccola variazione per blocco di questo gioco è una scelta didattica per il ritmo, non la regola di retargeting di Bitcoin.

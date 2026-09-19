@@ -175,11 +175,17 @@ function App() {
     />
   ) : null;
 
-  const goToResults = useCallback(async () => {
+  const goToResults = useCallback(async (finishedRoom = null, finishedPlayerState = null) => {
     if (!roomSeed) return;
-    const result = await fetchRoomStatus(roomSeed, sessionToken);
-    if (result?.room) setRoomData(result.room);
-    if (result?.playerState) setPlayerGameState(result.playerState);
+    let nextRoom = finishedRoom?.status === 'finished' ? finishedRoom : null;
+    let nextPlayerState = finishedPlayerState;
+    if (!nextRoom) {
+      const result = await fetchRoomStatus(roomSeed, sessionToken);
+      nextRoom = result?.room ?? null;
+      nextPlayerState = result?.playerState ?? nextPlayerState;
+    }
+    if (nextRoom) setRoomData(nextRoom);
+    if (nextPlayerState) setPlayerGameState(nextPlayerState);
     setCurrentView('lobby_finished');
   }, [roomSeed, sessionToken]);
 

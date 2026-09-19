@@ -10,7 +10,7 @@ const stats = await simulateDicePow({
 });
 const estimate = getTargetPacing(stats.targetHash);
 console.log();
-console.log('=== Fixed balanced nBits target ===');
+console.log('=== Random block nBits target ===');
 console.log(`target=${stats.targetHash.slice(0, 8)}…${stats.targetHash.slice(-4)}, trials=${trials}`);
 console.log({ estimate, observed: stats });
 
