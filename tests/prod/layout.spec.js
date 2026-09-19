@@ -241,11 +241,7 @@ test('spectator lobby and host dashboard show a scannable expandable QR', async 
   await expect(qr.locator('svg, canvas, img')).toBeVisible();
   const codeBox = await page.locator('.bp-room-invite--featured .bp-room-invite__code-block').boundingBox();
   const qrBox = await qr.boundingBox();
-  if (page.viewportSize().width >= 1100) {
-    expect(qrBox.x).toBeGreaterThan(codeBox.x + codeBox.width - 2);
-  } else {
-    expect(qrBox.y).toBeGreaterThan(codeBox.y + codeBox.height - 2);
-  }
+  expect(qrBox.y).toBeGreaterThan(codeBox.y + codeBox.height - 2);
   await assertNoPageOverflow(page);
   await screenshot(page, testInfo, 'host-dashboard');
   await qr.click();

@@ -2769,6 +2769,40 @@ button.bp-candidate-slot--filled:focus-visible {
   }
 }
 
+/* Keep the host invitation vertical on desktop: details first, QR below. */
+@media (min-width: 900px) {
+  .bp-host-dash__overview > .bp-room-invite--featured {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    align-content: stretch;
+    justify-items: center;
+    min-height: 100%;
+    padding: 28px;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__details {
+    align-items: center;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__code-block {
+    text-align: center;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__actions {
+    justify-content: center;
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__qr-button {
+    align-self: center;
+    width: min(100%, 272px);
+  }
+
+  .bp-host-dash__overview > .bp-room-invite--featured .bp-room-invite__qr-button .bp-room-invite__qr {
+    width: 240px;
+    height: 240px;
+  }
+}
+
 /* During a race, standings take the full dashboard instead of sitting below the invite. */
 .bp-host-dash--live {
   gap: 12px;
