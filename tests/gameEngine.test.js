@@ -168,6 +168,7 @@ describe('authoritative game engine', () => {
           .map((tx) => tx.id);
         expect(evaluateBlockSelection(state.mempool, naive, state.balances).ok).toBe(false);
 
+        const previousIds = new Set(state.mempool.map((tx) => tx.id));
         const result = await validateAndApplyMine({
           difficulty: 'easy',
           roomSeed,
@@ -175,6 +176,17 @@ describe('authoritative game engine', () => {
           proof: easyProof(state, valid[0].ids),
         });
         expect(result.ok).toBe(true);
+
+        const arrivalPositions = result.state.mempool
+          .map((tx, index) => previousIds.has(tx.id) ? null : index)
+          .filter((index) => index != null);
+        if (arrivalPositions.length === 3) {
+          expect(arrivalPositions.filter((index) => index < 5)).toHaveLength(1);
+          expect(arrivalPositions.filter((index) => index >= 5 && index < 10)).toHaveLength(1);
+          expect(arrivalPositions.filter((index) => index >= 10 && index < 14)).toHaveLength(1);
+          expect(arrivalPositions).not.toContain(14);
+        }
+
         state = result.state;
       }
     }

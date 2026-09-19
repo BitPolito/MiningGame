@@ -66,7 +66,43 @@ function finalizePool(pool, rng) {
   return shuffled(pool, rng).map((tx, index) => ({ ...tx, displayId: index + 1 }));
 }
 
+/**
+ * Mix retained and newly arrived transactions across the whole table.
+ * One arrival lands in each third and none is placed on the final row, so
+ * recent transactions cannot be identified as an appended group.
+ */
+function finalizeReplenishedPool(retained, arrivals, rng) {
+  const existing = shuffled(retained, rng);
+  const incoming = shuffled(arrivals, rng);
+  const total = existing.length + incoming.length;
+  if (incoming.length !== 3 || total < 6) return finalizePool([...existing, ...incoming], rng);
+
+  const third = Math.floor(total / 3);
+  const arrivalPositions = new Set([
+    Math.floor(rng() * third),
+    third + Math.floor(rng() * third),
+    (third * 2) + Math.floor(rng() * Math.max(1, total - (third * 2) - 1)),
+  ]);
+
+  let existingIndex = 0;
+  let incomingIndex = 0;
+  return Array.from({ length: total }, (_, index) => {
+    const tx = arrivalPositions.has(index)
+      ? incoming[incomingIndex++]
+      : existing[existingIndex++];
+    return { ...tx, displayId: index + 1 };
+  });
+}
+
 function strategicQuality(pool, balances) {
+  const fees = pool.map((tx) => tx.fee);
+  const minimumFee = Math.min(...fees);
+  if (minimumFee < 2
+    || fees.filter((fee) => fee === minimumFee).length > 2
+    || new Set(fees).size < 7) {
+    return false;
+  }
+
   const valid = getValidBlockSelections(pool, balances);
   if (valid.length < 2) return false;
   const maximum = Math.max(...valid.map((selection) => selection.totalFees));
@@ -202,7 +238,7 @@ export function replenishMempool(mempool, balances, blockNum, roomSeed) {
     startId: startId + pair.length,
     reserved: [alternative, ...pair],
   });
-  const next = finalizePool([...retained, ...pair, ...support], rng);
+  const next = finalizeReplenishedPool(retained, [...pair, ...support], rng);
   if (strategicQuality(next, balances)) return next;
   return buildInitialPool({ balances, blockNum, roomSeed: `${roomSeed}-fallback` });
 }

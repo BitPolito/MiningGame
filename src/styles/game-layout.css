@@ -3331,6 +3331,11 @@ button.bp-candidate-slot--filled:focus-visible {
     font-size: 0.8rem;
   }
 
+  .bp-balance-chip__value,
+  .bp-balance-chip__reserved {
+    transform: translateY(5px);
+  }
+
   .mempool-table tbody {
     display: grid;
     gap: 8px;
