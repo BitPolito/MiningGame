@@ -584,15 +584,6 @@ function App() {
             )}
 
             <div className="bp-menu-actions">
-              {loadRoomSession() && !restoringSession && (
-                <ActionCard
-                  title={tr('resumeRoom')}
-                  description={tr('resumeRoomDesc', { code: loadRoomSession().seed })}
-                  iconSrc={ICON.wallet}
-                  variant="primary"
-                  onClick={handleResumeRoom}
-                />
-              )}
               <ActionCard
                 title={tr('playSolo')}
                 description={tr('playSoloDesc')}
@@ -621,6 +612,15 @@ function App() {
                   setCurrentView('lobby_join');
                 }}
               />
+              {loadRoomSession() && !restoringSession && (
+                <ActionCard
+                  title={tr('resumeRoom')}
+                  description={tr('resumeRoomDesc', { code: loadRoomSession().seed })}
+                  iconSrc={ICON.wallet}
+                  variant="primary"
+                  onClick={handleResumeRoom}
+                />
+              )}
             </div>
 
             <AppNavActions

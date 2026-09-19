@@ -323,8 +323,12 @@ test('a host can return to the menu and securely resume the room', async ({ page
   await expect(dialog).toContainText('You can resume this session');
   await dialog.getByRole('button', { name: 'Back to menu' }).click();
 
-  await expect(page.getByRole('button', { name: 'Resume room' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Resume room' })).toContainText(code);
+  const resumeRoom = page.getByRole('button', { name: 'Resume room' });
+  const joinRoom = page.getByRole('button', { name: /Join Room/ });
+  await expect(resumeRoom).toBeVisible();
+  await expect(resumeRoom).toContainText(code);
+  const [joinBox, resumeBox] = await Promise.all([joinRoom.boundingBox(), resumeRoom.boundingBox()]);
+  expect(resumeBox.y).toBeGreaterThanOrEqual(joinBox.y + joinBox.height - 1);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('bp-room-session-v5')));
   expect(saved).toMatchObject({ seed: code, role: 'host' });
   expect(saved.sessionToken).toBeTruthy();

@@ -167,13 +167,14 @@ test('Hard selection and dice remain usable without overlap', async ({ page }, t
     return {
       numericAxisDelta: Math.abs(center(value, 'x') - center(reserved, 'x')),
       nameCenterDelta: Math.abs(center(name, 'y') - center(box, 'y')),
-      numericCenterDelta: Math.abs(((value.top + reserved.bottom) / 2) - center(box, 'y')),
+      numericVerticalOffset: ((value.top + reserved.bottom) / 2) - center(box, 'y'),
     };
   }));
   expect(balanceAlignment.length).toBeGreaterThan(0);
   expect(Math.max(...balanceAlignment.map((item) => item.numericAxisDelta))).toBeLessThanOrEqual(1);
   expect(Math.max(...balanceAlignment.map((item) => item.nameCenterDelta))).toBeLessThanOrEqual(2);
-  expect(Math.max(...balanceAlignment.map((item) => item.numericCenterDelta))).toBeLessThanOrEqual(2);
+  expect(Math.min(...balanceAlignment.map((item) => item.numericVerticalOffset))).toBeGreaterThanOrEqual(3);
+  expect(Math.max(...balanceAlignment.map((item) => item.numericVerticalOffset))).toBeLessThanOrEqual(5);
   const mobile = page.viewportSize().width <= 900;
   const control = mobile ? page.locator('.bp-mobile-mining-dock') : page.locator('.bp-panel--mining-action');
   if (mobile) {

@@ -916,6 +916,11 @@
     min-width: 0;
   }
 
+  .mempool-route-mobile > span[aria-hidden] {
+    display: inline-block;
+    transform: translateY(-1px);
+  }
+
   .mempool-table .player-cell {
     gap: 5px;
     margin-inline: 0;
@@ -3236,6 +3241,7 @@ button.bp-candidate-slot--filled:focus-visible {
   font-variant-numeric: tabular-nums;
   line-height: 1;
   text-align: center;
+  transform: translateY(4px);
 }
 
 .bp-balance-chip__reserved {
@@ -3246,6 +3252,7 @@ button.bp-candidate-slot--filled:focus-visible {
   font-variant-numeric: tabular-nums;
   line-height: 1;
   text-align: center;
+  transform: translateY(4px);
 }
 
 .bp-balance-chip--changed {
