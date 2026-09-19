@@ -440,6 +440,7 @@ test('a finished race shows the final standings before offering the menu', async
       displayName: 'Student',
       hostParticipates: false,
     }));
+    sessionStorage.setItem('bp-room-resume-intent-v1', 'active');
   }, { seed: created.seed, sessionToken: joined.sessionToken });
   await page.goto('/');
   await expect(page.getByText('Mempool', { exact: true }).first()).toBeVisible();

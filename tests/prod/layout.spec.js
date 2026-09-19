@@ -291,6 +291,7 @@ test('the host can watch a full 30-miner race without the join QR', async ({ pag
     localStorage.setItem('bp-room-session-v5', JSON.stringify({
       seed: roomSeed, sessionToken: token, role: 'host', displayName: 'Observer', hostParticipates: false,
     }));
+    sessionStorage.setItem('bp-room-resume-intent-v1', 'active');
   }, { roomSeed: seed, token: sessionToken });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Host dashboard' })).toBeVisible();
