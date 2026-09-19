@@ -333,6 +333,10 @@ test('a host can return to the menu and securely resume the room', async ({ page
   expect(saved).toMatchObject({ seed: code, role: 'host' });
   expect(saved.sessionToken).toBeTruthy();
 
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Resume room' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Host dashboard' })).toHaveCount(0);
+
   await page.getByRole('button', { name: 'Resume room' }).click();
   await expect(page.getByRole('heading', { name: 'Host dashboard' })).toBeVisible();
   await expect(page.locator('.bp-room-invite__code').first()).toHaveText(code);
@@ -375,11 +379,7 @@ test('a spectator host does not occupy a player slot', async ({ page, browser })
   await expect(page.locator('.bp-room-invite--featured')).toBeVisible();
   const codeBox = await page.locator('.bp-room-invite--featured .bp-room-invite__code-block').boundingBox();
   const qrBox = await qrButton.boundingBox();
-  if ((page.viewportSize()?.width ?? 0) >= 1100) {
-    expect(qrBox.x).toBeGreaterThan(codeBox.x + codeBox.width - 2);
-  } else {
-    expect(qrBox.y).toBeGreaterThan(codeBox.y + codeBox.height - 2);
-  }
+  expect(qrBox.y).toBeGreaterThan(codeBox.y + codeBox.height - 2);
   await qrButton.click();
   await expect(page.getByRole('dialog').locator('.bp-qr-dialog__image')).toBeVisible();
   await page.keyboard.press('Escape');

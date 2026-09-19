@@ -28,18 +28,13 @@ export default function GameHud({
             {tr(difficulty === 'easy' ? 'difficultyEasy' : 'difficultyHard')}
           </span>
           {roomSeed && (
-            <>
-              <span className="bp-game-hud__pill bp-game-hud__pill--room" title={tr('roomCode')}>
-                {roomSeed}
-              </span>
-              <span
-                className={'bp-game-hud__pill bp-game-hud__pill--sync bp-game-hud__pill--sync-' + syncStatus}
-                role="status"
-                aria-live="polite"
-              >
-                {tr(syncStatus === 'online' ? 'syncOnline' : syncStatus === 'offline' ? 'syncOffline' : 'syncReconnecting')}
-              </span>
-            </>
+            <span
+              className={'bp-game-hud__pill bp-game-hud__pill--sync bp-game-hud__pill--sync-' + syncStatus}
+              role="status"
+              aria-live="polite"
+            >
+              {tr(syncStatus === 'online' ? 'syncOnline' : syncStatus === 'offline' ? 'syncOffline' : 'syncReconnecting')}
+            </span>
           )}
         </div>
           <div className="bp-game-hud__nav-end">

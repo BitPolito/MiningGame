@@ -119,13 +119,13 @@ export default function HostDashboard({
       </div>
 
       {sorted.length > 0 && (
-        <PanelCard className="bp-host-dash__waiting-miners" title={tr('hostLobbyMiners')} iconSrc={ICON.miner}>
+        <PanelCard className="bp-host-dash__waiting-miners" title={tr('hostLobbyMiners')} iconSrc={ICON.pickaxe}>
           <ol className="bp-host-race-list" aria-label={tr('hostLobbyMiners')}>
             {sorted.map((player, index) => (
               <li key={player.name} className="bp-host-race-list__row">
                 <span className="bp-host-race-list__rank">{index + 1}</span>
                 <span className="bp-host-race-list__miner">
-                  <BpIcon src={ICON.miner} className="bp-icon--sm" tone="primary" />
+                  <BpIcon src={ICON.pickaxe} className="bp-icon--sm" tone="primary" />
                 </span>
                 <span className="bp-host-race-list__name" title={player.name}>{player.name}</span>
               </li>

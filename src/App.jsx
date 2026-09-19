@@ -44,6 +44,8 @@ import {
   saveRoomSession,
   loadRoomSession,
   clearRoomSession,
+  setRoomResumeIntent,
+  shouldAutoResumeRoom,
 } from './lib/roomSession';
 import { useLocale } from './i18n/LocaleContext';
 import { clearSoloSessionMeta, loadSoloSessionMeta, saveSoloSessionMeta } from './lib/gameDraft';
@@ -136,6 +138,7 @@ function App() {
   };
 
   const returnToMenu = () => {
+    setRoomResumeIntent(false);
     resetToMenu();
   };
 
@@ -393,7 +396,7 @@ function App() {
 
   useEffect(() => {
     const saved = loadRoomSession();
-    if (!saved?.seed || !saved?.sessionToken) return;
+    if (!saved?.seed || !saved?.sessionToken || !shouldAutoResumeRoom()) return;
     setRestoringSession(true);
 
     let cancelled = false;
