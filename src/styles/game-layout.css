@@ -936,13 +936,15 @@
   .mempool-amount-value,
   .mempool-fee-mobile {
     display: inline-flex;
-    align-items: baseline;
+    align-items: center;
+    justify-content: center;
     gap: 4px;
     min-height: 25px;
     padding: 4px 7px;
     border: 1px solid var(--bp-200);
     border-radius: 999px;
     background: var(--bp-50);
+    line-height: 1;
   }
 
   .mempool-fee-mobile {
@@ -3147,7 +3149,7 @@ button.bp-candidate-slot--filled:focus-visible {
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas:
     "avatar name value"
-    "avatar reserved reserved";
+    "avatar name reserved";
   align-items: center;
   column-gap: 6px;
   min-width: 0;
@@ -3164,20 +3166,26 @@ button.bp-candidate-slot--filled:focus-visible {
 
 .bp-balance-chip__name {
   grid-area: name;
+  align-self: center;
   overflow: hidden;
   color: var(--bp-text);
   font-size: 0.72rem;
   font-weight: 700;
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .bp-balance-chip__value {
   grid-area: value;
+  align-self: center;
+  justify-self: end;
   color: var(--bp-blue);
   font-family: var(--bp-mono);
   font-size: 0.88rem;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
 }
 
 .bp-balance-chip__reserved {

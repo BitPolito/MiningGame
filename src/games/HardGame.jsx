@@ -556,7 +556,6 @@ export default function HardGame({
                       rejectedId={rejectedTxId}
                       rejectionMessage={rejectedTxId != null && messageKey ? tr(messageKey) : ''}
                       disabled={gameOver || rollingDice || isSubmitting}
-                      showUserIcons={false}
                     />
                   </PanelCard>
                   <PanelCard

@@ -13,6 +13,7 @@ import {
   evaluateBlockSelection,
   getAvailableBalances,
   getMaximumFeeTotal,
+  getValidBlockSelections,
   getTransactionsInSelectionOrder,
 } from '../src/lib/txSelection.js';
 import { compactToTargetHash, isProofOfWorkValid } from '../src/lib/targetHash.js';
@@ -139,6 +140,44 @@ describe('authoritative game engine', () => {
     const accounted = Object.values(result.state.balances).reduce((sum, value) => sum + value, 0)
       + result.state.feesEarned;
     expect(accounted).toBe(400);
+  });
+
+  it('keeps 100 twelve-block races playable, varied and strategically non-trivial', async () => {
+    for (let seedIndex = 0; seedIndex < 100; seedIndex += 1) {
+      const roomSeed = `MEMPOOL-QUALITY-${seedIndex}`;
+      let state = createInitialGameState('easy', roomSeed);
+
+      for (let block = 0; block < 12; block += 1) {
+        expect(state.mempool).toHaveLength(15);
+        const fees = state.mempool.map((tx) => tx.fee);
+        const minimumFee = Math.min(...fees);
+        expect(minimumFee).toBeGreaterThanOrEqual(2);
+        expect(fees.filter((fee) => fee === minimumFee).length).toBeLessThanOrEqual(2);
+        expect(new Set(fees).size).toBeGreaterThanOrEqual(7);
+
+        const valid = getValidBlockSelections(state.mempool, state.balances)
+          .sort((a, b) => b.totalFees - a.totalFees);
+        expect(valid.length).toBeGreaterThanOrEqual(2);
+        const maximumFees = valid[0].totalFees;
+        expect(valid.filter((selection) => selection.totalFees === maximumFees).length)
+          .toBeLessThanOrEqual(3);
+
+        const naive = [...state.mempool]
+          .sort((a, b) => b.fee - a.fee || a.id - b.id)
+          .slice(0, 3)
+          .map((tx) => tx.id);
+        expect(evaluateBlockSelection(state.mempool, naive, state.balances).ok).toBe(false);
+
+        const result = await validateAndApplyMine({
+          difficulty: 'easy',
+          roomSeed,
+          state,
+          proof: easyProof(state, valid[0].ids),
+        });
+        expect(result.ok).toBe(true);
+        state = result.state;
+      }
+    }
   });
 
   it('rejects malformed selection, wrong proof and replayed block index', async () => {

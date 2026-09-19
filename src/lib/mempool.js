@@ -2,8 +2,16 @@ import { USERS } from './gameConstants.js';
 import { createSeededRandom } from './seededRandom.js';
 import { getValidBlockSelections, isSelectionAffordable } from './txSelection.js';
 
-const CORE_FEES = [8, 7, 6, 4];
-const FILLER_FEES = [5, 4, 3, 3, 2, 2, 1, 1, 1];
+const FEE_PROFILES = [0, 1].map((offset) => ({
+  core: [8, 7, 6, 4].map((fee) => fee + offset),
+  conflict: [10 + offset],
+  fillers: [9, 8, 5, 5, 4, 3, 3, 2, 2].map((fee) => fee + offset),
+  invalid: 6 + offset,
+}));
+
+function feeProfile(rng) {
+  return FEE_PROFILES[Math.floor(rng() * FEE_PROFILES.length)];
+}
 
 function txDate(blockNum) {
   return `2026/05/${String(blockNum).padStart(2, '0')}`;
@@ -62,7 +70,8 @@ function strategicQuality(pool, balances) {
   const valid = getValidBlockSelections(pool, balances);
   if (valid.length < 2) return false;
   const maximum = Math.max(...valid.map((selection) => selection.totalFees));
-  if (valid.filter((selection) => selection.totalFees === maximum).length !== 1) return false;
+  const optimalCount = valid.filter((selection) => selection.totalFees === maximum).length;
+  if (optimalCount < 1 || optimalCount > 3) return false;
   const topThree = [...pool]
     .sort((a, b) => b.fee - a.fee || a.id - b.id)
     .slice(0, 3);
@@ -94,16 +103,17 @@ function conflictPair({ sender, balance, fees, startId, blockNum, rng, conflicts
 function buildInitialPool({ balances, blockNum, roomSeed }) {
   const rng = createSeededRandom(`${roomSeed || 'solo'}-mempool-${blockNum}`);
   const startId = blockNum * 100;
+  const profile = feeProfile(rng);
   const orderedUsers = shuffled(USERS, rng)
     .sort((a, b) => (balances[b] ?? 0) - (balances[a] ?? 0));
-  const core = CORE_FEES.map((fee, index) => {
+  const core = profile.core.map((fee, index) => {
     const sender = orderedUsers[index % orderedUsers.length];
     const available = Math.max(1, (balances[sender] ?? 0) - fee);
     return {
       id: startId + index,
       sender,
       receiver: receiverFor(sender, balances, rng),
-      amount: Math.min(8, Math.max(1, Math.floor(available / 6))),
+      amount: Math.min(available, 6 + Math.floor(rng() * 11)),
       fee,
       date: txDate(blockNum),
     };
@@ -111,13 +121,13 @@ function buildInitialPool({ balances, blockNum, roomSeed }) {
   const conflict = conflictPair({
     sender: core[0].sender,
     balance: balances[core[0].sender] ?? 0,
-    fees: [10],
+    fees: profile.conflict,
     startId: startId + core.length,
     blockNum,
     rng,
     conflictsWithCost: core[0].amount + core[0].fee,
   });
-  const fillers = FILLER_FEES.map((fee, index) => {
+  const fillers = profile.fillers.map((fee, index) => {
     const sender = USERS[(index + Math.floor(rng() * USERS.length)) % USERS.length];
     const receiver = receiverFor(sender, balances, rng);
     const maxAmount = Math.max(1, (balances[sender] ?? 0) - fee);
@@ -125,7 +135,7 @@ function buildInitialPool({ balances, blockNum, roomSeed }) {
       id: startId + core.length + conflict.length + index,
       sender,
       receiver,
-      amount: Math.min(10, Math.max(1, Math.floor(maxAmount / 5))),
+      amount: Math.min(maxAmount, 6 + Math.floor(rng() * 15)),
       fee,
       date: txDate(blockNum),
     };
@@ -136,18 +146,19 @@ function buildInitialPool({ balances, blockNum, roomSeed }) {
     sender: invalidSender,
     receiver: receiverFor(invalidSender, balances, rng),
     amount: (balances[invalidSender] ?? 0) + 5,
-    fee: 1,
+    fee: profile.invalid,
     date: txDate(blockNum),
   };
   const pool = finalizePool([...core, ...conflict, ...fillers, invalid], rng);
   if (strategicQuality(pool, balances)) return pool;
-  const fallback = allocateTransactions({ balances, fees: [10, 8, 7, 6, 4, 3], rng, startId, blockNum });
+  const fallbackFees = [...profile.core, ...profile.conflict, ...profile.fillers, profile.invalid];
+  const fallback = allocateTransactions({ balances, fees: fallbackFees, rng, startId, blockNum });
   return finalizePool(fallback, rng);
 }
 
 /**
- * Build a deterministic, playable mempool. The two highest-fee choices share
- * a sender and cannot be combined, so the best block requires reasoning about
+ * Build a deterministic, playable mempool. A high-fee decoy conflicts with
+ * another leading candidate, so the best block requires reasoning about
  * cumulative balances rather than simply taking the three largest fees.
  */
 export function generateMempool({ balances, blockNum = 1, roomSeed = '' }) {
@@ -171,13 +182,14 @@ export function replenishMempool(mempool, balances, blockNum, roomSeed) {
   if (!alternative) return buildInitialPool({ balances, blockNum, roomSeed });
 
   const startId = Math.max(blockNum * 100, ...mempool.map((tx) => tx.id)) + 1;
+  const profile = feeProfile(rng);
   const conflictSender = [...USERS]
     .filter((name) => name !== alternative.sender)
     .sort((a, b) => (balances[b] ?? 0) - (balances[a] ?? 0))[0] ?? USERS[0];
   const pair = conflictPair({
     sender: conflictSender,
     balance: balances[conflictSender] ?? 0,
-    fees: [10, 9],
+    fees: [profile.conflict[0], profile.core[0]],
     startId,
     blockNum,
     rng,
@@ -185,7 +197,7 @@ export function replenishMempool(mempool, balances, blockNum, roomSeed) {
   const support = allocateTransactions({
     blockNum,
     balances,
-    fees: [7],
+    fees: [profile.core[2]],
     rng,
     startId: startId + pair.length,
     reserved: [alternative, ...pair],

@@ -55,7 +55,12 @@ for (const scenario of scenarios) {
       if (state.mempool.length !== 15) throw new Error(`${difficulty} seed ${seedIndex} block ${block}: expected 15 transactions`);
       const valid = getValidBlockSelections(state.mempool, state.balances);
       const maximum = Math.max(...valid.map((item) => item.totalFees));
-      if (valid.length < 2 || valid.filter((item) => item.totalFees === maximum).length !== 1) {
+      const optimalCount = valid.filter((item) => item.totalFees === maximum).length;
+      const fees = state.mempool.map((tx) => tx.fee);
+      const minimumFee = Math.min(...fees);
+      const minimumFeeCount = fees.filter((fee) => fee === minimumFee).length;
+      if (valid.length < 2 || optimalCount < 1 || optimalCount > 3
+        || minimumFee < 2 || minimumFeeCount > 2 || new Set(fees).size < 7) {
         throw new Error(`${difficulty} seed ${seedIndex} block ${block}: mempool quality failed`);
       }
       const naive = [...state.mempool]
