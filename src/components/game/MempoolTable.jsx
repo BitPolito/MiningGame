@@ -127,9 +127,14 @@ export default function MempoolTable({
                   />
                 </td>
                 <td className="mempool-col-amount">
-                  <span className="mempool-amount-value">{tx.amount}</span>
+                  <span className="mempool-amount-value">
+                    <span className="mempool-metric-label">{tr('colAmount')}</span>
+                    <strong className="mempool-metric-value">{tx.amount}</strong>
+                    <span className="mempool-metric-unit">BTC</span>
+                  </span>
                   <span className="mempool-fee-mobile">
-                    {tr('colFee')} <span className="bp-fee">{tx.fee}</span>
+                    <span className="mempool-metric-label">{tr('colFee')}</span>
+                    <strong className="bp-fee">{tx.fee}</strong>
                   </span>
                 </td>
                 <td className="mempool-col-fee">

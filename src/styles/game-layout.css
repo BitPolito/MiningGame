@@ -57,6 +57,43 @@
   text-align: left;
 }
 
+/* Candidate details live inside the narrow mining column. Keep this layout
+   independent from the page-level game grid used by .bp-game-play-stack. */
+.bp-candidate-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--bp-space-3);
+  min-width: 0;
+}
+
+.bp-candidate-details > .bp-panel-section {
+  min-width: 0;
+}
+
+.bp-candidate-details .bp-header-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bp-candidate-details .bp-hash {
+  width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.bp-candidate-details__encoded {
+  color: var(--text-dim);
+  font-size: 0.68rem !important;
+  line-height: 1.45;
+  word-break: break-all !important;
+}
+
+@media (max-width: 360px) {
+  .bp-candidate-details .bp-header-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Mempool card: intro + table */
 .bp-mempool-intro {
   display: flex;
@@ -779,6 +816,15 @@
   display: none;
 }
 
+.mempool-metric-label,
+.mempool-metric-unit {
+  display: none;
+}
+
+.mempool-metric-value {
+  font: inherit;
+}
+
 @media (max-width: 560px) {
   .mempool-table-wrap {
     padding-inline: 0;
@@ -879,22 +925,60 @@
     grid-area: metrics;
     display: flex;
     align-items: center;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 5px;
     width: auto;
     padding-top: 2px;
-    color: var(--bp-text-muted);
-    font-size: 0.75rem;
+    color: var(--bp-text);
+    font-size: 0.72rem;
   }
 
-  .mempool-amount-value::before {
-    content: "BTC ";
-    font-weight: 600;
+  .mempool-amount-value,
+  .mempool-fee-mobile {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    min-height: 25px;
+    padding: 4px 7px;
+    border: 1px solid var(--bp-200);
+    border-radius: 999px;
+    background: var(--bp-50);
   }
 
   .mempool-fee-mobile {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+    border-color: color-mix(in srgb, var(--bp-blue) 28%, var(--bp-200));
+    background: color-mix(in srgb, var(--bp-blue) 7%, var(--bp-white));
+  }
+
+  .mempool-metric-label {
+    display: inline;
+    color: var(--bp-text-muted);
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.035em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .mempool-metric-value,
+  .mempool-fee-mobile .bp-fee {
+    color: var(--bp-text);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .mempool-fee-mobile .bp-fee {
+    padding: 0;
+    background: transparent;
+  }
+
+  .mempool-metric-unit {
+    display: inline;
+    color: var(--bp-blue);
+    font-size: 0.55rem;
+    font-weight: 800;
+    line-height: 1;
   }
 
   .mempool-check {
@@ -3359,5 +3443,30 @@ button.bp-candidate-slot--filled:focus-visible {
     font-family: var(--bp-mono);
     font-size: 0.68rem;
     font-weight: 800;
+  }
+}
+
+/* Keep the final transaction fully reachable above the fixed mobile mining dock. */
+@media (max-width: 900px) {
+  html {
+    scroll-padding-bottom: 270px;
+  }
+
+  .bp-app--easy .bp-game {
+    padding-bottom: 235px;
+  }
+
+  .bp-app--hard .bp-game {
+    padding-bottom: 270px;
+  }
+
+  .mempool-table tbody tr {
+    scroll-margin-block: 150px 270px;
+  }
+}
+
+@media (max-width: 560px) {
+  .mempool-table tbody {
+    padding-bottom: 16px;
   }
 }

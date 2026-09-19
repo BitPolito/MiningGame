@@ -591,8 +591,9 @@ export default function HardGame({
                         title={tr('candidateDetails')}
                         iconSrc={ICON.microscope}
                         defaultOpen={false}
+                        className="bp-candidate-details-collapse"
                       >
-                        <div className="bp-game-play-stack">
+                        <div className="bp-candidate-details">
                           <PanelSection title={tr('headerFields')}>
                             <dl className="bp-header-fields">
                               <div><dt>{tr('fieldVersion')}</dt><dd>0x{gameState.blockVersion.toString(16).padStart(8, '0')}</dd></div>
@@ -611,14 +612,14 @@ export default function HardGame({
                           )}
                           {baseString && (
                             <PanelSection title={tr('rawTxData')} variant="mono">
-                              <div className="bp-hash bp-hash--compact" style={{ wordBreak: 'break-all', fontSize: '0.8em', color: 'var(--text-dim)' }}>
+                              <div className="bp-hash bp-hash--compact bp-candidate-details__encoded">
                                 {baseString}
                               </div>
                             </PanelSection>
                           )}
                           {blockHeader && (
                             <PanelSection title={tr('blockHeader')} variant="mono">
-                              <div className="bp-hash bp-hash--compact" style={{ wordBreak: 'break-all', fontSize: '0.8em', color: 'var(--text-dim)' }}>
+                              <div className="bp-hash bp-hash--compact bp-candidate-details__encoded">
                                 {blockHeader}
                               </div>
                             </PanelSection>

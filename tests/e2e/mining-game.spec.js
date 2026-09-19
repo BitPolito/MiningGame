@@ -96,6 +96,11 @@ test('mining workspace adapts and block details work by keyboard', async ({ page
   await page.getByRole('button', { name: 'Hide history' }).click();
   await expect(page.locator('.balance-sheet-table')).toHaveCount(0);
 
+  const firstMetrics = page.locator('.mempool-table tbody td.mempool-col-amount').first();
+  await expect(firstMetrics.locator('.mempool-metric-label').first())[mobile ? 'toBeVisible' : 'toBeHidden']();
+  await expect(firstMetrics.locator('.mempool-metric-unit'))[mobile ? 'toBeVisible' : 'toBeHidden']();
+  if (mobile) await expect(firstMetrics).toContainText(/Amount.*BTC.*Fee/);
+
   if (mobile) {
     const dockHandle = dock.locator('.bp-mobile-mining-dock__handle');
     expect(await inlineCenterDelta(dockHandle, 'span:first-child', 'svg')).toBeLessThanOrEqual(1);

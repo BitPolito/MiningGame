@@ -117,6 +117,29 @@ test('Easy workspace, HUD and mining work on the production build', async ({ pag
   await assertNoPageOverflow(page);
   await expect(page.locator('.bp-panel--mempool-full .mempool-table tbody tr')).toHaveCount(15);
   await screenshot(page, testInfo, 'easy-workspace');
+  if (width <= 900) {
+    const lastRow = page.locator('.bp-panel--mempool-full .mempool-table tbody tr').last();
+    await lastRow.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+    await page.waitForTimeout(100);
+    const clearance = await page.evaluate(() => {
+      const row = document.querySelector('.bp-panel--mempool-full .mempool-table tbody tr:last-child').getBoundingClientRect();
+      const dock = document.querySelector('.bp-mobile-mining-dock').getBoundingClientRect();
+      const balances = document.querySelector('.bp-available-balances').getBoundingClientRect();
+      return {
+        aboveDock: dock.top - row.bottom,
+        belowBalances: row.top - balances.bottom,
+      };
+    });
+    expect(clearance.aboveDock).toBeGreaterThanOrEqual(8);
+    expect(clearance.belowBalances).toBeGreaterThanOrEqual(8);
+    const metricOverflow = await page.locator('.mempool-table td.mempool-col-amount').evaluateAll((cells) =>
+      Math.max(...cells.map((cell) => cell.scrollWidth - cell.clientWidth)),
+    );
+    expect(metricOverflow).toBeLessThanOrEqual(1);
+    if (width === 393) {
+      await page.screenshot({ path: testInfo.outputPath('easy-mempool-last.png') });
+    }
+  }
   const { nonce } = await selectOptimalTransactions(page, 'easy');
   const mobile = width <= 900;
   const control = mobile ? page.locator('.bp-mobile-mining-dock') : page.locator('.bp-panel--mining-action');
@@ -145,6 +168,21 @@ test('Hard selection and dice remain usable without overlap', async ({ page }, t
   await expect(control.getByRole('button', { name: 'Roll the dice', exact: true })).toBeVisible();
   await control.getByRole('button', { name: 'Roll the dice', exact: true }).click();
   await expect(page.locator('.bp-panel--mempool-full tr[aria-pressed="true"]')).toHaveCount(3);
+  if (!mobile) {
+    await control.getByRole('button', { name: 'Block candidate details' }).click();
+    const details = control.locator('.bp-candidate-details');
+    await expect(details).toBeVisible();
+    const layout = await details.evaluate((element) => ({
+      width: element.getBoundingClientRect().width,
+      parentWidth: element.parentElement.getBoundingClientRect().width,
+      columns: getComputedStyle(element).gridTemplateColumns.split(' ').length,
+      hashOverflow: Math.max(0, ...[...element.querySelectorAll('.bp-hash')]
+        .map((hash) => hash.scrollWidth - hash.clientWidth)),
+    }));
+    expect(layout.width).toBeLessThanOrEqual(layout.parentWidth + 1);
+    expect(layout.columns).toBe(1);
+    expect(layout.hashOverflow).toBeLessThanOrEqual(1);
+  }
   await assertNoPageOverflow(page);
   await screenshot(page, testInfo, 'hard-mining');
 });
