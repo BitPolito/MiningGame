@@ -1346,6 +1346,51 @@ button.bp-candidate-slot--filled:focus-visible {
   border: 0;
 }
 
+.bp-room-invite__link-panel {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-50);
+  text-align: left;
+}
+
+.bp-room-invite__link-panel strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--bp-text-muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.bp-room-invite__link-value {
+  display: block;
+  max-width: 100%;
+  color: var(--bp-blue);
+  font-family: var(--bp-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+  user-select: all;
+  word-break: break-word;
+}
+
+.bp-room-invite__link-value:hover {
+  text-decoration: underline;
+}
+
+.bp-room-invite__link-value:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--bp-blue);
+  outline-offset: 3px;
+}
+
 .bp-room-invite__copy-fallback {
   display: grid;
   gap: 6px;
@@ -1839,6 +1884,11 @@ button.bp-candidate-slot--filled:focus-visible {
 }
 
 @media (max-width: 560px) {
+  .bp-room-invite--compact .bp-room-invite__show-link {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
   .bp-room-invite--compact {
     grid-template-columns: 1fr;
     text-align: center;
@@ -3146,7 +3196,7 @@ button.bp-candidate-slot--filled:focus-visible {
 
 .bp-balance-chip {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) minmax(34px, auto);
   grid-template-areas:
     "avatar name value"
     "avatar name reserved";
@@ -3179,22 +3229,23 @@ button.bp-candidate-slot--filled:focus-visible {
 .bp-balance-chip__value {
   grid-area: value;
   align-self: center;
-  justify-self: end;
+  justify-self: stretch;
   color: var(--bp-blue);
   font-family: var(--bp-mono);
   font-size: 0.88rem;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  text-align: right;
+  text-align: center;
 }
 
 .bp-balance-chip__reserved {
   grid-area: reserved;
-  justify-self: end;
+  justify-self: stretch;
   color: var(--bp-text-muted);
   font-size: 0.6rem;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  text-align: center;
 }
 
 .bp-balance-chip--changed {

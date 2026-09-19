@@ -116,8 +116,7 @@ function App() {
     setShowHowToPlay(true);
   };
 
-  const goHome = () => {
-    clearRoomSession();
+  const resetToMenu = () => {
     clearSoloSessionMeta();
     setSoloSession(null);
     setCurrentView('menu');
@@ -131,13 +130,21 @@ function App() {
     setPlayerGameState(null);
   };
 
+  const goHome = () => {
+    clearRoomSession();
+    resetToMenu();
+  };
+
+  const returnToMenu = () => {
+    resetToMenu();
+  };
+
   const shouldConfirmLeave = useCallback(() => {
     if (currentView === 'lobby_waiting' || currentView === 'lobby_finished') return true;
     if (currentView === 'host_dashboard') return true;
     if (currentView === 'game' && roomSeed) return true;
-    if (currentView === 'lobby_join' && joinPreview) return true;
     return false;
-  }, [currentView, roomSeed, joinPreview]);
+  }, [currentView, roomSeed]);
 
   const requestLeaveRoom = useCallback((action) => {
     leaveActionRef.current = action;
@@ -156,13 +163,13 @@ function App() {
     setLeaveConfirmOpen(false);
   };
 
-  const goHomeSafe = useCallback(() => {
+  const goHomeSafe = () => {
     if (shouldConfirmLeave()) {
-      requestLeaveRoom(goHome);
+      requestLeaveRoom(loadRoomSession() ? returnToMenu : goHome);
     } else {
       goHome();
     }
-  }, [shouldConfirmLeave, requestLeaveRoom]);
+  };
 
   const leaveDialog = leaveConfirmOpen ? (
     <ConfirmDialog
@@ -228,6 +235,21 @@ function App() {
     setSoloSession(session);
     setCurrentView('game');
   };
+  const handleResumeRoom = async () => {
+    const saved = loadRoomSession();
+    if (!saved?.seed || !saved?.sessionToken) return;
+    setErrorMsg('');
+    setRestoringSession(true);
+    const data = await rejoinRoom(saved.seed, saved.sessionToken);
+    setRestoringSession(false);
+    if (data.success) {
+      applyRejoinResult(data, saved.sessionToken);
+    } else {
+      clearRoomSession();
+      setErrorMsg(mapRoomError(data.error));
+    }
+  };
+
   const handleCreateRoom = async () => {
     clearSoloSessionMeta();
     setSoloSession(null);
@@ -556,11 +578,21 @@ function App() {
               <span className="menu-tagline__detail">{tr('menuSubtitleDetail')}</span>
             </p>
             <ApiStatusBanner />
+            {errorBlock}
             {restoringSession && (
               <p className="bp-restore-banner" role="status">{tr('rejoiningSession')}</p>
             )}
 
             <div className="bp-menu-actions">
+              {loadRoomSession() && !restoringSession && (
+                <ActionCard
+                  title={tr('resumeRoom')}
+                  description={tr('resumeRoomDesc', { code: loadRoomSession().seed })}
+                  iconSrc={ICON.wallet}
+                  variant="primary"
+                  onClick={handleResumeRoom}
+                />
+              )}
               <ActionCard
                 title={tr('playSolo')}
                 description={tr('playSoloDesc')}

@@ -11,6 +11,7 @@ export default function RoomInvite({ code, compact = false, featured = false }) 
   const { tr } = useLocale();
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
   const [qrSrc, setQrSrc] = useState('');
   const [qrOpen, setQrOpen] = useState(false);
   const [copyFallback, setCopyFallback] = useState('');
@@ -64,7 +65,25 @@ export default function RoomInvite({ code, compact = false, featured = false }) 
               <BpIcon src={ICON.wallet} className="bp-icon" tone="primary" />
               <span className="bp-btn__label">{copiedLink ? tr('copied') : tr('copyJoinLink')}</span>
             </button>
+            <button
+              type="button"
+              className="bp-btn bp-btn-outline bp-room-invite__show-link"
+              aria-expanded={linkOpen}
+              aria-controls="room-join-link"
+              onClick={() => setLinkOpen((open) => !open)}
+            >
+              <BpIcon src={ICON.info} className="bp-icon" tone="primary" />
+              <span className="bp-btn__label">{linkOpen ? tr('hideJoinLink') : tr('showJoinLink')}</span>
+            </button>
           </div>
+          {linkOpen && (
+            <div id="room-join-link" className="bp-room-invite__link-panel">
+              <strong>{tr('joinLinkLabel')}</strong>
+              <a href={joinUrl} target="_blank" rel="noreferrer" className="bp-room-invite__link-value">
+                {joinUrl}
+              </a>
+            </div>
+          )}
           <span className="bp-sr-only" role="status" aria-live="polite">
             {copiedCode || copiedLink ? tr('copied') : ''}
           </span>

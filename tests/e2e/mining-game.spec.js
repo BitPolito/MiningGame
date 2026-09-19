@@ -310,6 +310,30 @@ test('the create-room form assigns its suggested host name only on creation', as
   await expect(page.locator('.bp-host-dash .bp-capacity-summary')).toContainText('Mining slots3');
 });
 
+test('a host can return to the menu and securely resume the room', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Create Room/ }).click();
+  await page.getByLabel('Host name (organizer)').fill('Returning Host');
+  await page.getByRole('button', { name: 'Create Room', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Host dashboard' })).toBeVisible();
+  const code = (await page.locator('.bp-room-invite__code').first().textContent()).trim();
+
+  await page.getByRole('button', { name: 'Back to menu' }).click();
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog).toContainText('You can resume this session');
+  await dialog.getByRole('button', { name: 'Back to menu' }).click();
+
+  await expect(page.getByRole('button', { name: 'Resume room' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Resume room' })).toContainText(code);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('bp-room-session-v5')));
+  expect(saved).toMatchObject({ seed: code, role: 'host' });
+  expect(saved.sessionToken).toBeTruthy();
+
+  await page.getByRole('button', { name: 'Resume room' }).click();
+  await expect(page.getByRole('heading', { name: 'Host dashboard' })).toBeVisible();
+  await expect(page.locator('.bp-room-invite__code').first()).toHaveText(code);
+});
+
 test('a room code is easy to enter manually on another device', async ({ page, browser }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Create Room/ }).click();

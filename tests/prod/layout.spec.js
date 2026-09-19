@@ -158,6 +158,22 @@ test('Hard selection and dice remain usable without overlap', async ({ page }, t
   await expect(page.locator('.bp-panel--mempool-full .mempool-table tbody tr')).toHaveCount(15);
   await expect(page.getByText(/shake to roll/i)).toHaveCount(0);
   await selectOptimalTransactions(page, 'hard');
+  const balanceAlignment = await page.locator('.bp-balance-chip--changed').evaluateAll((chips) => chips.map((chip) => {
+    const box = chip.getBoundingClientRect();
+    const name = chip.querySelector('.bp-balance-chip__name').getBoundingClientRect();
+    const value = chip.querySelector('.bp-balance-chip__value').getBoundingClientRect();
+    const reserved = chip.querySelector('.bp-balance-chip__reserved').getBoundingClientRect();
+    const center = (rect, axis) => axis === 'x' ? rect.x + rect.width / 2 : rect.y + rect.height / 2;
+    return {
+      numericAxisDelta: Math.abs(center(value, 'x') - center(reserved, 'x')),
+      nameCenterDelta: Math.abs(center(name, 'y') - center(box, 'y')),
+      numericCenterDelta: Math.abs(((value.top + reserved.bottom) / 2) - center(box, 'y')),
+    };
+  }));
+  expect(balanceAlignment.length).toBeGreaterThan(0);
+  expect(Math.max(...balanceAlignment.map((item) => item.numericAxisDelta))).toBeLessThanOrEqual(1);
+  expect(Math.max(...balanceAlignment.map((item) => item.nameCenterDelta))).toBeLessThanOrEqual(2);
+  expect(Math.max(...balanceAlignment.map((item) => item.numericCenterDelta))).toBeLessThanOrEqual(2);
   const mobile = page.viewportSize().width <= 900;
   const control = mobile ? page.locator('.bp-mobile-mining-dock') : page.locator('.bp-panel--mining-action');
   if (mobile) {
@@ -209,6 +225,17 @@ test('spectator lobby and host dashboard show a scannable expandable QR', async 
     expect(controlBox.y).toBeGreaterThan(inviteBox.y + inviteBox.height - 2);
   }
   await expect(overview).toBeVisible();
+  const showLink = page.getByRole('button', { name: 'Show join link' });
+  await showLink.click();
+  const joinLink = page.locator('.bp-room-invite__link-value');
+  await expect(joinLink).toBeVisible();
+  await expect(joinLink).toHaveAttribute('href', /[?&]join=[A-Z0-9]+$/);
+  const linkLayout = await joinLink.evaluate((element) => ({
+    overflow: element.scrollWidth - element.clientWidth,
+    panelOverflow: element.parentElement.scrollWidth - element.parentElement.clientWidth,
+  }));
+  expect(linkLayout.overflow).toBeLessThanOrEqual(1);
+  expect(linkLayout.panelOverflow).toBeLessThanOrEqual(1);
   const qr = page.getByRole('button', { name: 'Open a larger QR code' });
   await expect(qr.locator('svg, canvas, img')).toBeVisible();
   const codeBox = await page.locator('.bp-room-invite--featured .bp-room-invite__code-block').boundingBox();
