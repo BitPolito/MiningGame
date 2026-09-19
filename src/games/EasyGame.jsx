@@ -8,7 +8,7 @@ import { useGameNotice } from '../hooks/useGameNotice';
 import PanelCard from '../components/PanelCard';
 import MempoolTable from '../components/game/MempoolTable';
 import MempoolNameGuide from '../components/game/MempoolNameGuide';
-import BalanceSheetTable from '../components/game/BalanceSheetTable';
+import AvailableBalances from '../components/game/AvailableBalances';
 import MempoolRulesPanel from '../components/game/MempoolRulesPanel';
 import CollapsibleSection from '../components/game/CollapsibleSection';
 import GameWorkspaceLayout from '../components/game/GameWorkspaceLayout';
@@ -342,15 +342,12 @@ export default function EasyGame({
                         <MempoolRulesPanel variant="compact" />
                       </CollapsibleSection>
                     </div>
-                    <div className="bp-mempool-quick-tools">
-                      <CollapsibleSection
-                        title={tr('balanceSheet')}
-                        iconSrc={ICON.coin}
-                        defaultOpen={false}
-                      >
-                        <BalanceSheetTable columns={columns} balanceHistory={balanceHistory} />
-                      </CollapsibleSection>
-                    </div>
+                    <AvailableBalances
+                      balances={currentBalances}
+                      balanceHistory={balanceHistory}
+                      mempool={mempool}
+                      selectedTxIds={selectedTxIds}
+                    />
                     <MempoolTable
                       transactions={mempool}
                       selectedIds={selectedTxIds}

@@ -1510,9 +1510,21 @@ a.bp-btn--link {
 }
 
 .bp-collapse__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   color: var(--bp-500);
+  line-height: 0;
   transition: transform 0.2s;
   flex-shrink: 0;
+}
+
+.bp-collapse__chevron svg {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 .bp-collapse__chevron--open {

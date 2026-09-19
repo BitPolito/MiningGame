@@ -11,6 +11,16 @@ export function getTransactionsInSelectionOrder(mempool, selectedTxIds) {
   return selectedTxIds.map((id) => byId.get(id)).filter(Boolean);
 }
 
+/** Spendable balances while composing a block; pending incoming funds are not spendable yet. */
+export function getAvailableBalances(balances, mempool, selectedTxIds) {
+  const available = { ...balances };
+  for (const tx of getTransactionsInSelectionOrder(mempool, selectedTxIds)) {
+    if (available[tx.sender] == null) continue;
+    available[tx.sender] -= tx.amount + tx.fee;
+  }
+  return available;
+}
+
 export function isSelectionAffordable(transactions, balances) {
   const costs = {};
   for (const tx of transactions) {

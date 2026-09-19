@@ -28,7 +28,8 @@ export default function MempoolTable({
   rejectionMessage = '',
 }) {
   const { tr } = useLocale();
-  const selectable = !!onToggle && !disabled;
+  const hasSelectionControl = !!onToggle;
+  const selectable = hasSelectionControl && !disabled;
 
   if (!transactions.length) {
     return (
@@ -43,7 +44,7 @@ export default function MempoolTable({
       <table className="bp-table mempool-table">
         <thead>
           <tr>
-            {selectable && <th className="mempool-col-check" aria-hidden />}
+            {hasSelectionControl && <th className="mempool-col-check" aria-hidden />}
             <th className="mempool-col-id">#</th>
             <th className="mempool-col-player">{tr('colFrom')}</th>
             <th className="mempool-col-player">{tr('colTo')}</th>
@@ -55,6 +56,7 @@ export default function MempoolTable({
           {transactions.map((tx) => {
             const id = tx.id;
             const isSelected = selectedIds.includes(id);
+            const selectionOrder = selectedIds.indexOf(id) + 1;
             const canClick = selectable;
 
             return (
@@ -79,15 +81,21 @@ export default function MempoolTable({
                     : undefined
                 }
                 tabIndex={canClick ? 0 : undefined}
-                role={canClick ? 'button' : undefined}
-                aria-pressed={isSelected}
+                role={hasSelectionControl ? 'button' : undefined}
+                aria-disabled={hasSelectionControl ? disabled : undefined}
+                aria-pressed={hasSelectionControl ? isSelected : undefined}
                 aria-describedby={rejectedId === id && rejectionMessage ? 'mempool-selection-error' : undefined}
               >
-                {selectable && (
+                {hasSelectionControl && (
                   <td className="mempool-col-check">
                     {isSelected ? (
-                      <span className="mempool-check" aria-hidden>
-                        ✓
+                      <span className="mempool-check-wrap" aria-hidden>
+                        <span className="mempool-check">
+                          ✓
+                        </span>
+                        <span className="mempool-selection-order">
+                          {selectionOrder}
+                        </span>
                       </span>
                     ) : (
                       <span className="mempool-check mempool-check--empty" aria-hidden />

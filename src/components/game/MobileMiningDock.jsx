@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocale } from '../../i18n/LocaleContext';
+import ChevronDownIcon from './ChevronDownIcon';
 
 export default function MobileMiningDock({ summary, details, activity, stageLabel, variant, children }) {
   const { tr } = useLocale();
@@ -22,7 +23,7 @@ export default function MobileMiningDock({ summary, details, activity, stageLabe
             onClick={() => setExpanded((value) => !value)}
           >
             <span>{tr(expanded ? 'collapseMiningController' : 'expandMiningController')}</span>
-            <span aria-hidden className="bp-mobile-mining-dock__chevron">⌄</span>
+            <span className="bp-mobile-mining-dock__chevron"><ChevronDownIcon /></span>
           </button>
         )}
       </div>

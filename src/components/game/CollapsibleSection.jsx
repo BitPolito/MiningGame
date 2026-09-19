@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BpIcon from '../BpIcon';
+import ChevronDownIcon from './ChevronDownIcon';
 
 export default function CollapsibleSection({
   title,
@@ -29,10 +30,8 @@ export default function CollapsibleSection({
           )}
           <span className="bp-collapse__title">{title}</span>
         </span>
-        <span className={`bp-collapse__chevron${open ? ' bp-collapse__chevron--open' : ''}`} aria-hidden>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+        <span className={`bp-collapse__chevron${open ? ' bp-collapse__chevron--open' : ''}`}>
+          <ChevronDownIcon />
         </span>
       </button>
       {open && <div className="bp-collapse__body">{children}</div>}

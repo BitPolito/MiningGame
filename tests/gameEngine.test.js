@@ -11,6 +11,7 @@ import {
 import { pickGreedySelection } from '../src/lib/playability.js';
 import {
   evaluateBlockSelection,
+  getAvailableBalances,
   getMaximumFeeTotal,
   getTransactionsInSelectionOrder,
 } from '../src/lib/txSelection.js';
@@ -86,6 +87,15 @@ describe('maximum-fee transaction selection', () => {
     expect(getMaximumFeeTotal(mempool, balances)).toBe(24);
     expect(evaluateBlockSelection(mempool, [1, 2, 3], balances)).toMatchObject({ ok: true, totalFees: 24 });
     expect(evaluateBlockSelection(mempool, [1, 2, 4], balances).error).toBe('FEES_NOT_MAXIMIZED');
+  });
+
+  it('shows spendable balances without treating pending incoming funds as available', () => {
+    expect(getAvailableBalances(balances, mempool, [1, 2])).toEqual({
+      Alice: 81,
+      Bob: 82,
+      Carol: 100,
+      Dave: 100,
+    });
   });
 
   it('accepts ties and reports cumulative sender balance separately', () => {

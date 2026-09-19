@@ -35,6 +35,18 @@ async function clickMempoolRows(page, indexes) {
   for (const index of indexes) await rows.nth(index).click();
 }
 
+async function inlineCenterDelta(control, labelSelector, iconSelector) {
+  return control.evaluate((element, selectors) => {
+    const label = element.querySelector(selectors.label);
+    const icon = element.querySelector(selectors.icon);
+    const labelRect = label.getBoundingClientRect();
+    const iconRect = icon.getBoundingClientRect();
+    const labelCenter = labelRect.top + labelRect.height / 2;
+    const iconCenter = iconRect.top + iconRect.height / 2;
+    return Math.abs(labelCenter - iconCenter);
+  }, { label: labelSelector, icon: iconSelector });
+}
+
 test('menu remains usable without horizontal overflow', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle(/Block Mining Game/);
@@ -69,14 +81,32 @@ test('mining workspace adapts and block details work by keyboard', async ({ page
   await expect(dock)[mobile ? 'toBeVisible' : 'toBeHidden']();
   await expect(summary)[mobile ? 'toBeHidden' : 'toBeVisible']();
   await expect(compactRoute)[mobile ? 'toBeVisible' : 'toBeHidden']();
+  await expect(page.locator('.bp-available-balances')).toBeVisible();
+  await expect(page.locator('.bp-balance-chip')).toHaveCount(4);
+  await expect(page.locator('.bp-mempool-quick-tools')).toHaveCount(0);
+
+  const historyToggle = page.getByRole('button', { name: 'Show history' });
+  expect(await inlineCenterDelta(historyToggle, '.bp-available-balances__history-label', 'svg')).toBeLessThanOrEqual(1);
+  const candidateToggle = page.locator('.bp-mempool-intro .bp-collapse__trigger').first();
+  expect(await inlineCenterDelta(candidateToggle, '.bp-collapse__title', 'svg')).toBeLessThanOrEqual(1);
+  await historyToggle.click();
+  await expect(page.getByRole('button', { name: 'Hide history' })).toBeVisible();
+  await expect(page.locator('.bp-balance-history-card').first())[mobile ? 'toBeVisible' : 'toBeHidden']();
+  await expect(page.locator('.balance-sheet-table'))[mobile ? 'toBeHidden' : 'toBeVisible']();
+  await page.getByRole('button', { name: 'Hide history' }).click();
+  await expect(page.locator('.balance-sheet-table')).toHaveCount(0);
 
   if (mobile) {
+    const dockHandle = dock.locator('.bp-mobile-mining-dock__handle');
+    expect(await inlineCenterDelta(dockHandle, 'span:first-child', 'svg')).toBeLessThanOrEqual(1);
+
     const rows = page.locator('.bp-panel--mempool-full .mempool-table tbody tr');
     for (let index = 0; index < await rows.count(); index += 1) {
       await rows.nth(index).click();
       if (await rows.nth(index).getAttribute('aria-pressed') === 'true') break;
     }
-    const dock = page.locator('.bp-mobile-mining-dock');
+    await expect(page.locator('.bp-balance-chip--changed')).toHaveCount(1);
+    await expect(page.locator('.mempool-selection-order')).toHaveText('1');
     await expect(dock.locator('.bp-candidate-slot--filled')).toHaveCount(1);
     await dock.locator('.bp-candidate-slot--filled').click();
     await expect(dock.locator('.bp-candidate-slot--filled')).toHaveCount(0);
@@ -114,6 +144,12 @@ test('Easy keeps arithmetic manual, rejects lower fees at mining and restores a 
   await controls.action.click();
   await expect(page.getByText(/earned .* fees/).first()).toBeVisible();
   await expect(page.locator('.bp-chain__node--latest')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Show history' }).click();
+  await expect(page.locator('.balance-sheet-table th')).toHaveCount(3);
+  await expect(page.locator('.bp-balance-history-card')).toHaveCount(2);
+  await expect(page.locator('.bp-balance-history-card').last())[controls.mobile ? 'toBeVisible' : 'toBeHidden']();
+  await page.getByRole('button', { name: 'Hide history' }).click();
+
   await page.locator('.bp-chain__node--latest').click();
   await expect(page.getByRole('dialog')).toContainText('Block #1');
   await page.getByRole('dialog').getByRole('button', { name: 'Previous block' }).click();
@@ -164,8 +200,14 @@ test('Hard validates fees before PoW and restores dice progress', async ({ page 
   await startSolo(page, 'hard');
   const optimal = await optimalIndexes(page, 'hard');
   await clickMempoolRows(page, optimal.indexes);
+  const firstMempoolRow = page.locator('.bp-panel--mempool-full .mempool-table tbody tr').first();
+  const columnCount = await firstMempoolRow.locator('td').count();
+  expect(columnCount).toBe(6);
   const controls = await visibleMiningControls(page, 'Roll the dice');
-  await controls.action.click();
+  await controls.action.evaluate((button) => button.click());
+  await page.waitForTimeout(50);
+  await expect(firstMempoolRow).toHaveAttribute('aria-disabled', 'true');
+  await expect(firstMempoolRow.locator('td')).toHaveCount(columnCount);
   if (controls.mobile) {
     await expect(controls.dock.locator('.bp-compact-dice .bp-die:not(.bp-die--empty)')).toHaveCount(4);
     await expect(controls.dock.locator('.bp-mobile-pow__readout')).toContainText('1 roll so far');

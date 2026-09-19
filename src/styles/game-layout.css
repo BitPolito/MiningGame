@@ -1076,9 +1076,21 @@ button.bp-candidate-slot--filled:focus-visible {
   }
 
   .bp-mobile-mining-dock__chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
     color: var(--bp-blue);
-    font-size: 0.9rem;
+    line-height: 0;
     transition: transform 0.18s ease;
+  }
+
+  .bp-mobile-mining-dock__chevron svg {
+    display: block;
+    width: 14px;
+    height: 14px;
   }
 
   .bp-mobile-mining-dock--expanded .bp-mobile-mining-dock__chevron {
@@ -3010,4 +3022,342 @@ button.bp-candidate-slot--filled:focus-visible {
 
 .bp-pow-toolbar__actions .bp-pow-toolbar__btn {
   margin-left: 0;
+}
+
+/* Live spendable balances and a more tactile mempool. */
+.bp-available-balances {
+  margin: 0 12px 10px;
+  padding: 10px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-50);
+}
+
+.bp-available-balances__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.bp-available-balances__head strong {
+  color: var(--bp-text);
+  font-size: 0.78rem;
+}
+
+.bp-available-balances__copy > span {
+  color: var(--bp-text-muted);
+  font-size: 0.68rem;
+  text-align: right;
+}
+
+.bp-available-balances__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.bp-balance-chip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "avatar name value"
+    "avatar reserved reserved";
+  align-items: center;
+  column-gap: 6px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-white);
+}
+
+.bp-balance-chip > .player-avatar {
+  grid-area: avatar;
+}
+
+.bp-balance-chip__name {
+  grid-area: name;
+  overflow: hidden;
+  color: var(--bp-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bp-balance-chip__value {
+  grid-area: value;
+  color: var(--bp-blue);
+  font-family: var(--bp-mono);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bp-balance-chip__reserved {
+  grid-area: reserved;
+  justify-self: end;
+  color: var(--bp-text-muted);
+  font-size: 0.6rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.bp-balance-chip--changed {
+  border-color: color-mix(in srgb, var(--bp-blue) 35%, var(--bp-200));
+  background: color-mix(in srgb, var(--bp-blue) 5%, var(--bp-white));
+}
+
+.mempool-check-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.mempool-selection-order {
+  position: absolute;
+  right: -7px;
+  bottom: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--bp-white);
+  border-radius: 50%;
+  background: var(--bp-blue);
+  color: var(--bp-white);
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+@media (max-width: 700px) {
+  .bp-available-balances__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .bp-available-balances {
+    position: sticky;
+    z-index: 4;
+    top: 8px;
+    margin: 0 8px 8px;
+    padding: 8px;
+    box-shadow: var(--bp-shadow-sm);
+  }
+
+  .bp-available-balances__head {
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .bp-available-balances__head strong {
+    font-size: 0.72rem;
+  }
+
+  .bp-available-balances__copy > span {
+    max-width: 55%;
+    font-size: 0.59rem;
+    line-height: 1.15;
+  }
+
+  .bp-available-balances__grid {
+    gap: 5px;
+  }
+
+  .bp-balance-chip {
+    min-height: 36px;
+    padding: 4px 6px;
+  }
+
+  .bp-balance-chip__name {
+    font-size: 0.68rem;
+  }
+
+  .bp-balance-chip__value {
+    font-size: 0.8rem;
+  }
+
+  .mempool-table tbody {
+    display: grid;
+    gap: 8px;
+    padding: 4px 8px 10px;
+  }
+
+  .mempool-table tbody tr {
+    grid-template-columns: 42px 30px minmax(0, 1fr);
+    min-height: 64px;
+    border: 1px solid var(--bp-200);
+    border-radius: var(--bp-radius-sm);
+    background: var(--bp-white);
+    box-shadow: var(--bp-shadow-xs);
+    overflow: hidden;
+  }
+
+  .mempool-table tbody tr.bp-row--picked {
+    border-color: var(--bp-blue);
+    box-shadow: inset 4px 0 0 var(--bp-blue), var(--bp-shadow-xs);
+  }
+
+  .mempool-table td.mempool-col-check {
+    padding-left: 9px;
+  }
+}
+
+.bp-available-balances__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bp-available-balances__copy > span {
+  text-align: left;
+}
+
+.bp-available-balances__history-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--bp-200);
+  border-radius: var(--bp-radius-sm);
+  background: var(--bp-white);
+  color: var(--bp-blue);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bp-available-balances__history-toggle:hover {
+  border-color: var(--bp-blue);
+}
+
+.bp-available-balances__history-toggle:focus-visible {
+  border-color: var(--bp-blue);
+  outline: 2px solid var(--bp-blue);
+  outline-offset: 1px;
+}
+
+.bp-available-balances__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  line-height: 0;
+  transition: transform 160ms ease;
+}
+
+.bp-available-balances__chevron svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.bp-available-balances__chevron--open {
+  transform: rotate(180deg);
+}
+
+.bp-available-balances__history {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bp-200);
+}
+
+.bp-available-balances__history .balance-sheet-table {
+  padding: 0;
+}
+
+.bp-balance-history-mobile {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .bp-available-balances__head {
+    align-items: center;
+  }
+
+  .bp-available-balances__copy > span {
+    max-width: none;
+  }
+
+  .bp-available-balances__history-toggle {
+    min-height: 28px;
+    padding: 3px 6px;
+    font-size: 0.62rem;
+  }
+
+  .bp-available-balances__history {
+    max-height: min(42dvh, 330px);
+    margin-top: 8px;
+    padding-top: 8px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .bp-available-balances__history .balance-sheet-table {
+    display: none;
+  }
+
+  .bp-balance-history-mobile {
+    display: grid;
+    gap: 7px;
+  }
+
+  .bp-balance-history-card {
+    padding: 7px;
+    border: 1px solid var(--bp-200);
+    border-radius: var(--bp-radius-sm);
+    background: var(--bp-white);
+  }
+
+  .bp-balance-history-card__title {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--bp-blue);
+    font-size: 0.68rem;
+  }
+
+  .bp-balance-history-card dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 8px;
+    margin: 0;
+  }
+
+  .bp-balance-history-card dl > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .bp-balance-history-card dt {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    color: var(--bp-text-muted);
+    font-size: 0.62rem;
+  }
+
+  .bp-balance-history-card dd {
+    margin: 0;
+    color: var(--bp-text);
+    font-family: var(--bp-mono);
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
 }
