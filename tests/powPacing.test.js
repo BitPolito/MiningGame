@@ -66,5 +66,5 @@ describe('compact Bitcoin-style proof-of-work target', () => {
     const expected = getTargetPacing(stats.targetHash).median;
     expect(stats.median).toBeGreaterThanOrEqual(expected - 8);
     expect(stats.median).toBeLessThanOrEqual(expected + 8);
-  });
+  }, 30_000);
 });

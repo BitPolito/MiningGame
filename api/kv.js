@@ -5,19 +5,46 @@ import { Redis } from '@upstash/redis';
 
 export const ROOM_TTL_SECONDS = 24 * 60 * 60;
 const isHosted = Boolean(process.env.VERCEL || process.env.NODE_ENV === 'production');
-export function getRedisConfig(env = process.env) {
-  return {
-    url: env.MINING_GAME_KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL,
-    token: env.MINING_GAME_KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN,
-  };
+
+export function getRedisConfigs(env = process.env) {
+  const candidates = [
+    {
+      source: 'mining-game-kv',
+      url: env.MINING_GAME_KV_REST_API_URL,
+      token: env.MINING_GAME_KV_REST_API_TOKEN,
+    },
+    {
+      source: 'upstash',
+      url: env.UPSTASH_REDIS_REST_URL,
+      token: env.UPSTASH_REDIS_REST_TOKEN,
+    },
+    {
+      source: 'vercel-kv',
+      url: env.KV_REST_API_URL,
+      token: env.KV_REST_API_TOKEN,
+    },
+  ];
+  const seen = new Set();
+  return candidates.filter(({ url, token }) => {
+    if (!url || !token) return false;
+    const key = `${url}\u0000${token}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
-const { url: redisUrl, token: redisToken } = getRedisConfig();
-const hasRedis = Boolean(redisUrl && redisToken);
+export function getRedisConfig(env = process.env) {
+  const config = getRedisConfigs(env)[0];
+  return config ? { url: config.url, token: config.token } : { url: undefined, token: undefined };
+}
 
-const redis = hasRedis
-  ? new Redis({ url: redisUrl, token: redisToken, automaticDeserialization: false })
-  : null;
+const redisClients = getRedisConfigs().map((config) => ({
+  ...config,
+  client: new Redis({ url: config.url, token: config.token, automaticDeserialization: false }),
+}));
+let activeRedis = null;
+let redisSelection = null;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '..', '.data');
@@ -28,10 +55,53 @@ function ensureLocalDataDir() {
 }
 
 function requireStorage() {
-  if (isHosted && !redis) {
+  if (isHosted && redisClients.length === 0) {
     const error = new Error('Upstash Redis is not configured');
     error.code = 'STORAGE_UNAVAILABLE';
     throw error;
+  }
+}
+
+function storageUnavailable(cause) {
+  const error = new Error('Upstash Redis is unavailable', { cause });
+  error.code = 'STORAGE_UNAVAILABLE';
+  return error;
+}
+
+async function selectRedis() {
+  requireStorage();
+  if (redisClients.length === 0) return null;
+  if (activeRedis) return activeRedis;
+  if (redisSelection) return redisSelection;
+
+  redisSelection = (async () => {
+    let lastError;
+    for (const candidate of redisClients) {
+      try {
+        if (await candidate.client.ping() === 'PONG') {
+          activeRedis = candidate.client;
+          return activeRedis;
+        }
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw storageUnavailable(lastError);
+  })();
+
+  try {
+    return await redisSelection;
+  } finally {
+    redisSelection = null;
+  }
+}
+
+async function withRedis(operation) {
+  const redis = await selectRedis();
+  try {
+    return await operation(redis);
+  } catch (error) {
+    throw storageUnavailable(error);
   }
 }
 
@@ -55,25 +125,28 @@ function parse(value) {
 }
 
 export const kv = {
-  kind: redis ? 'upstash' : isHosted ? 'unavailable' : 'local',
+  kind: redisClients.length > 0 ? 'upstash' : isHosted ? 'unavailable' : 'local',
 
   async ping() {
     requireStorage();
-    if (redis) return (await redis.ping()) === 'PONG';
+    if (redisClients.length > 0) {
+      await selectRedis();
+      return true;
+    }
     readLocal();
     return true;
   },
 
   async get(key) {
     requireStorage();
-    if (redis) return parse(await redis.get(key));
+    if (redisClients.length > 0) return parse(await withRedis((redis) => redis.get(key)));
     return readLocal()[key] ?? null;
   },
 
   async set(key, value) {
     requireStorage();
-    if (redis) {
-      await redis.set(key, JSON.stringify(value), { ex: ROOM_TTL_SECONDS });
+    if (redisClients.length > 0) {
+      await withRedis((redis) => redis.set(key, JSON.stringify(value), { ex: ROOM_TTL_SECONDS }));
       return true;
     }
     const data = readLocal();
@@ -84,8 +157,12 @@ export const kv = {
 
   async setIfAbsent(key, value) {
     requireStorage();
-    if (redis) {
-      return (await redis.set(key, JSON.stringify(value), { nx: true, ex: ROOM_TTL_SECONDS })) === 'OK';
+    if (redisClients.length > 0) {
+      return (await withRedis((redis) => redis.set(
+        key,
+        JSON.stringify(value),
+        { nx: true, ex: ROOM_TTL_SECONDS },
+      ))) === 'OK';
     }
     const data = readLocal();
     if (data[key] != null) return false;
@@ -96,7 +173,7 @@ export const kv = {
 
   async compareAndSet(key, expected, value) {
     requireStorage();
-    if (redis) {
+    if (redisClients.length > 0) {
       const script = `
         local current = redis.call('GET', KEYS[1])
         if current == ARGV[1] then
@@ -105,11 +182,11 @@ export const kv = {
         end
         return 0
       `;
-      const changed = await redis.eval(
+      const changed = await withRedis((redis) => redis.eval(
         script,
         [key],
         [JSON.stringify(expected), JSON.stringify(value), String(ROOM_TTL_SECONDS)],
-      );
+      ));
       return Number(changed) === 1;
     }
     const data = readLocal();
